@@ -334,7 +334,7 @@
   .seg-control.primary-picker button {
     font-weight: 600;
     color: #2b496e;
-    padding: 5px 11px;
+    padding: 4px 10px;
   }
   .seg-control button.active {
     background: var(--bg-card);
@@ -579,7 +579,7 @@
   }
   .witness-drawer.open { display: block; }
 
-  /* Reading Stage Split: Vertical Primary Text + Optional English Final Product Pane */
+  /* Reading Stage Split: Vertical Primary/Kakikudashi Canvas + Optional English Final Product Pane */
   .reading-canvas-row {
     flex: 1;
     display: flex;
@@ -724,6 +724,10 @@
     color: var(--ink-muted);
     border-bottom: 1px dotted var(--border-strong);
   }
+  .doc-sent.kk-unassigned {
+    color: var(--ink-muted);
+    border-left: 1.5px dotted var(--danku-amber);
+  }
 
   /* Ruby Furigana Modes */
   ruby { ruby-align: center; }
@@ -767,7 +771,7 @@
   }
   .var-span:hover { background: var(--var-bg); }
 
-  /* Sentence Editor Window (Clean 1-Directional Pipeline: Primary -> [Kakikudashi] -> English) */
+  /* Sentence Editor Window (One-Directional Pipeline: Primary -> [Optional Kakikudashi] -> English Product) */
   .companion-window {
     display: none;
     background: var(--bg-card);
@@ -781,8 +785,8 @@
 
   .companion-window.mode-float {
     position: fixed;
-    width: min(1020px, 94vw);
-    max-height: 66vh;
+    width: min(1040px, 94vw);
+    max-height: 68vh;
     bottom: 18px;
     left: 280px;
     border-radius: 12px;
@@ -928,7 +932,7 @@
     font-size: 16.5px;
     line-height: 2.22;
     letter-spacing: 0.04em;
-    height: 142px;
+    height: 138px;
     width: 100%;
     overflow-x: auto;
     overflow-y: hidden;
@@ -1041,6 +1045,11 @@
     cursor: text;
     max-height: 145px;
     overflow-y: auto;
+  }
+  .en-mapper-box.jp-mapper {
+    font-family: var(--font-jp);
+    font-size: 13.5px;
+    line-height: 1.75;
   }
   .en-mapper-box::selection, .en-mapper-box *::selection {
     background: #264a78;
@@ -1199,13 +1208,19 @@
   <header class="topbar">
     <div class="topbar-left">
       <button class="btn" onclick="toggleSidebar()" title="Show/Hide Corpus Sidebar">☰ Corpus</button>
-      <span class="control-label">Primary Style:</span>
+
+      <div class="seg-control primary-picker" id="stageViewTabs">
+        <button id="tab_primary" class="active" onclick="setStageView('primary')">原文 漢文</button>
+        <button id="tab_kakikudashi" style="display:none;" onclick="setStageView('kakikudashi')">書き下し Kakikudashi</button>
+      </div>
+      <button class="btn btn-sm" id="addKkTopbarBtn" style="display:none;" onclick="enableKakikudashiFromTopbar()" title="Enable the optional 書き下し (Kakikudashi) layer and dedicated tab for this text">+ 書き下し</button>
+
       <select class="style-select" id="primaryStyleSelect" onchange="onChangePrimaryStyle(this.value)" title="Register of this document's primary source text">
         <option value="kanbun">漢文 Kanbun</option>
         <option value="wakan">和漢混じり文 Wakan</option>
         <option value="wabun">和文 Wabun</option>
       </select>
-      <button class="btn" id="enProductToggleBtn" onclick="toggleEnglishProductPane()" title="Show/Hide assembled English Translation product alongside the primary text">📖 English Product</button>
+      <button class="btn" id="enProductToggleBtn" onclick="toggleEnglishProductPane()" title="Show/Hide assembled English Translation product alongside the text">📖 English Product</button>
 
       <span class="control-label" style="margin-left:4px;">Ruby:</span>
       <div class="seg-control" id="rubyControl">
@@ -1312,8 +1327,8 @@
 
 <script>
 // ============================================================================
-// 1. SENTENCE TOKENIZER ("。") & ONE-DIRECTIONAL SCHEMA MIGRATION
-//    Pipeline: Primary Text (漢文 / 和漢混じり文 / 和文) -> [Optional 書き下し] -> English Product
+// 1. SENTENCE TOKENIZER ("。") & ONE-DIRECTIONAL SPAN-MAPPED SCHEMA
+//    Pipeline: Primary Text (漢文 / 和漢混じり文 / 和文) -> [Optional 書き下し (kkRanges)] -> English Product (enRanges)
 // ============================================================================
 const PRIMARY_STYLE_LABELS = {
   kanbun: { short: "漢文", full: "漢文 Kanbun", badgeCls: "kanbun" },
@@ -1370,119 +1385,146 @@ function splitByMaru(rawText) {
   return units;
 }
 
-function mapKakikudashiUnitsToPrimary(primaryCount, kkText, legacyKbMeta) {
-  const out = new Array(Math.max(1, primaryCount)).fill("");
-  const trimmed = (kkText || "").trim();
-  if (!trimmed) return out;
+function buildAutoKkRanges(primaryCount, kkText, legacyKbMeta) {
+  const rangesPerSent = Array.from({ length: Math.max(1, primaryCount) }, () => []);
+  const full = kkText || "";
+  if (!full.trim()) return rangesPerSent;
   if (primaryCount <= 1) {
-    out[0] = trimmed;
-    return out;
-  }
-  const kkUnits = splitByMaru(trimmed);
-  if (kkUnits.length === 0) return out;
-  if (kkUnits.length === primaryCount) {
-    for (let i = 0; i < primaryCount; i++) out[i] = kkUnits[i].text;
-    return out;
+    rangesPerSent[0] = [{ start: 0, end: full.length, snapshot: full }];
+    return rangesPerSent;
   }
 
-  // If legacy pairStart..pairEnd ranges exist, partition each shared group proportionally
+  const kkUnits = splitByMaru(full);
+  if (kkUnits.length === 0) {
+    rangesPerSent[0] = [{ start: 0, end: full.length, snapshot: full }];
+    return rangesPerSent;
+  }
+
+  if (kkUnits.length === primaryCount) {
+    for (let i = 0; i < primaryCount; i++) {
+      const u = kkUnits[i];
+      rangesPerSent[i] = [{ start: u.start, end: u.end, snapshot: full.slice(u.start, u.end) }];
+    }
+    return rangesPerSent;
+  }
+
   if (Array.isArray(legacyKbMeta) && legacyKbMeta.length > 0) {
-    const claimed = new Set();
-    let i = 0;
-    while (i < primaryCount) {
+    for (let i = 0; i < primaryCount; i++) {
       const m = legacyKbMeta[i] || {};
       const ps = Math.max(0, Math.min(kkUnits.length - 1, m.pairStart ?? Math.min(i, kkUnits.length - 1)));
       const pe = Math.max(ps, Math.min(kkUnits.length - 1, m.pairEnd ?? ps));
-      let j = i + 1;
-      while (j < primaryCount) {
-        const mj = legacyKbMeta[j] || {};
-        if ((mj.pairStart ?? -1) === (m.pairStart ?? -2) && (mj.pairEnd ?? -1) === (m.pairEnd ?? -2)) j++;
-        else break;
-      }
-      const groupLen = j - i;
-      const avail = [];
-      for (let k = ps; k <= pe; k++) {
-        if (!claimed.has(k)) { avail.push(k); claimed.add(k); }
-      }
-      if (avail.length > 0) {
-        for (let g = 0; g < groupLen; g++) {
-          const a = Math.floor((g * avail.length) / groupLen);
-          const b = Math.floor(((g + 1) * avail.length) / groupLen);
-          out[i + g] = avail.slice(a, b).map(idx => kkUnits[idx].text).join("");
-        }
-      }
-      i = j;
+      const s = kkUnits[ps].start;
+      const e = kkUnits[pe].end;
+      rangesPerSent[i] = [{ start: s, end: e, snapshot: full.slice(s, e) }];
     }
-    const leftover = [];
-    for (let k = 0; k < kkUnits.length; k++) {
-      if (!claimed.has(k)) leftover.push(kkUnits[k].text);
-    }
-    if (leftover.length > 0) {
-      out[primaryCount - 1] = (out[primaryCount - 1] ? out[primaryCount - 1] : "") + leftover.join("");
-    }
-    return out;
+    return rangesPerSent;
   }
 
-  // Proportional fallback when bulk-pasting mismatched sentence counts
+  // Proportional alignment fallback when counts differ
   for (let i = 0; i < primaryCount; i++) {
     const a = Math.floor((i * kkUnits.length) / primaryCount);
-    const b = Math.floor(((i + 1) * kkUnits.length) / primaryCount);
-    out[i] = kkUnits.slice(a, b).map(u => u.text).join("");
+    const b = Math.max(a + 1, Math.floor(((i + 1) * kkUnits.length) / primaryCount));
+    if (a < kkUnits.length) {
+      const s = kkUnits[a].start;
+      const e = kkUnits[Math.min(kkUnits.length - 1, b - 1)].end;
+      rangesPerSent[i] = [{ start: s, end: e, snapshot: full.slice(s, e) }];
+    }
   }
-  return out;
+  return rangesPerSent;
 }
 
 function normalizeParagraphSchema(rawPara, docStyle) {
   if (!rawPara) {
-    return { id: "p1", label: "第1段", primaryText: "", englishText: "", sentMeta: [] };
+    return { id: "p1", label: "第1段", primaryText: "", kakikudashiText: "", englishText: "", sentMeta: [] };
   }
 
+  // v7 / v6 modern schema (has primaryText + sentMeta)
   if (typeof rawPara.primaryText === "string" && Array.isArray(rawPara.sentMeta)) {
     const pUnits = splitByMaru(rawPara.primaryText);
-    const sentMeta = rawPara.sentMeta.map(m => ({
-      kakikudashi: (m && m.kakikudashi) || "",
-      enRanges: Array.isArray(m && m.enRanges) ? m.enRanges : [],
-      notes: Array.isArray(m && m.notes) ? m.notes : []
-    }));
-    while (sentMeta.length < pUnits.length) {
-      sentMeta.push({ kakikudashi: "", enRanges: [], notes: [] });
+    const hasExplicitKkRanges = rawPara.sentMeta.some(m => Array.isArray(m && m.kkRanges));
+
+    let kakikudashiText = "";
+    let sentMeta = [];
+
+    if (hasExplicitKkRanges) {
+      kakikudashiText = typeof rawPara.kakikudashiText === "string"
+        ? (docStyle === "wabun" && rawPara.kakikudashiText === rawPara.primaryText ? "" : rawPara.kakikudashiText)
+        : "";
+      sentMeta = rawPara.sentMeta.map(m => ({
+        kkRanges: Array.isArray(m && m.kkRanges) ? JSON.parse(JSON.stringify(m.kkRanges)) : [],
+        enRanges: Array.isArray(m && m.enRanges) ? JSON.parse(JSON.stringify(m.enRanges)) : [],
+        notes: Array.isArray(m && m.notes) ? JSON.parse(JSON.stringify(m.notes)) : []
+      }));
+    } else {
+      // Upgrade v6 per-sentence m.kakikudashi strings into paragraph kakikudashiText + kkRanges
+      let cursor = 0;
+      const kkParts = [];
+      sentMeta = rawPara.sentMeta.map(m => {
+        const piece = ((m && m.kakikudashi) || "").trim();
+        let kkRanges = [];
+        if (piece) {
+          const s = cursor;
+          const e = cursor + piece.length;
+          kkParts.push(piece);
+          cursor = e;
+          kkRanges = [{ start: s, end: e, snapshot: piece }];
+        }
+        return {
+          kkRanges,
+          enRanges: Array.isArray(m && m.enRanges) ? JSON.parse(JSON.stringify(m.enRanges)) : [],
+          notes: Array.isArray(m && m.notes) ? JSON.parse(JSON.stringify(m.notes)) : []
+        };
+      });
+      kakikudashiText = kkParts.join("");
     }
-    return {
+
+    while (sentMeta.length < pUnits.length) {
+      sentMeta.push({ kkRanges: [], enRanges: [], notes: [] });
+    }
+    const paraObj = {
       id: rawPara.id || "p1",
       label: rawPara.label || "第1段",
       primaryText: rawPara.primaryText,
+      kakikudashiText,
       englishText: rawPara.englishText || "",
       sentMeta
     };
+    syncLayerSnapshots(paraObj, "kakikudashi");
+    syncLayerSnapshots(paraObj, "english");
+    return paraObj;
   }
 
-  // Migrate legacy schema (kanbunText / kakikudashiText / kbMeta / kkMeta)
+  // Legacy v5 schema (kanbunText / kakikudashiText / kbMeta / kkMeta)
   const isLegacyWabun = docStyle === "wabun" && !(rawPara.kanbunText || "").trim();
   const primaryText = isLegacyWabun ? (rawPara.kakikudashiText || "") : (rawPara.kanbunText || "");
   const legacyMeta = isLegacyWabun ? (rawPara.kkMeta || []) : (rawPara.kbMeta || []);
-  const legacyKkText = isLegacyWabun ? "" : (rawPara.kakikudashiText || "");
+  const kakikudashiText = isLegacyWabun ? "" : (rawPara.kakikudashiText || "");
 
   const pUnits = splitByMaru(primaryText);
-  const slotCount = Math.max(pUnits.length, legacyMeta.length, legacyKkText.trim() ? 1 : 0);
-  const mappedKk = mapKakikudashiUnitsToPrimary(slotCount, legacyKkText, legacyMeta);
+  const slotCount = Math.max(pUnits.length, legacyMeta.length, kakikudashiText.trim() ? 1 : 0);
+  const autoKkRanges = buildAutoKkRanges(slotCount, kakikudashiText, legacyMeta);
 
   const sentMeta = [];
   for (let i = 0; i < slotCount; i++) {
     const lm = legacyMeta[i] || {};
     sentMeta.push({
-      kakikudashi: mappedKk[i] || "",
+      kkRanges: autoKkRanges[i] || [],
       enRanges: Array.isArray(lm.enRanges) ? JSON.parse(JSON.stringify(lm.enRanges)) : [],
       notes: Array.isArray(lm.notes) ? JSON.parse(JSON.stringify(lm.notes)) : []
     });
   }
 
-  return {
+  const paraObj = {
     id: rawPara.id || "p1",
     label: rawPara.label || "第1段",
     primaryText,
+    kakikudashiText,
     englishText: rawPara.englishText || "",
     sentMeta
   };
+  syncLayerSnapshots(paraObj, "kakikudashi");
+  syncLayerSnapshots(paraObj, "english");
+  return paraObj;
 }
 
 function normalizeDocSchema(rawDoc) {
@@ -1491,7 +1533,7 @@ function normalizeDocSchema(rawDoc) {
     ? rawDoc.primaryStyle
     : (rawDoc.type === "wabun" ? "wabun" : "kanbun");
   const paragraphs = (rawDoc.paragraphs || []).map(p => normalizeParagraphSchema(p, primaryStyle));
-  const anyKk = paragraphs.some(p => (p.sentMeta || []).some(m => (m.kakikudashi || "").trim().length > 0));
+  const anyKk = paragraphs.some(p => (p.kakikudashiText || "").trim().length > 0);
   const explicitKk = typeof rawDoc.hasKakikudashi === "boolean";
   const hasKakikudashi = explicitKk
     ? rawDoc.hasKakikudashi
@@ -1535,12 +1577,12 @@ function serializeDocMetaForCloud(dObj, fallbackOrder) {
 
 function serializeParaForCloud(pObj, dObj) {
   const isWabun = dObj.primaryStyle === "wabun";
+  const kkFull = pObj.kakikudashiText || "";
   const sentMeta = (pObj.sentMeta || []).map(m => ({
-    kakikudashi: m.kakikudashi || "",
+    kkRanges: m.kkRanges || [],
     enRanges: m.enRanges || [],
     notes: m.notes || []
   }));
-  const joinedKk = sentMeta.map(m => m.kakikudashi || "").filter(Boolean).join("");
   const legacyMeta = sentMeta.map((m, idx) => ({
     enRanges: m.enRanges || [],
     pairStart: idx,
@@ -1551,11 +1593,11 @@ function serializeParaForCloud(pObj, dObj) {
     id: pObj.id,
     label: pObj.label,
     primaryText: pObj.primaryText || "",
+    kakikudashiText: isWabun && !dObj.hasKakikudashi ? "" : kkFull,
     englishText: pObj.englishText || "",
     sentMeta,
     // Backward-compatible mirror fields
     kanbunText: isWabun ? "" : (pObj.primaryText || ""),
-    kakikudashiText: isWabun ? (pObj.primaryText || "") : joinedKk,
     kbMeta: isWabun ? [] : legacyMeta,
     kkMeta: isWabun ? legacyMeta : [],
     updatedBy: getCurrentUserName(),
@@ -1566,7 +1608,9 @@ function serializeParaForCloud(pObj, dObj) {
 
 function createSeededParagraph(id, label, clauses) {
   const pParts = [];
+  const kkParts = [];
   const enParts = [];
+  let kkCursor = 0;
   let enCursor = 0;
   const sentMeta = [];
 
@@ -1574,6 +1618,15 @@ function createSeededParagraph(id, label, clauses) {
     const pStr = (c.primary !== undefined ? c.primary : (c.kanbun || c.kakikudashi || "")).trim();
     const kkStr = (c.primary !== undefined ? (c.kakikudashi || "") : (c.kanbun ? (c.kakikudashi || "") : "")).trim();
     const enStr = (c.english || "").trim();
+
+    let krBase = null;
+    if (kkStr) {
+      const s = kkCursor;
+      const e = kkCursor + kkStr.length;
+      kkParts.push(kkStr);
+      kkCursor = e;
+      krBase = { start: s, end: e, text: kkStr };
+    }
 
     let er = null;
     if (enStr) {
@@ -1588,10 +1641,15 @@ function createSeededParagraph(id, label, clauses) {
     if (pStr) {
       pParts.push(pStr);
       const cUnits = splitByMaru(pStr);
-      const kkMapped = mapKakikudashiUnitsToPrimary(cUnits.length, kkStr, null);
+      const subKkRanges = krBase ? buildAutoKkRanges(cUnits.length, krBase.text, null) : [];
       for (let i = 0; i < cUnits.length; i++) {
+        const kkRanges = (subKkRanges[i] || []).map(r => ({
+          start: krBase.start + r.start,
+          end: krBase.start + r.end,
+          snapshot: r.snapshot
+        }));
         sentMeta.push({
-          kakikudashi: kkMapped[i] || "",
+          kkRanges,
           enRanges: er ? [{ ...er }] : [],
           notes: i === 0 && c.notes ? JSON.parse(JSON.stringify(c.notes)) : []
         });
@@ -1603,6 +1661,7 @@ function createSeededParagraph(id, label, clauses) {
     id,
     label,
     primaryText: pParts.join(""),
+    kakikudashiText: kkParts.join(""),
     englishText: enParts.join(" "),
     sentMeta
   };
@@ -1884,18 +1943,22 @@ const STUB_COLLECTIONS = [
 // ============================================================================
 // 2. STATE & CLOUD SYNC ENGINE (FIREBASE SPARK + LOCAL FALLBACK)
 // ============================================================================
-const STORAGE_KEY = "setsuwa_workbench_v6_cloud";
-const LEGACY_STORAGE_KEY = "setsuwa_workbench_v5_cloud";
+const STORAGE_KEY = "setsuwa_workbench_v7_cloud";
+const PREV_STORAGE_KEYS = ["setsuwa_workbench_v6_cloud", "setsuwa_workbench_v5_cloud"];
 let state = loadLocalState();
 let activeDocId = state.corpus[0].id;
+let stageView = "primary"; // "primary" | "kakikudashi"
 let activeSelection = null; // { paraId, idx }
 let showEnglishProductPane = false;
+let showKkSpanMapper = false;
+let showFullKkParaEditor = false;
 let showEnSpanMapper = false;
 let showFullEnParaEditor = false;
 let windowMode = "float";
 let isScribe = true;
 let jpFontSize = 19;
-let pendingSelectionRange = null;
+let pendingKkSelectionRange = null;
+let pendingEnSelectionRange = null;
 let POPOVER_REGISTRY = {};
 
 const cloud = {
@@ -1952,7 +2015,13 @@ function hideCloudBanner() {
 
 function loadLocalState() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY);
+    let raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      for (const k of PREV_STORAGE_KEYS) {
+        raw = localStorage.getItem(k);
+        if (raw) break;
+      }
+    }
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && Array.isArray(parsed.corpus) && parsed.corpus.length > 0) {
@@ -2145,7 +2214,7 @@ function startFirestoreSync() {
     }
 
     remoteDocs.forEach(dObj => subscribeToDocParagraphs(dObj.id));
-    syncTopbarPrimaryStyle();
+    syncTopbarControls();
     renderSidebar();
     renderBanner();
     renderPrimaryStage();
@@ -2237,12 +2306,13 @@ function subscribeToDocParagraphs(docId) {
 
     if (!dObj._explicitHasKk) {
       dObj.hasKakikudashi = dObj.primaryStyle === "kanbun" &&
-        dObj.paragraphs.some(p => (p.sentMeta || []).some(m => (m.kakikudashi || "").trim().length > 0));
+        dObj.paragraphs.some(p => (p.kakikudashiText || "").trim().length > 0);
     }
 
     saveLocalState();
 
     if (docId === activeDocId) {
+      syncTopbarControls();
       renderPrimaryStage();
       if (activeSelection && !isActivelyTypingInCompanion()) {
         renderCompanionWindow();
@@ -2359,7 +2429,7 @@ async function seedStarterCorpusToCloud(customState) {
 }
 
 // ============================================================================
-// 3. CORE WORKBENCH RENDERING & ONE-DIRECTIONAL EDITING LOGIC
+// 3. CORE WORKBENCH RENDERING & ONE-DIRECTIONAL SPAN MAPPING ENGINE
 // ============================================================================
 function getActiveDoc() {
   return state.corpus.find(d => d.id === activeDocId) || state.corpus[0];
@@ -2369,33 +2439,61 @@ function getParaUnitsAndMeta(para) {
   const units = splitByMaru(para.primaryText || "");
   para.sentMeta = para.sentMeta || [];
   while (para.sentMeta.length < units.length) {
-    para.sentMeta.push({ kakikudashi: "", enRanges: [], notes: [] });
+    para.sentMeta.push({ kkRanges: [], enRanges: [], notes: [] });
   }
   return { units, metaArr: para.sentMeta };
 }
 
-function syncEnglishSnapshots(para) {
-  const en = para.englishText || "";
+function getLayerConfig(layerKind) {
+  if (layerKind === "kakikudashi") {
+    return { textField: "kakikudashiText", rangesField: "kkRanges", sep: "" };
+  }
+  return { textField: "englishText", rangesField: "enRanges", sep: " " };
+}
+
+function syncLayerSnapshots(para, layerKind) {
+  const { textField, rangesField } = getLayerConfig(layerKind);
+  const full = para[textField] || "";
   (para.sentMeta || []).forEach(m => {
-    (m.enRanges || []).forEach(r => {
+    (m[rangesField] || []).forEach(r => {
       if (r.start === null || r.end === null) return;
-      const currentSlice = en.slice(r.start, r.end);
+      const currentSlice = full.slice(r.start, r.end);
       if (r.snapshot && currentSlice !== r.snapshot) {
-        const found = en.indexOf(r.snapshot);
+        const found = full.indexOf(r.snapshot);
         if (found >= 0) {
           r.start = found;
           r.end = found + r.snapshot.length;
         } else {
-          r.start = Math.min(r.start, en.length);
-          r.end = Math.min(r.end, en.length);
-          r.snapshot = en.slice(r.start, r.end);
+          r.start = Math.min(r.start, full.length);
+          r.end = Math.min(r.end, full.length);
+          r.snapshot = full.slice(r.start, r.end);
         }
       } else {
         r.snapshot = currentSlice;
       }
     });
-    m.enRanges = (m.enRanges || []).filter(r => r.end > r.start);
+    m[rangesField] = (m[rangesField] || []).filter(r => r.end > r.start);
   });
+}
+
+function mergeRanges(fullText, ranges) {
+  const valid = (ranges || [])
+    .filter(r => typeof r.start === "number" && typeof r.end === "number" && r.end > r.start)
+    .sort((a, b) => a.start - b.start);
+  if (!valid.length) return [];
+  const out = [{ ...valid[0] }];
+  for (let i = 1; i < valid.length; i++) {
+    const prev = out[out.length - 1];
+    const cur = valid[i];
+    if (cur.start <= prev.end + 1) {
+      prev.end = Math.max(prev.end, cur.end);
+      prev.snapshot = fullText.slice(prev.start, prev.end);
+    } else {
+      out.push({ ...cur, snapshot: fullText.slice(cur.start, cur.end) });
+    }
+  }
+  out[0].snapshot = fullText.slice(out[0].start, out[0].end);
+  return out;
 }
 
 function parseFurigana(str) {
@@ -2441,23 +2539,71 @@ function renderJapaneseRich(raw, regPrefix) {
   return html;
 }
 
-function syncTopbarPrimaryStyle() {
+function syncTopbarControls() {
   const doc = getActiveDoc();
+  if (!doc) return;
+  const st = getPrimaryStyleInfo(doc.primaryStyle);
+
+  if (!doc.hasKakikudashi && stageView === "kakikudashi") {
+    stageView = "primary";
+  }
+
+  const tabPrim = document.getElementById("tab_primary");
+  const tabKk = document.getElementById("tab_kakikudashi");
+  const addKkBtn = document.getElementById("addKkTopbarBtn");
   const sel = document.getElementById("primaryStyleSelect");
-  if (!doc || !sel) return;
-  sel.value = doc.primaryStyle || "kanbun";
-  sel.disabled = !isScribe;
+
+  if (tabPrim) {
+    tabPrim.textContent = `原文 ${st.short}`;
+    tabPrim.classList.toggle("active", stageView === "primary");
+  }
+  if (tabKk) {
+    tabKk.style.display = doc.hasKakikudashi ? "inline-block" : "none";
+    tabKk.classList.toggle("active", stageView === "kakikudashi");
+  }
+  if (addKkBtn) {
+    addKkBtn.style.display = (!doc.hasKakikudashi && isScribe) ? "inline-flex" : "none";
+  }
+  if (sel) {
+    sel.value = doc.primaryStyle || "kanbun";
+    sel.disabled = !isScribe;
+  }
+}
+
+function setStageView(view) {
+  const doc = getActiveDoc();
+  if (!doc) return;
+  if (view === "kakikudashi" && !doc.hasKakikudashi) return;
+  stageView = view;
+  syncTopbarControls();
+  renderBanner();
+  renderPrimaryStage();
+}
+
+function enableKakikudashiFromTopbar() {
+  const doc = getActiveDoc();
+  if (!doc) return;
+  doc.hasKakikudashi = true;
+  doc._explicitHasKk = true;
+  stageView = "kakikudashi";
+  saveState(doc.id, null);
+  syncTopbarControls();
+  renderBanner();
+  renderPrimaryStage();
+  if (activeSelection) renderCompanionWindow();
 }
 
 function onChangePrimaryStyle(newStyle) {
   const doc = getActiveDoc();
   if (!doc || !PRIMARY_STYLE_LABELS[newStyle]) return;
   doc.primaryStyle = newStyle;
-  if (newStyle === "wabun" && !doc.paragraphs.some(p => (p.sentMeta || []).some(m => (m.kakikudashi || "").trim()))) {
+  if (newStyle === "wabun" && !doc.paragraphs.some(p => (p.kakikudashiText || "").trim())) {
     doc.hasKakikudashi = false;
     doc._explicitHasKk = true;
+    stageView = "primary";
   }
   saveState(doc.id, null);
+  syncTopbarControls();
   renderSidebar();
   renderBanner();
   renderPrimaryStage();
@@ -2476,7 +2622,13 @@ function toggleDocKakikudashiLayer() {
   if (!doc) return;
   doc.hasKakikudashi = !doc.hasKakikudashi;
   doc._explicitHasKk = true;
+  if (!doc.hasKakikudashi && stageView === "kakikudashi") {
+    stageView = "primary";
+  }
   saveState(doc.id, null);
+  syncTopbarControls();
+  renderBanner();
+  renderPrimaryStage();
   renderCompanionWindow();
 }
 
@@ -2513,9 +2665,10 @@ function renderSidebar() {
 function selectDoc(id) {
   activeDocId = id;
   activeSelection = null;
+  stageView = "primary";
   closePopover();
   closeCompanionWindow();
-  syncTopbarPrimaryStyle();
+  syncTopbarControls();
   renderSidebar();
   renderBanner();
   renderPrimaryStage();
@@ -2526,15 +2679,18 @@ function renderBanner() {
   const doc = getActiveDoc();
   if (!doc) return;
   const st = getPrimaryStyleInfo(doc.primaryStyle);
+  const viewHint = stageView === "kakikudashi"
+    ? "Viewing full 書き下し (click any passage to inspect or map to Primary sentences)"
+    : `Primary: <strong>${st.short}</strong> · Click any sentence to edit`;
   const banner = document.getElementById("paratextBanner");
   banner.innerHTML = `
     <div class="paratext-title-row">
       <div style="display:flex;align-items:baseline;flex-wrap:wrap;gap:6px;">
         <h2>${escapeHtml(doc.title)}</h2>
-        <span class="paratext-meta">${escapeHtml(doc.author)} · Primary: <strong>${st.short}</strong> · Click any sentence to edit</span>
+        <span class="paratext-meta">${escapeHtml(doc.author)} · ${viewHint}</span>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        <button class="btn btn-sm active" onclick="openRawTextModal()" title="Paste, edit, or clear raw Primary, Kakikudashi, or English text">📝 Feed / Edit Raw Text</button>
+        <button class="btn btn-sm active" onclick="openRawTextModal('${stageView === 'kakikudashi' ? 'kakikudashi' : 'primary'}')" title="Paste, edit, or clear raw Primary, Kakikudashi, or English text">📝 Feed / Edit Raw Text</button>
         <button class="btn btn-sm" onclick="toggleWitnessDrawer()">📜 Source &amp; Witness Info</button>
         ${!cloud.ready ? `<button class="btn btn-sm" onclick="resetDemoData()" title="Restore initial sample state">↺ Reset Demo</button>` : ""}
       </div>
@@ -2551,19 +2707,27 @@ function renderPrimaryStage() {
 
   const fnMap = buildFootnoteLookupMap(doc);
   let parasHtml = "";
+
   for (const p of doc.paragraphs) {
-    syncEnglishSnapshots(p);
+    syncLayerSnapshots(p, "kakikudashi");
+    syncLayerSnapshots(p, "english");
     const isBookmarked = doc.bookmarkAfterPara === p.id;
     const { units } = getParaUnitsAndMeta(p);
-    const sentsHtml = units.length > 0 ? units.map((u, idx) => {
-      const isActive = activeSelection &&
-        activeSelection.paraId === p.id &&
-        activeSelection.idx === idx;
-      const fnBadges = (fnMap[`${p.id}:${idx}`] || [])
-        .map(fn => `<span class="fn-badge" onclick="focusFootnote(event, ${fn.num})" title="Jump to Editorial Note ${fn.num}">${fn.num}</span>`)
-        .join("");
-      return `<span class="doc-sent ${isActive ? 'active-sent' : ''}" data-para="${p.id}" data-idx="${idx}" onclick="onPrimarySentClick(event, '${p.id}', ${idx})"><span class="ku-num">${idx + 1}</span>${renderJapaneseRich(u.text, `main_${p.id}_${idx}`)}${fnBadges}</span>`;
-    }).join("") : `<span class="doc-sent en-unassigned" style="font-size:13px;font-family:var(--font-ui);" onclick="openRawTextModal('primary')">［未入力 — クリックして原文を入力・貼付］</span>`;
+
+    let sentsHtml = "";
+    if (stageView === "kakikudashi") {
+      sentsHtml = renderKakikudashiParagraphInteractive(doc, p, fnMap);
+    } else {
+      sentsHtml = units.length > 0 ? units.map((u, idx) => {
+        const isActive = activeSelection &&
+          activeSelection.paraId === p.id &&
+          activeSelection.idx === idx;
+        const fnBadges = (fnMap[`${p.id}:${idx}`] || [])
+          .map(fn => `<span class="fn-badge" onclick="focusFootnote(event, ${fn.num})" title="Jump to Editorial Note ${fn.num}">${fn.num}</span>`)
+          .join("");
+        return `<span class="doc-sent ${isActive ? 'active-sent' : ''}" data-para="${p.id}" data-idx="${idx}" onclick="onPrimarySentClick(event, '${p.id}', ${idx})"><span class="ku-num">${idx + 1}</span>${renderJapaneseRich(u.text, `main_${p.id}_${idx}`)}${fnBadges}</span>`;
+      }).join("") : `<span class="doc-sent en-unassigned" style="font-size:13px;font-family:var(--font-ui);" onclick="openRawTextModal('primary')">［未入力 — クリックして原文を入力・貼付］</span>`;
+    }
 
     parasHtml += `
       <div class="tategaki-para">
@@ -2615,6 +2779,61 @@ function renderPrimaryStage() {
   }
 
   if (!isActivelyTypingInNotesRail()) renderNotesRail();
+}
+
+function renderKakikudashiParagraphInteractive(doc, para, fnMap) {
+  const kk = para.kakikudashiText || "";
+  if (!kk.trim()) {
+    return `<span class="doc-sent en-unassigned" style="font-size:13px;font-family:var(--font-ui);" onclick="openRawTextModal('kakikudashi')">［書き下し未入力 — クリックして入力・貼付］</span>`;
+  }
+
+  const { units, metaArr } = getParaUnitsAndMeta(para);
+  const bounds = new Set([0, kk.length]);
+  units.forEach((_, idx) => {
+    const m = metaArr[idx];
+    (m && m.kkRanges || []).forEach(r => {
+      if (r.start !== null && r.end !== null) {
+        bounds.add(Math.max(0, Math.min(kk.length, r.start)));
+        bounds.add(Math.max(0, Math.min(kk.length, r.end)));
+      }
+    });
+  });
+
+  const sorted = Array.from(bounds).sort((a, b) => a - b);
+  let html = "";
+  let lastMappedIdx = -1;
+  for (let i = 0; i < sorted.length - 1; i++) {
+    const a = sorted[i], b = sorted[i + 1];
+    if (b <= a) continue;
+    const slice = kk.slice(a, b);
+    const owners = [];
+    units.forEach((_, idx) => {
+      const m = metaArr[idx];
+      if ((m && m.kkRanges || []).some(r => r.start <= a && r.end >= b)) owners.push(idx);
+    });
+    if (owners.length > 0) lastMappedIdx = owners[owners.length - 1];
+    const isUnmapped = owners.length === 0;
+    const targetIdx = !isUnmapped
+      ? owners[0]
+      : Math.min(Math.max(0, units.length - 1), lastMappedIdx + 1);
+    const isActive = activeSelection && activeSelection.paraId === para.id && owners.includes(activeSelection.idx);
+    const unassignedCls = isUnmapped && slice.trim() ? "kk-unassigned" : "";
+
+    const kuTag = owners.length > 0 && owners.some(idx => {
+      const rs = metaArr[idx].kkRanges || [];
+      return rs.some(r => r.start === a);
+    }) ? `<span class="ku-num">${owners.map(x => x + 1).join(",")}</span>` : "";
+
+    const endFns = owners.filter(idx => {
+      const rs = metaArr[idx].kkRanges || [];
+      return rs.length > 0 && rs[rs.length - 1].end === b;
+    }).flatMap(idx => (fnMap && fnMap[`${para.id}:${idx}`]) || [])
+      .map(fn => `<span class="fn-badge" onclick="focusFootnote(event, ${fn.num})" title="Jump to Editorial Note ${fn.num}">${fn.num}</span>`)
+      .join("");
+
+    html += `<span class="doc-sent ${isActive ? 'active-sent' : ''} ${unassignedCls}" onclick="onKakikudashiSpanClick(event, '${para.id}', ${targetIdx}, ${isUnmapped ? 'true' : 'false'})" title="${!isUnmapped ? 'Mapped to Primary Sentence ' + owners.map(x => x + 1).join(', ') : 'Unmapped 書き下し — click to map to a Primary sentence'}">${kuTag}${renderJapaneseRich(slice, `kkmain_${para.id}_${i}`)}${endFns}</span>`;
+  }
+  return html;
 }
 
 function renderEnglishParagraphInteractive(doc, para, fnMap) {
@@ -2682,17 +2901,25 @@ function onPrimarySentClick(ev, paraId, idx) {
   if (ev && ev.target && ev.target.closest("[data-pop]")) return;
   flushAnyPendingDankuEdits();
   activeSelection = { paraId, idx };
-  pendingSelectionRange = null;
+  pendingKkSelectionRange = null;
+  pendingEnSelectionRange = null;
   renderPrimaryStage();
   document.getElementById("companionWindow").classList.add("open");
   renderCompanionWindow();
   publishPresence();
 }
 
+function onKakikudashiSpanClick(ev, paraId, idx, isUnmapped) {
+  if (ev && ev.target && ev.target.closest("[data-pop]")) return;
+  if (isUnmapped) showKkSpanMapper = true;
+  onPrimarySentClick(ev, paraId, idx);
+}
+
 function closeCompanionWindow() {
   flushAnyPendingDankuEdits();
   activeSelection = null;
-  pendingSelectionRange = null;
+  pendingKkSelectionRange = null;
+  pendingEnSelectionRange = null;
   document.getElementById("companionWindow").classList.remove("open");
   renderPrimaryStage();
   publishPresence();
@@ -2718,7 +2945,8 @@ function renderCompanionWindow() {
   const doc = getActiveDoc();
   const para = doc && doc.paragraphs.find(p => p.id === activeSelection.paraId);
   if (!para) return;
-  syncEnglishSnapshots(para);
+  syncLayerSnapshots(para, "kakikudashi");
+  syncLayerSnapshots(para, "english");
 
   const { units, metaArr } = getParaUnitsAndMeta(para);
   if (units.length === 0) return;
@@ -2749,7 +2977,8 @@ function renderCompanionWindow() {
   `;
 
   updatePeerNoticeInCompanion();
-  attachEnglishMapperSelectionListener();
+  attachSpanMapperSelectionListener("kkMapperBox", "assignKkSelBtn", "appendKkSelBtn", "kakikudashi");
+  attachSpanMapperSelectionListener("enMapperBox", "assignEnSelBtn", "appendEnSelBtn", "english");
 }
 
 function renderPrimarySentenceCard(doc, para, units, idx) {
@@ -2803,12 +3032,17 @@ function renderPrimarySentenceCard(doc, para, units, idx) {
 }
 
 function renderOptionalKakikudashiCard(doc, para, idx, sentMeta) {
-  const kkText = (sentMeta && sentMeta.kakikudashi) || "";
+  const kkFull = para.kakikudashiText || "";
+  const ranges = (sentMeta && sentMeta.kkRanges) || [];
+  const assignedText = ranges.map(r => kkFull.slice(r.start, r.end)).join(" … ");
   const previewId = `cw_prev_kk_${para.id}`;
   const taId = `cw_ta_kk_${para.id}`;
 
+  const hasUnmappedKk = ranges.length === 0 && kkFull.trim().length > 0;
+  const mapperOpen = showKkSpanMapper || hasUnmappedKk || ranges.length > 1;
+
   let editorHtml = "";
-  if (isScribe) {
+  if (isScribe && ranges.length <= 1) {
     editorHtml = `
       <div class="layer-editor-wrap">
         <div class="markup-toolbar">
@@ -2821,21 +3055,50 @@ function renderOptionalKakikudashiCard(doc, para, idx, sentMeta) {
         <textarea
           id="${taId}"
           class="layer-textarea jp-input"
-          placeholder="Write 書き下し for Sentence ${idx + 1} (e.g. 漢字（よみ）)..."
-          oninput="onKakikudashiInput('${para.id}', ${idx}, '${previewId}', this.value)"
-        >${escapeHtml(kkText)}</textarea>
+          placeholder="Write 書き下し for Sentence ${idx + 1}, or highlight & map from the full paragraph below..."
+          oninput="onDirectSpanInput('${para.id}', ${idx}, 'kakikudashi', this.value, '${previewId}')"
+        >${escapeHtml(assignedText)}</textarea>
       </div>
     `;
+  } else if (ranges.length > 1) {
+    editorHtml = `<div style="font-size:11.5px;color:var(--ink-muted);">Multiple discontinuous spans linked — adjust below or edit Full Para.</div>`;
   }
 
   return `
     <div class="layer-card">
       <div class="layer-card-head">
-        <span>2. 書き下し Kakikudashi</span>
+        <span>2. 書き下し Kakikudashi (Sentence ${idx + 1})</span>
         <span class="layer-badge-optional">Optional Layer</span>
       </div>
-      <div class="cw-tategaki-preview" id="${previewId}">${kkText ? renderJapaneseRich(kkText, `cw_kk_${para.id}_${idx}`) : `<span style="color:var(--ink-faint);font-size:13px;">（書き下し未入力）</span>`}</div>
+      <div class="cw-tategaki-preview" id="${previewId}">${assignedText ? renderJapaneseRich(assignedText, `cw_kk_${para.id}_${idx}`) : `<span style="color:var(--ink-faint);font-size:13px;">（未紐付・未入力）</span>`}</div>
       ${editorHtml}
+      <div>
+        <span class="en-mapper-toggle" onclick="toggleKkSpanMapper()">
+          ${mapperOpen ? "▾ Hide Kakikudashi paragraph mapping" : "▸ Map or adjust span in full Kakikudashi paragraph"}
+        </span>
+      </div>
+      ${mapperOpen ? `
+        <div class="en-mapper-wrap">
+          <div class="en-mapper-head">
+            <span>Highlight passage in full 書き下し to map to Sentence ${idx + 1}:</span>
+            <span style="display:inline-flex;gap:4px;flex-wrap:wrap;">
+              ${isScribe ? `
+                <button type="button" class="btn btn-sm amber" id="assignKkSelBtn" onclick="assignSelectedSpan('kakikudashi', false)" disabled>🔗 Map to Sent ${idx + 1}</button>
+                <button type="button" class="btn btn-sm" id="appendKkSelBtn" onclick="assignSelectedSpan('kakikudashi', true)" disabled title="Append discontinuous span">+ Span</button>
+                ${ranges.length > 0 ? `<button type="button" class="btn btn-sm" onclick="clearSpanAssignment('${para.id}', ${idx}, 'kakikudashi')">✕ Unlink</button>` : ""}
+                <button type="button" class="btn btn-sm ${showFullKkParaEditor ? 'active' : ''}" onclick="toggleFullKkParaEditor()">✎ Full Para</button>
+              ` : ""}
+            </span>
+          </div>
+          <div class="en-mapper-box jp-mapper" id="kkMapperBox" data-total-len="${kkFull.length}">${renderParagraphSpanMapperBox(para, idx, "kakikudashi")}</div>
+          ${showFullKkParaEditor && isScribe ? `
+            <div>
+              <div style="font-size:11px;color:var(--ink-muted);margin-bottom:3px;">Full Paragraph 書き下し Editor:</div>
+              <textarea class="layer-textarea jp-input" style="min-height:85px;" oninput="onFullParaLayerInput('${para.id}', 'kakikudashi', this.value)">${escapeHtml(kkFull)}</textarea>
+            </div>
+          ` : ""}
+        </div>
+      ` : ""}
     </div>
   `;
 }
@@ -2846,9 +3109,7 @@ function renderEnglishProductCard(doc, para, idx, sentMeta) {
   const ranges = (sentMeta && sentMeta.enRanges) || [];
   const assignedText = ranges.map(r => en.slice(r.start, r.end)).join(" … ");
 
-  // Auto-open the paragraph span linker only when the paragraph already has unlinked bulk-pasted English
-  const hasUnlinkedBulkEn = ranges.length === 0 && en.trim().length > 0 &&
-    !(para.sentMeta || []).some(m => (m.enRanges || []).length > 0);
+  const hasUnlinkedBulkEn = ranges.length === 0 && en.trim().length > 0;
   const mapperOpen = showEnSpanMapper || hasUnlinkedBulkEn || ranges.length > 1;
 
   let mainEditorHtml = "";
@@ -2861,7 +3122,7 @@ function renderEnglishProductCard(doc, para, idx, sentMeta) {
       <textarea
         class="layer-textarea en-input"
         placeholder="Write English translation for Sentence ${idx + 1}..."
-        oninput="onDirectSentenceEnglishInput('${para.id}', ${idx}, this.value)"
+        oninput="onDirectSpanInput('${para.id}', ${idx}, 'english', this.value, null)"
       >${escapeHtml(assignedText)}</textarea>
     `;
   } else {
@@ -2877,27 +3138,27 @@ function renderEnglishProductCard(doc, para, idx, sentMeta) {
       ${mainEditorHtml}
       <div>
         <span class="en-mapper-toggle" onclick="toggleEnSpanMapper()">
-          ${mapperOpen ? "▾ Hide paragraph span mapping" : "▸ Link or adjust span in full paragraph"}
+          ${mapperOpen ? "▾ Hide paragraph span mapping" : "▸ Map or adjust span in full English paragraph"}
         </span>
       </div>
       ${mapperOpen ? `
         <div class="en-mapper-wrap">
           <div class="en-mapper-head">
-            <span>Highlight words in paragraph to link to Sentence ${idx + 1}:</span>
+            <span>Highlight words in paragraph to map to Sentence ${idx + 1}:</span>
             <span style="display:inline-flex;gap:4px;flex-wrap:wrap;">
               ${isScribe ? `
-                <button type="button" class="btn btn-sm amber" id="assignSelBtn" onclick="assignSelectedEnglish(false)" disabled>🔗 Assign</button>
-                <button type="button" class="btn btn-sm" id="appendSelBtn" onclick="assignSelectedEnglish(true)" disabled title="Append discontinuous clause">+ Span</button>
-                ${ranges.length > 0 ? `<button type="button" class="btn btn-sm" onclick="clearEnglishAssignment('${para.id}', ${idx})">✕ Unlink</button>` : ""}
+                <button type="button" class="btn btn-sm amber" id="assignEnSelBtn" onclick="assignSelectedSpan('english', false)" disabled>🔗 Map to Sent ${idx + 1}</button>
+                <button type="button" class="btn btn-sm" id="appendEnSelBtn" onclick="assignSelectedSpan('english', true)" disabled title="Append discontinuous clause">+ Span</button>
+                ${ranges.length > 0 ? `<button type="button" class="btn btn-sm" onclick="clearSpanAssignment('${para.id}', ${idx}, 'english')">✕ Unlink</button>` : ""}
                 <button type="button" class="btn btn-sm ${showFullEnParaEditor ? 'active' : ''}" onclick="toggleFullEnParaEditor()">✎ Full Para</button>
               ` : ""}
             </span>
           </div>
-          <div class="en-mapper-box" id="enMapperBox" data-total-len="${en.length}">${renderParagraphEnglishMapperBox(para, idx)}</div>
+          <div class="en-mapper-box" id="enMapperBox" data-total-len="${en.length}">${renderParagraphSpanMapperBox(para, idx, "english")}</div>
           ${showFullEnParaEditor && isScribe ? `
             <div>
               <div style="font-size:11px;color:var(--ink-muted);margin-bottom:3px;">Full Paragraph English Product:</div>
-              <textarea class="layer-textarea en-input" style="min-height:85px;" oninput="onFullParaEnglishInput('${para.id}', this.value)">${escapeHtml(en)}</textarea>
+              <textarea class="layer-textarea en-input" style="min-height:85px;" oninput="onFullParaLayerInput('${para.id}', 'english', this.value)">${escapeHtml(en)}</textarea>
             </div>
           ` : ""}
         </div>
@@ -2906,25 +3167,24 @@ function renderEnglishProductCard(doc, para, idx, sentMeta) {
   `;
 }
 
+function toggleKkSpanMapper() {
+  showKkSpanMapper = !showKkSpanMapper;
+  renderCompanionWindow();
+}
+
+function toggleFullKkParaEditor() {
+  showFullKkParaEditor = !showFullKkParaEditor;
+  renderCompanionWindow();
+}
+
 function toggleEnSpanMapper() {
   showEnSpanMapper = !showEnSpanMapper;
   renderCompanionWindow();
 }
 
-function onKakikudashiInput(paraId, idx, previewId, val) {
-  const doc = getActiveDoc();
-  const para = doc && doc.paragraphs.find(p => p.id === paraId);
-  if (!para) return;
-  const { metaArr } = getParaUnitsAndMeta(para);
-  if (!metaArr[idx]) return;
-  metaArr[idx].kakikudashi = val;
-  const prev = document.getElementById(previewId);
-  if (prev) {
-    prev.innerHTML = val
-      ? renderJapaneseRich(val, `cw_kk_${para.id}_${idx}`)
-      : `<span style="color:var(--ink-faint);font-size:13px;">（書き下し未入力）</span>`;
-  }
-  saveState(activeDocId, para.id);
+function toggleFullEnParaEditor() {
+  showFullEnParaEditor = !showFullEnParaEditor;
+  renderCompanionWindow();
 }
 
 function wrapKakikudashiMarkup(taId, previewId, paraId, idx, kind) {
@@ -2938,7 +3198,7 @@ function wrapKakikudashiMarkup(taId, previewId, paraId, idx, kind) {
   if (kind === "var") rep = `{{${sel}|校異注}}`;
   ta.value = ta.value.substring(0, s) + rep + ta.value.substring(e);
   ta.focus();
-  onKakikudashiInput(paraId, idx, previewId, ta.value);
+  onDirectSpanInput(paraId, idx, "kakikudashi", ta.value, previewId);
 }
 
 function onPrimarySentenceInput(taId, previewId, applyBtnId, paraId, idx) {
@@ -3004,14 +3264,11 @@ function commitPrimarySliceReplacement(para, idx, replacementText, fullReRender)
   para.primaryText = nextRaw;
 
   if (delta > 0) {
-    const baseMeta = metaArr[idx] || { kakikudashi: "", enRanges: [], notes: [] };
-    const splitPieceCount = delta + 1;
-    const kkSplit = mapKakikudashiUnitsToPrimary(splitPieceCount, baseMeta.kakikudashi || "", null);
-    baseMeta.kakikudashi = kkSplit[0] || "";
+    const baseMeta = metaArr[idx] || { kkRanges: [], enRanges: [], notes: [] };
     const extras = [];
-    for (let k = 1; k < splitPieceCount; k++) {
+    for (let k = 0; k < delta; k++) {
       extras.push({
-        kakikudashi: kkSplit[k] || "",
+        kkRanges: JSON.parse(JSON.stringify(baseMeta.kkRanges || [])),
         enRanges: JSON.parse(JSON.stringify(baseMeta.enRanges || [])),
         notes: []
       });
@@ -3020,16 +3277,17 @@ function commitPrimarySliceReplacement(para, idx, replacementText, fullReRender)
   } else if (delta < 0) {
     const removeCount = Math.abs(delta);
     const mergedSlots = metaArr.slice(idx, idx + removeCount + 1);
-    const combinedKk = mergedSlots.map(s => s.kakikudashi || "").filter(Boolean).join("");
-    const combinedRanges = [];
+    const combinedKkRanges = [];
+    const combinedEnRanges = [];
     const combinedNotes = [];
     mergedSlots.forEach(s => {
-      (s.enRanges || []).forEach(r => combinedRanges.push(r));
+      (s.kkRanges || []).forEach(r => combinedKkRanges.push(r));
+      (s.enRanges || []).forEach(r => combinedEnRanges.push(r));
       (s.notes || []).forEach(n => combinedNotes.push(n));
     });
     metaArr.splice(idx, removeCount + 1, {
-      kakikudashi: combinedKk,
-      enRanges: mergeEnRanges(para.englishText || "", combinedRanges),
+      kkRanges: mergeRanges(para.kakikudashiText || "", combinedKkRanges),
+      enRanges: mergeRanges(para.englishText || "", combinedEnRanges),
       notes: combinedNotes
     });
   }
@@ -3042,7 +3300,7 @@ function commitPrimarySliceReplacement(para, idx, replacementText, fullReRender)
     }
     renderPrimaryStage();
     renderCompanionWindow();
-  } else {
+  } else if (stageView === "primary") {
     const bgSpan = document.querySelector(`.doc-sent[data-para="${para.id}"][data-idx="${idx}"]`);
     if (bgSpan && newUnits[idx]) {
       const doc = getActiveDoc();
@@ -3097,27 +3355,8 @@ function wrapPrimaryMarkup(taId, paraId, idx, kind) {
   onPrimarySentenceInput(taId, `cw_prev_prim_${paraId}`, `cw_danku_btn_${paraId}`, paraId, idx);
 }
 
-function mergeEnRanges(enText, ranges) {
-  const valid = (ranges || [])
-    .filter(r => typeof r.start === "number" && typeof r.end === "number" && r.end > r.start)
-    .sort((a, b) => a.start - b.start);
-  if (!valid.length) return [];
-  const out = [{ ...valid[0] }];
-  for (let i = 1; i < valid.length; i++) {
-    const prev = out[out.length - 1];
-    const cur = valid[i];
-    if (cur.start <= prev.end + 1) {
-      prev.end = Math.max(prev.end, cur.end);
-      prev.snapshot = enText.slice(prev.start, prev.end);
-    } else {
-      out.push({ ...cur, snapshot: enText.slice(cur.start, cur.end) });
-    }
-  }
-  out[0].snapshot = enText.slice(out[0].start, out[0].end);
-  return out;
-}
-
-function onDirectSentenceEnglishInput(paraId, idx, newVal) {
+// Unified direct sentence editor for both Kakikudashi and English spans
+function onDirectSpanInput(paraId, idx, layerKind, newVal, previewId) {
   const doc = getActiveDoc();
   const para = doc && doc.paragraphs.find(p => p.id === paraId);
   if (!para) return;
@@ -3125,8 +3364,9 @@ function onDirectSentenceEnglishInput(paraId, idx, newVal) {
   const m = metaArr[idx];
   if (!m) return;
 
-  para.englishText = para.englishText || "";
-  const ranges = m.enRanges || [];
+  const { textField, rangesField, sep } = getLayerConfig(layerKind);
+  para[textField] = para[textField] || "";
+  const ranges = m[rangesField] || [];
 
   if (ranges.length === 1) {
     const r = ranges[0];
@@ -3134,56 +3374,56 @@ function onDirectSentenceEnglishInput(paraId, idx, newVal) {
     const oldEnd = r.end;
 
     if (newVal === "") {
-      // Check if any other sentence shares this exact span
       const sharedElsewhere = metaArr.some((other, oi) =>
-        oi !== idx && (other.enRanges || []).some(sp => sp.start === oldStart && sp.end === oldEnd)
+        oi !== idx && (other[rangesField] || []).some(sp => sp.start === oldStart && sp.end === oldEnd)
       );
       if (sharedElsewhere) {
-        m.enRanges = [];
+        m[rangesField] = [];
       } else {
         let rmStart = oldStart;
         let rmEnd = oldEnd;
-        if (rmStart > 0 && para.englishText[rmStart - 1] === " " && (rmEnd === para.englishText.length || para.englishText[rmEnd] === " ")) {
-          rmStart -= 1;
-        } else if (rmStart === 0 && rmEnd < para.englishText.length && para.englishText[rmEnd] === " ") {
-          rmEnd += 1;
+        if (sep === " ") {
+          if (rmStart > 0 && para[textField][rmStart - 1] === " " && (rmEnd === para[textField].length || para[textField][rmEnd] === " ")) {
+            rmStart -= 1;
+          } else if (rmStart === 0 && rmEnd < para[textField].length && para[textField][rmEnd] === " ") {
+            rmEnd += 1;
+          }
         }
         const removedLen = rmEnd - rmStart;
-        para.englishText = para.englishText.slice(0, rmStart) + para.englishText.slice(rmEnd);
-        m.enRanges = [];
+        para[textField] = para[textField].slice(0, rmStart) + para[textField].slice(rmEnd);
+        m[rangesField] = [];
         metaArr.forEach((item, oi) => {
           if (oi === idx) return;
-          (item.enRanges || []).forEach(sp => {
+          (item[rangesField] || []).forEach(sp => {
             if (sp.start >= rmEnd) {
               sp.start -= removedLen;
               sp.end -= removedLen;
-              sp.snapshot = para.englishText.slice(sp.start, sp.end);
+              sp.snapshot = para[textField].slice(sp.start, sp.end);
             }
           });
         });
       }
     } else {
       const delta = newVal.length - (oldEnd - oldStart);
-      para.englishText = para.englishText.slice(0, oldStart) + newVal + para.englishText.slice(oldEnd);
+      para[textField] = para[textField].slice(0, oldStart) + newVal + para[textField].slice(oldEnd);
       metaArr.forEach(item => {
-        (item.enRanges || []).forEach(span => {
+        (item[rangesField] || []).forEach(span => {
           if (span === r || (span.start === oldStart && span.end === oldEnd)) {
             span.end = oldStart + newVal.length;
             span.snapshot = newVal;
           } else if (span.start >= oldEnd) {
             span.start += delta;
             span.end += delta;
-            span.snapshot = para.englishText.slice(span.start, span.end);
+            span.snapshot = para[textField].slice(span.start, span.end);
           }
         });
       });
     }
   } else if (ranges.length === 0 && newVal.length > 0) {
-    // Auto-insert at natural sentence order position inside para.englishText
-    let insertPos = para.englishText.length;
+    let insertPos = para[textField].length;
     let foundPrev = false;
     for (let p = idx - 1; p >= 0; p--) {
-      const prs = (metaArr[p] && metaArr[p].enRanges) || [];
+      const prs = (metaArr[p] && metaArr[p][rangesField]) || [];
       if (prs.length > 0) {
         insertPos = prs[prs.length - 1].end;
         foundPrev = true;
@@ -3192,7 +3432,7 @@ function onDirectSentenceEnglishInput(paraId, idx, newVal) {
     }
     if (!foundPrev) {
       for (let f = idx + 1; f < metaArr.length; f++) {
-        const frs = (metaArr[f] && metaArr[f].enRanges) || [];
+        const frs = (metaArr[f] && metaArr[f][rangesField]) || [];
         if (frs.length > 0) {
           insertPos = frs[0].start;
           break;
@@ -3200,26 +3440,26 @@ function onDirectSentenceEnglishInput(paraId, idx, newVal) {
       }
     }
 
-    const needLead = insertPos > 0 && !/\s/.test(para.englishText[insertPos - 1]);
-    const needTrail = insertPos < para.englishText.length && !/\s/.test(para.englishText[insertPos]);
+    const needLead = sep === " " && insertPos > 0 && !/\s/.test(para[textField][insertPos - 1]);
+    const needTrail = sep === " " && insertPos < para[textField].length && !/\s/.test(para[textField][insertPos]);
     const prefix = needLead ? " " : "";
     const suffix = needTrail ? " " : "";
     const inserted = prefix + newVal + suffix;
 
-    para.englishText = para.englishText.slice(0, insertPos) + inserted + para.englishText.slice(insertPos);
+    para[textField] = para[textField].slice(0, insertPos) + inserted + para[textField].slice(insertPos);
     metaArr.forEach((item, oi) => {
       if (oi === idx) return;
-      (item.enRanges || []).forEach(sp => {
+      (item[rangesField] || []).forEach(sp => {
         if (sp.start >= insertPos) {
           sp.start += inserted.length;
           sp.end += inserted.length;
-          sp.snapshot = para.englishText.slice(sp.start, sp.end);
+          sp.snapshot = para[textField].slice(sp.start, sp.end);
         }
       });
     });
 
     const spanStart = insertPos + prefix.length;
-    m.enRanges = [{
+    m[rangesField] = [{
       start: spanStart,
       end: spanStart + newVal.length,
       snapshot: newVal
@@ -3228,28 +3468,47 @@ function onDirectSentenceEnglishInput(paraId, idx, newVal) {
 
   saveState(activeDocId, para.id);
 
-  const mapperBox = document.getElementById("enMapperBox");
-  if (mapperBox) {
-    mapperBox.dataset.totalLen = para.englishText.length;
-    mapperBox.innerHTML = renderParagraphEnglishMapperBox(para, idx);
+  if (previewId) {
+    const prev = document.getElementById(previewId);
+    if (prev) {
+      prev.innerHTML = newVal
+        ? renderJapaneseRich(newVal, `cw_kk_${para.id}_${idx}`)
+        : `<span style="color:var(--ink-faint);font-size:13px;">（未紐付・未入力）</span>`;
+    }
   }
-  const prodParaEl = document.getElementById(`en_prod_para_${para.id}`);
-  if (prodParaEl) {
-    prodParaEl.innerHTML = renderEnglishParagraphInteractive(doc, para, buildFootnoteLookupMap(doc));
+
+  const mapperId = layerKind === "kakikudashi" ? "kkMapperBox" : "enMapperBox";
+  const mapperBox = document.getElementById(mapperId);
+  if (mapperBox) {
+    mapperBox.dataset.totalLen = para[textField].length;
+    mapperBox.innerHTML = renderParagraphSpanMapperBox(para, idx, layerKind);
+  }
+
+  if (layerKind === "kakikudashi" && stageView === "kakikudashi") {
+    renderPrimaryStage();
+  } else if (layerKind === "english") {
+    const prodParaEl = document.getElementById(`en_prod_para_${para.id}`);
+    if (prodParaEl) {
+      prodParaEl.innerHTML = renderEnglishParagraphInteractive(doc, para, buildFootnoteLookupMap(doc));
+    }
   }
 }
 
-function renderParagraphEnglishMapperBox(para, activeIdx) {
-  const en = para.englishText || "";
-  if (!en) return `<span style="color:var(--ink-faint);font-style:italic;">Paragraph has no English text yet — type in the box above or click "✎ Full Para" to paste a full paragraph.</span>`;
+function renderParagraphSpanMapperBox(para, activeIdx, layerKind) {
+  const { textField, rangesField } = getLayerConfig(layerKind);
+  const full = para[textField] || "";
+  if (!full) {
+    const label = layerKind === "kakikudashi" ? "書き下し" : "English";
+    return `<span style="color:var(--ink-faint);font-style:italic;">Paragraph has no ${label} text yet — type above or click "✎ Full Para" to paste a full paragraph.</span>`;
+  }
 
   const { units, metaArr } = getParaUnitsAndMeta(para);
-  const bounds = new Set([0, en.length]);
+  const bounds = new Set([0, full.length]);
   units.forEach((_, i) => {
     const m = metaArr[i];
-    (m && m.enRanges || []).forEach(r => {
-      bounds.add(Math.max(0, Math.min(en.length, r.start)));
-      bounds.add(Math.max(0, Math.min(en.length, r.end)));
+    (m && m[rangesField] || []).forEach(r => {
+      bounds.add(Math.max(0, Math.min(full.length, r.start)));
+      bounds.add(Math.max(0, Math.min(full.length, r.end)));
     });
   });
 
@@ -3261,7 +3520,7 @@ function renderParagraphEnglishMapperBox(para, activeIdx) {
     const owners = [];
     const startsHere = [];
     units.forEach((_, i) => {
-      const rs = (metaArr[i] && metaArr[i].enRanges) || [];
+      const rs = (metaArr[i] && metaArr[i][rangesField]) || [];
       if (rs.some(r => r.start <= a && r.end >= b)) owners.push(i);
       if (rs.some(r => r.start === a)) startsHere.push(i + 1);
     });
@@ -3271,7 +3530,7 @@ function renderParagraphEnglishMapperBox(para, activeIdx) {
       startsHere.length ? "en-seg-badge" : ""
     ].filter(Boolean).join(" ");
     const badgeAttr = startsHere.length ? `data-badge="Sent ${startsHere.join(",")}"` : "";
-    html += `<span class="${cls}" data-char-start="${a}" data-char-end="${b}" ${badgeAttr}>${escapeHtml(en.slice(a, b))}</span>`;
+    html += `<span class="${cls}" data-char-start="${a}" data-char-end="${b}" ${badgeAttr}>${escapeHtml(full.slice(a, b))}</span>`;
   }
   return html;
 }
@@ -3293,13 +3552,13 @@ function resolveMapperCharOffset(box, node, offset) {
   return Number(box.dataset.totalLen || 0);
 }
 
-function attachEnglishMapperSelectionListener() {
-  const box = document.getElementById("enMapperBox");
+function attachSpanMapperSelectionListener(boxId, assignBtnId, appendBtnId, layerKind) {
+  const box = document.getElementById(boxId);
   if (!box) return;
   const checkSel = () => {
     const sel = window.getSelection();
-    const assignBtn = document.getElementById("assignSelBtn");
-    const appendBtn = document.getElementById("appendSelBtn");
+    const assignBtn = document.getElementById(assignBtnId);
+    const appendBtn = document.getElementById(appendBtnId);
     if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return;
     const range = sel.getRangeAt(0);
     if (!box.contains(range.startContainer) || !box.contains(range.endContainer)) return;
@@ -3308,7 +3567,8 @@ function attachEnglishMapperSelectionListener() {
     let e = resolveMapperCharOffset(box, range.endContainer, range.endOffset);
     if (s > e) { const t = s; s = e; e = t; }
     if (e > s) {
-      pendingSelectionRange = { start: s, end: e };
+      if (layerKind === "kakikudashi") pendingKkSelectionRange = { start: s, end: e };
+      else pendingEnSelectionRange = { start: s, end: e };
       if (assignBtn) assignBtn.disabled = false;
       if (appendBtn) appendBtn.disabled = false;
     }
@@ -3317,8 +3577,9 @@ function attachEnglishMapperSelectionListener() {
   box.addEventListener("keyup", checkSel);
 }
 
-function assignSelectedEnglish(appendMode) {
-  if (!isScribe || !activeSelection || !pendingSelectionRange) return;
+function assignSelectedSpan(layerKind, appendMode) {
+  const pending = layerKind === "kakikudashi" ? pendingKkSelectionRange : pendingEnSelectionRange;
+  if (!isScribe || !activeSelection || !pending) return;
   const doc = getActiveDoc();
   const para = doc.paragraphs.find(p => p.id === activeSelection.paraId);
   if (!para) return;
@@ -3326,53 +3587,65 @@ function assignSelectedEnglish(appendMode) {
   const { idx } = activeSelection;
   const { metaArr } = getParaUnitsAndMeta(para);
   const m = metaArr[idx];
-  const en = para.englishText || "";
+  const { textField, rangesField } = getLayerConfig(layerKind);
+  const full = para[textField] || "";
+
   const newSpan = {
-    start: pendingSelectionRange.start,
-    end: pendingSelectionRange.end,
-    snapshot: en.slice(pendingSelectionRange.start, pendingSelectionRange.end)
+    start: pending.start,
+    end: pending.end,
+    snapshot: full.slice(pending.start, pending.end)
   };
 
-  m.enRanges = appendMode ? mergeEnRanges(en, [...(m.enRanges || []), newSpan]) : [newSpan];
+  m[rangesField] = appendMode
+    ? mergeRanges(full, [...(m[rangesField] || []), newSpan])
+    : [newSpan];
 
-  pendingSelectionRange = null;
+  if (layerKind === "kakikudashi") pendingKkSelectionRange = null;
+  else pendingEnSelectionRange = null;
   window.getSelection().removeAllRanges();
   saveState(activeDocId, para.id);
-  if (showEnglishProductPane) renderPrimaryStage();
+  if ((layerKind === "kakikudashi" && stageView === "kakikudashi") || (layerKind === "english" && showEnglishProductPane)) {
+    renderPrimaryStage();
+  }
   renderCompanionWindow();
 }
 
-function clearEnglishAssignment(paraId, idx) {
+function clearSpanAssignment(paraId, idx, layerKind) {
   const doc = getActiveDoc();
   const para = doc.paragraphs.find(p => p.id === paraId);
   if (!para) return;
   const { metaArr } = getParaUnitsAndMeta(para);
-  if (metaArr[idx]) metaArr[idx].enRanges = [];
+  const { rangesField } = getLayerConfig(layerKind);
+  if (metaArr[idx]) metaArr[idx][rangesField] = [];
   saveState(activeDocId, para.id);
-  if (showEnglishProductPane) renderPrimaryStage();
+  if ((layerKind === "kakikudashi" && stageView === "kakikudashi") || (layerKind === "english" && showEnglishProductPane)) {
+    renderPrimaryStage();
+  }
   renderCompanionWindow();
 }
 
-function toggleFullEnParaEditor() {
-  showFullEnParaEditor = !showFullEnParaEditor;
-  renderCompanionWindow();
-}
-
-function onFullParaEnglishInput(paraId, val) {
+function onFullParaLayerInput(paraId, layerKind, val) {
   const doc = getActiveDoc();
   const para = doc.paragraphs.find(p => p.id === paraId);
   if (!para) return;
-  para.englishText = val;
-  syncEnglishSnapshots(para);
+  const { textField } = getLayerConfig(layerKind);
+  para[textField] = val;
+  syncLayerSnapshots(para, layerKind);
   saveState(activeDocId, para.id);
-  const mapperBox = document.getElementById("enMapperBox");
+
+  const mapperId = layerKind === "kakikudashi" ? "kkMapperBox" : "enMapperBox";
+  const mapperBox = document.getElementById(mapperId);
   if (mapperBox && activeSelection) {
     mapperBox.dataset.totalLen = val.length;
-    mapperBox.innerHTML = renderParagraphEnglishMapperBox(para, activeSelection.idx);
+    mapperBox.innerHTML = renderParagraphSpanMapperBox(para, activeSelection.idx, layerKind);
   }
-  const prodParaEl = document.getElementById(`en_prod_para_${para.id}`);
-  if (prodParaEl) {
-    prodParaEl.innerHTML = renderEnglishParagraphInteractive(doc, para, buildFootnoteLookupMap(doc));
+  if (layerKind === "kakikudashi" && stageView === "kakikudashi") {
+    renderPrimaryStage();
+  } else if (layerKind === "english") {
+    const prodParaEl = document.getElementById(`en_prod_para_${para.id}`);
+    if (prodParaEl) {
+      prodParaEl.innerHTML = renderEnglishParagraphInteractive(doc, para, buildFootnoteLookupMap(doc));
+    }
   }
 }
 
@@ -3430,7 +3703,7 @@ function reconcileMetaBySimilarity(oldUnits, newUnits, oldMeta) {
       used.add(ni);
       return JSON.parse(JSON.stringify(oldMeta[ni]));
     }
-    return { kakikudashi: "", enRanges: [], notes: [] };
+    return { kkRanges: [], enRanges: [], notes: [] };
   });
 }
 
@@ -3445,6 +3718,8 @@ function saveParaDankuModal() {
     const nextUnits = splitByMaru(primTa.value);
     para.sentMeta = reconcileMetaBySimilarity(oldUnits, nextUnits, para.sentMeta || []);
     para.primaryText = primTa.value;
+    syncLayerSnapshots(para, "kakikudashi");
+    syncLayerSnapshots(para, "english");
   }
 
   saveState(activeDocId, para.id);
@@ -3508,7 +3783,7 @@ function renderNotesRail() {
   if (countEl) countEl.textContent = `(${footnotes.length})`;
 
   if (footnotes.length === 0) {
-    body.innerHTML = `<div style="font-size:12.5px;color:var(--ink-faint);line-height:1.6;padding:12px 6px;">No editorial notes on this text yet.<br><br>Click any sentence in the primary text and press <strong>+ Add Note</strong> in the editor window header to add a numbered footnote here.</div>`;
+    body.innerHTML = `<div style="font-size:12.5px;color:var(--ink-faint);line-height:1.6;padding:12px 6px;">No editorial notes on this text yet.<br><br>Click any sentence and press <strong>+ Add Note</strong> in the editor window header to add a numbered footnote here.</div>`;
     return;
   }
 
@@ -3624,7 +3899,8 @@ function focusFootnote(ev, num) {
 function jumpToFootnoteSentence(paraId, sentIdx) {
   flushAnyPendingDankuEdits();
   activeSelection = { paraId, idx: sentIdx };
-  pendingSelectionRange = null;
+  pendingKkSelectionRange = null;
+  pendingEnSelectionRange = null;
   renderPrimaryStage();
   document.getElementById("companionWindow").classList.add("open");
   renderCompanionWindow();
@@ -3782,7 +4058,7 @@ function toggleRole() {
   const label = document.getElementById("roleLabel");
   pill.className = "role-pill " + (isScribe ? "is-scribe" : "is-annotator");
   label.textContent = isScribe ? "✏️ Editing Unlocked" : "👁 Read-Only Safety";
-  syncTopbarPrimaryStyle();
+  syncTopbarControls();
   if (activeSelection) renderCompanionWindow();
   renderNotesRail();
 }
@@ -3807,11 +4083,12 @@ function toggleSidebar() {
 
 function resetDemoData() {
   localStorage.removeItem(STORAGE_KEY);
-  localStorage.removeItem(LEGACY_STORAGE_KEY);
+  PREV_STORAGE_KEYS.forEach(k => localStorage.removeItem(k));
   state = { corpus: buildInitialCorpus().map(normalizeDocSchema), kunSelections: {} };
   activeSelection = null;
+  stageView = "primary";
   closeCompanionWindow();
-  syncTopbarPrimaryStyle();
+  syncTopbarControls();
   renderSidebar();
   renderBanner();
   renderPrimaryStage();
@@ -3827,9 +4104,8 @@ function exportMarkdown() {
       .replace(/\[\[([^|\]]+)[^\]]*\]\]/g, "$1")
       .replace(/\{\{([^|}]+)\|[^}]+\}\}/g, "$1");
     md += `### 原文 (${st.short})\n${cleanPrimary}\n\n`;
-    const joinedKk = (p.sentMeta || []).map(m => m.kakikudashi || "").filter(Boolean).join("");
-    if (doc.hasKakikudashi && joinedKk.trim()) {
-      const cleanKk = joinedKk
+    if (doc.hasKakikudashi && (p.kakikudashiText || "").trim()) {
+      const cleanKk = p.kakikudashiText
         .replace(/\[\[([^|\]]+)[^\]]*\]\]/g, "$1")
         .replace(/\{\{([^|}]+)\|[^}]+\}\}/g, "$1");
       md += `### 書き下し文\n${cleanKk}\n\n`;
@@ -3901,6 +4177,7 @@ function handleImportJson(ev) {
         state.corpus.sort((a, b) => (a.orderIndex || 99) - (b.orderIndex || 99));
         activeDocId = normalizedList[0] ? normalizedList[0].id : activeDocId;
         activeSelection = null;
+        stageView = "primary";
         saveLocalState();
         if (cloud.ready) {
           await uploadDocsMergeToCloud(normalizedList);
@@ -3912,6 +4189,7 @@ function handleImportJson(ev) {
         };
         activeDocId = state.corpus[0].id;
         activeSelection = null;
+        stageView = "primary";
         saveLocalState();
         if (cloud.ready) {
           await seedStarterCorpusToCloud(state);
@@ -3921,7 +4199,7 @@ function handleImportJson(ev) {
         return;
       }
       closeCompanionWindow();
-      syncTopbarPrimaryStyle();
+      syncTopbarControls();
       renderSidebar();
       renderBanner();
       renderPrimaryStage();
@@ -3944,7 +4222,7 @@ let rawModalStyle = "kanbun";
 function getDocRawTextForLayer(doc, layer) {
   const paras = (doc.paragraphs || []).map(p => {
     if (layer === "primary") return (p.primaryText || "").trim();
-    if (layer === "kakikudashi") return (p.sentMeta || []).map(m => m.kakikudashi || "").join("").trim();
+    if (layer === "kakikudashi") return (p.kakikudashiText || "").trim();
     return (p.englishText || "").trim();
   });
   while (paras.length > 0 && paras[paras.length - 1] === "") paras.pop();
@@ -3961,7 +4239,7 @@ function openRawTextModal(explicitLayer) {
     kakikudashi: getDocRawTextForLayer(doc, "kakikudashi"),
     english: getDocRawTextForLayer(doc, "english")
   };
-  rawModalLayer = explicitLayer || "primary";
+  rawModalLayer = explicitLayer || (stageView === "kakikudashi" ? "kakikudashi" : "primary");
   renderRawTextModal();
   document.getElementById("rawTextModal").classList.add("open");
 }
@@ -4071,7 +4349,7 @@ function renderRawTextModal() {
     </div>
     <textarea id="rawTextArea" style="min-height:285px;font-family:${rawModalLayer === 'english' ? 'var(--font-en)' : 'var(--font-jp)'};font-size:${rawModalLayer === 'english' ? '15px' : '15.5px'};" placeholder="${escapeHtml(placeholderMap[rawModalLayer])}" oninput="updateRawTextStats()" ${!isScribe ? 'readonly' : ''}>${escapeHtml(val)}</textarea>
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-      <span style="font-size:11.5px;color:var(--ink-muted);">Editorial notes and English links on unchanged sentences are preserved automatically.</span>
+      <span style="font-size:11.5px;color:var(--ink-muted);">Editorial notes and mapped spans on unchanged sentences are preserved automatically.</span>
       <span style="display:inline-flex;gap:8px;">
         <button class="btn" onclick="closeRawTextModal()">Cancel</button>
         ${isScribe ? `<button class="btn active" onclick="applyRawTextModal()">Apply &amp; Sync All Changes</button>` : ""}
@@ -4106,31 +4384,38 @@ async function applyRawTextModal() {
     const newPrimUnits = splitByMaru(newPrim);
     const sentMeta = existing
       ? reconcileMetaBySimilarity(oldPrimUnits, newPrimUnits, existing.sentMeta || [])
-      : newPrimUnits.map(() => ({ kakikudashi: "", enRanges: [], notes: [] }));
+      : newPrimUnits.map(() => ({ kkRanges: [], enRanges: [], notes: [] }));
 
-    const mappedKk = mapKakikudashiUnitsToPrimary(Math.max(1, newPrimUnits.length), newKk, null);
-    while (sentMeta.length < Math.max(newPrimUnits.length, newKk.trim() ? 1 : 0)) {
-      sentMeta.push({ kakikudashi: "", enRanges: [], notes: [] });
-    }
-    for (let s = 0; s < sentMeta.length; s++) {
-      sentMeta[s].kakikudashi = mappedKk[s] || "";
+    while (sentMeta.length < newPrimUnits.length) {
+      sentMeta.push({ kkRanges: [], enRanges: [], notes: [] });
     }
 
-    const pObj = { id: pId, label: pLabel, primaryText: newPrim, englishText: newEn, sentMeta };
-    syncEnglishSnapshots(pObj);
+    const pObj = { id: pId, label: pLabel, primaryText: newPrim, kakikudashiText: newKk, englishText: newEn, sentMeta };
+    syncLayerSnapshots(pObj, "kakikudashi");
+    syncLayerSnapshots(pObj, "english");
+
+    // If new Kakikudashi was pasted and none of the sentences have valid kkRanges yet, auto-seed initial mapping
+    if (newKk.trim() && !sentMeta.some(m => (m.kkRanges || []).length > 0) && newPrimUnits.length > 0) {
+      const autoRanges = buildAutoKkRanges(newPrimUnits.length, newKk, null);
+      for (let s = 0; s < newPrimUnits.length; s++) {
+        sentMeta[s].kkRanges = autoRanges[s] || [];
+      }
+    }
+
     nextParas.push(pObj);
   }
 
   doc.primaryStyle = rawModalStyle;
   doc.hasKakikudashi = kkChunks.length > 0;
   doc._explicitHasKk = true;
+  if (!doc.hasKakikudashi && stageView === "kakikudashi") stageView = "primary";
   doc.paragraphs = nextParas;
   activeSelection = null;
 
   saveLocalState();
   closeRawTextModal();
   closeCompanionWindow();
-  syncTopbarPrimaryStyle();
+  syncTopbarControls();
   renderSidebar();
   renderBanner();
   renderPrimaryStage();
@@ -4256,16 +4541,16 @@ async function createNewDocFromModal() {
     const pText = primChunks[i] || "";
     const kkText = kkChunks[i] || "";
     const pUnits = splitByMaru(pText);
-    const slotCount = Math.max(pUnits.length, kkText.trim() ? 1 : 0);
-    const mappedKk = mapKakikudashiUnitsToPrimary(Math.max(1, slotCount), kkText, null);
+    const autoKk = buildAutoKkRanges(Math.max(1, pUnits.length), kkText, null);
     const sentMeta = [];
-    for (let s = 0; s < slotCount; s++) {
-      sentMeta.push({ kakikudashi: mappedKk[s] || "", enRanges: [], notes: [] });
+    for (let s = 0; s < pUnits.length; s++) {
+      sentMeta.push({ kkRanges: autoKk[s] || [], enRanges: [], notes: [] });
     }
     paragraphs.push({
       id: `p${i + 1}`,
       label: `第${i + 1}段`,
       primaryText: pText,
+      kakikudashiText: kkText,
       englishText: enChunks[i] || "",
       sentMeta
     });
@@ -4291,11 +4576,12 @@ async function createNewDocFromModal() {
 
   activeDocId = rawId;
   activeSelection = null;
+  stageView = "primary";
 
   saveLocalState();
   closeNewDocModal();
   closeCompanionWindow();
-  syncTopbarPrimaryStyle();
+  syncTopbarControls();
   renderSidebar();
   renderBanner();
   renderPrimaryStage();
@@ -4304,7 +4590,7 @@ async function createNewDocFromModal() {
   }
 }
 
-syncTopbarPrimaryStyle();
+syncTopbarControls();
 renderSidebar();
 renderBanner();
 renderPrimaryStage();
