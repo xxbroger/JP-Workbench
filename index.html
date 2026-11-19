@@ -2777,7 +2777,7 @@ function mergeRanges(fullText, ranges) {
 }
 
 function parseFurigana(str) {
-  return str.replace(/([\u4e00-\u9faf\u3400-\u4dbf々ヶ]+)（([ぁ-んァ-ヶー・]+)）/g, "<ruby>$1<rt>$2</rt></ruby>");
+  return str.replace(/([\u4e00-\u9faf\u3400-\u4dbf々ヶ]+)(?:（([ぁ-んァ-ヶー・]+)）|\(([ぁ-んァ-ヶー・]+)\))/g, (_, base, r1, r2) => `<ruby>${base}<rt>${r1 || r2}</rt></ruby>`);
 }
 
 function stripParen(str) {
@@ -3688,13 +3688,20 @@ function wrapKakikudashiMarkup(taId, previewId, paraId, idx, kind) {
   const ta = document.getElementById(taId);
   if (!ta) return;
   const s = ta.selectionStart, e = ta.selectionEnd;
-  const sel = ta.value.substring(s, e) || "字";
-  let rep = sel;
-  if (kind === "ruby") rep = `${sel}（よみ）`;
-  if (kind === "kun") rep = `[[${sel}|別訓]]`;
-  if (kind === "var") rep = `{{${sel}|校異注}}`;
+  const rawSel = ta.value.substring(s, e);
+  let rep = rawSel;
+  let caretPos = null;
+  if (kind === "ruby") {
+    rep = `${rawSel}（）`;
+    caretPos = s + rawSel.length + 1;
+  } else {
+    const sel = rawSel || "字";
+    if (kind === "kun") rep = `[[${sel}|別訓]]`;
+    if (kind === "var") rep = `{{${sel}|校異注}}`;
+  }
   ta.value = ta.value.substring(0, s) + rep + ta.value.substring(e);
   ta.focus();
+  if (caretPos !== null) ta.setSelectionRange(caretPos, caretPos);
   onDirectSpanInput(paraId, idx, "kakikudashi", ta.value, previewId);
 }
 
@@ -3958,13 +3965,20 @@ function wrapPrimaryMarkup(taId, paraId, idx, kind) {
   const ta = document.getElementById(taId);
   if (!ta) return;
   const s = ta.selectionStart, e = ta.selectionEnd;
-  const sel = ta.value.substring(s, e) || "字";
-  let rep = sel;
-  if (kind === "ruby") rep = `${sel}（よみ）`;
-  if (kind === "kun") rep = `[[${sel}|別訓]]`;
-  if (kind === "var") rep = `{{${sel}|校異注}}`;
+  const rawSel = ta.value.substring(s, e);
+  let rep = rawSel;
+  let caretPos = null;
+  if (kind === "ruby") {
+    rep = `${rawSel}（）`;
+    caretPos = s + rawSel.length + 1;
+  } else {
+    const sel = rawSel || "字";
+    if (kind === "kun") rep = `[[${sel}|別訓]]`;
+    if (kind === "var") rep = `{{${sel}|校異注}}`;
+  }
   ta.value = ta.value.substring(0, s) + rep + ta.value.substring(e);
   ta.focus();
+  if (caretPos !== null) ta.setSelectionRange(caretPos, caretPos);
   onPrimarySentenceInput(taId, `cw_prev_prim_${paraId}`, `cw_danku_btn_${paraId}`, paraId, idx);
 }
 
