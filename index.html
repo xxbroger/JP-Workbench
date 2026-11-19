@@ -427,24 +427,74 @@
   }
   aside.notes-rail.collapsed { display: none; }
   .notes-rail-head {
-    padding: 10px 14px;
+    padding: 9px 12px;
     border-bottom: 1px solid var(--border);
     background: var(--bg-subtle);
     display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .notes-rail-head-top {
+    display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
   }
-  .notes-rail-head h3 {
-    margin: 0;
-    font-size: 13px;
+  .rail-tabs {
+    display: inline-flex;
+    background: #e9e2d4;
+    border-radius: 7px;
+    padding: 2px;
+    gap: 2px;
+    flex: 1;
+  }
+  .rail-tab-btn {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-family: var(--font-ui);
+    font-size: 11.5px;
     font-weight: 700;
-    color: var(--ink);
+    color: var(--ink-muted);
+    padding: 4px 8px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    white-space: nowrap;
   }
+  .rail-tab-btn.active {
+    background: #fffdfb;
+    color: var(--accent);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .rail-tab-btn.active.is-comments-tab { color: #5b3b8c; }
   .notes-rail-sub {
     font-size: 10.5px;
     color: var(--ink-muted);
-    margin-top: 2px;
+  }
+  .comment-badge {
+    writing-mode: horizontal-tb;
+    display: inline-block;
+    font-family: var(--font-ui);
+    font-size: 9px;
+    line-height: 14px;
+    background: #6747a8;
+    color: #fff;
+    border-radius: 99px;
+    padding: 0 4px;
+    margin: 1px 2px;
+    vertical-align: super;
+    cursor: pointer;
+  }
+  .comment-badge:hover { background: #4d3285; }
+  mark.hl-comment {
+    background: rgba(139, 108, 206, 0.16);
+    border-bottom: 1.5px dashed rgba(103, 71, 168, 0.65);
+  }
+  .fn-term-chip.hl-chip-comment {
+    background: rgba(139, 108, 206, 0.16);
+    color: #4d3285;
+    border: 1px solid #c9b8eb;
   }
   .notes-rail-body {
     flex: 1;
@@ -1478,11 +1528,14 @@
     <!-- Persistent Horizontal Editorial Notes Panel -->
     <aside class="notes-rail" id="notesRail">
       <div class="notes-rail-head">
-        <div>
-          <h3>Editorial Notes <span id="notesRailCount">(0)</span></h3>
-          <div class="notes-rail-sub">Footnotes linked to sentences</div>
+        <div class="notes-rail-head-top">
+          <div class="rail-tabs">
+            <button type="button" class="rail-tab-btn active" id="railTabNotes" onclick="setNotesRailTab('notes')">📝 Notes <span id="notesRailCount">(0)</span></button>
+            <button type="button" class="rail-tab-btn is-comments-tab" id="railTabComments" onclick="setNotesRailTab('comments')">💬 Comments <span id="commentsRailCount">(0)</span></button>
+          </div>
+          <button class="btn btn-sm" onclick="toggleNotesRail()" title="Hide side panel">✕</button>
         </div>
-        <button class="btn btn-sm" onclick="toggleNotesRail()" title="Hide Editorial Notes panel">✕</button>
+        <div class="notes-rail-sub" id="notesRailSub">Footnotes · included in Word &amp; Markdown exports</div>
       </div>
       <div class="notes-rail-body" id="notesRailBody"></div>
     </aside>
@@ -3104,7 +3157,8 @@ function renderJapaneseRichWithHighlights(raw, regPrefix, paraId, layer, rawOffs
     const sliceHtml = renderJapaneseRich(raw.slice(s, e), `${regPrefix}_hl_${hi}`);
     const fnNum = hlFnMap && hlFnMap[h.id];
     const badgeHtml = fnNum ? `<span class="fn-badge hl-fn-${h.color || 'amber'}" onclick="focusFootnote(event, ${fnNum})" title="Jump to Editorial Note ${fnNum}">${fnNum}</span>` : "";
-    out += `<mark class="hl-mark hl-${h.color || 'amber'}" data-hl-id="${h.id}" onclick="onHighlightClick(event, '${paraId}', '${h.id}')" title="${fnNum ? 'Click to jump to Note ' + fnNum + ' or edit highlight' : 'Click to edit color, add note, or remove highlight'}">${sliceHtml}</mark>${badgeHtml}`;
+    const cmHtml = h.comment ? `<span class="comment-badge" onclick="focusComment(event, '${h.id}')" title="View internal comment">💬</span>` : "";
+    out += `<mark class="hl-mark hl-${h.color || 'amber'}" data-hl-id="${h.id}" onclick="onHighlightClick(event, '${paraId}', '${h.id}')" title="${fnNum ? 'Click to jump to Note ' + fnNum + ' or edit highlight' : (h.comment ? 'Click to view comment or edit highlight' : 'Click to edit color, add note/comment, or remove')}">${sliceHtml}</mark>${badgeHtml}${cmHtml}`;
     pos = e;
   });
   if (pos < raw.length) out += renderJapaneseRich(raw.slice(pos), `${regPrefix}_tail`);
@@ -3127,7 +3181,8 @@ function renderEnglishSliceWithHighlights(slice, sliceStart, paraId, highlights,
     if (s > pos) out += escapeHtml(slice.slice(pos, s));
     const fnNum = hlFnMap && hlFnMap[h.id];
     const badgeHtml = fnNum ? `<span class="fn-badge hl-fn-${h.color || 'amber'}" onclick="focusFootnote(event, ${fnNum})" title="Jump to Editorial Note ${fnNum}">${fnNum}</span>` : "";
-    out += `<mark class="hl-mark hl-${h.color || 'amber'}" data-hl-id="${h.id}" onclick="onHighlightClick(event, '${paraId}', '${h.id}')" title="${fnNum ? 'Click to jump to Note ' + fnNum + ' or edit highlight' : 'Click to edit color, add note, or remove highlight'}">${escapeHtml(slice.slice(s, e))}</mark>${badgeHtml}`;
+    const cmHtml = h.comment ? `<span class="comment-badge" onclick="focusComment(event, '${h.id}')" title="View internal comment">💬</span>` : "";
+    out += `<mark class="hl-mark hl-${h.color || 'amber'}" data-hl-id="${h.id}" onclick="onHighlightClick(event, '${paraId}', '${h.id}')" title="${fnNum ? 'Click to jump to Note ' + fnNum + ' or edit highlight' : (h.comment ? 'Click to view comment or edit highlight' : 'Click to edit color, add note/comment, or remove')}">${escapeHtml(slice.slice(s, e))}</mark>${badgeHtml}${cmHtml}`;
     pos = e;
   });
   if (pos < slice.length) out += escapeHtml(slice.slice(pos));
@@ -3448,10 +3503,6 @@ function renderPrimarySentenceCard(doc, para, units, idx) {
             <button type="button" class="markup-btn" onclick="wrapPrimaryMarkup('${taId}', '${para.id}', ${idx}, 'var')">+校異</button>
           </span>
           <span class="markup-group">
-            <button type="button" class="markup-btn danku-action" onclick="insertMaruAtCursor('${taId}', '${para.id}', ${idx})" title="Insert 。 at cursor to split into two sentences">✂ Split 。</button>
-            ${canMergeNext ? `<button type="button" class="markup-btn danku-action" onclick="mergeWithNextSentence('${para.id}', ${idx})" title="Merge with next sentence">🔗 Merge</button>` : ""}
-            ${canMergeNext ? `<button type="button" class="markup-btn" onclick="splitParagraphAfterSentence('${para.id}', ${idx})" title="Start a new paragraph after this sentence">↵ New Para</button>` : ""}
-            ${canJoinNextPara ? `<button type="button" class="markup-btn" onclick="mergeWithNextParagraph('${para.id}')" title="Merge the following paragraph into this one">⇤ Join Next Para</button>` : ""}
             <button type="button" class="markup-btn danku-pending" id="${applyBtnId}" style="display:none;" onclick="applyPrimarySentenceEdit('${taId}', '${para.id}', ${idx})">⚡ Apply</button>
           </span>
         </div>
@@ -4391,6 +4442,45 @@ function buildFootnoteLookupMap(doc) {
   return buildFootnoteLookupMaps(doc).sentMap;
 }
 
+let notesRailTab = "notes"; // "notes" | "comments"
+
+function setNotesRailTab(tab) {
+  notesRailTab = (tab === "comments") ? "comments" : "notes";
+  renderNotesRail();
+}
+
+function buildDocumentComments(doc) {
+  if (!doc) return [];
+  const layerRank = { primary: 1, kakikudashi: 2, english: 3 };
+  const list = [];
+  (doc.paragraphs || []).forEach(p => {
+    syncHighlightSnapshots(p);
+    const entries = [];
+    (p.highlights || []).forEach(h => {
+      if (!h.comment) return;
+      const si = resolveHighlightSentenceIdx(p, h);
+      const rawSnap = (p[getLayerTextField(h.layer)] || "").slice(h.start, h.end) || h.snapshot || "";
+      const snippet = h.layer === "english"
+        ? (rawSnap.length > 26 ? rawSnap.slice(0, 26).trim() + "…" : rawSnap)
+        : getSentenceSnippet(rawSnap, 12);
+      entries.push({
+        paraId: p.id,
+        sentIdx: si,
+        order: layerRank[h.layer] || 1,
+        offset: h.start || 0,
+        layer: h.layer,
+        color: h.color || "comment",
+        hlId: h.id,
+        snippet,
+        comment: h.comment
+      });
+    });
+    entries.sort((a, b) => (a.sentIdx - b.sentIdx) || (a.order - b.order) || (a.offset - b.offset));
+    entries.forEach(e => list.push(e));
+  });
+  return list;
+}
+
 function toggleNotesRail() {
   const rail = document.getElementById("notesRail");
   const btn = document.getElementById("notesRailToggleBtn");
@@ -4402,11 +4492,66 @@ function toggleNotesRail() {
 function renderNotesRail() {
   const body = document.getElementById("notesRailBody");
   const countEl = document.getElementById("notesRailCount");
+  const cmCountEl = document.getElementById("commentsRailCount");
+  const subEl = document.getElementById("notesRailSub");
+  const tabNotes = document.getElementById("railTabNotes");
+  const tabComments = document.getElementById("railTabComments");
   if (!body) return;
   const doc = getActiveDoc();
   if (!doc) return;
   const footnotes = buildDocumentFootnotes(doc);
+  const comments = buildDocumentComments(doc);
   if (countEl) countEl.textContent = `(${footnotes.length})`;
+  if (cmCountEl) cmCountEl.textContent = `(${comments.length})`;
+  if (tabNotes) tabNotes.classList.toggle("active", notesRailTab === "notes");
+  if (tabComments) tabComments.classList.toggle("active", notesRailTab === "comments");
+  if (subEl) {
+    subEl.textContent = notesRailTab === "comments"
+      ? "Internal discussion · not included in Word or Markdown exports"
+      : "Footnotes · included in Word & Markdown exports";
+  }
+
+  if (notesRailTab === "comments") {
+    if (comments.length === 0) {
+      body.innerHTML = `<div style="font-size:12.5px;color:var(--ink-faint);line-height:1.6;padding:12px 6px;">No discussion comments on this text yet.<br><br>Drag-select any word or phrase and click <strong>💬 Comment</strong> to leave an internal comment (never exported to Word or Markdown).</div>`;
+      return;
+    }
+    body.innerHTML = comments.map(cm => {
+      const c = cm.comment;
+      const isActive = Boolean(activeSelection && activeSelection.paraId === cm.paraId && activeSelection.idx === cm.sentIdx);
+      const cardId = `cm_card_${cm.hlId}`;
+      const taId = `cm_ta_${cm.hlId}`;
+      const timeId = `cm_time_${cm.hlId}`;
+      const ts = formatNoteTimestamp(c.updatedAt || c.createdAt);
+      const layerKey = cm.layer || "primary";
+      const layerDisplay = cm.layer === "primary" ? "原文" : (cm.layer === "kakikudashi" ? "書き下し" : "English");
+      const termHtml = cm.snippet ? `<span class="fn-term-chip hl-chip-${cm.color || 'comment'}">${escapeHtml(cm.snippet)}</span>` : "";
+      const linkCall = `highlightLinkedTextForNote('highlight', '${cm.paraId}', ${cm.sentIdx}, '${cm.hlId}', '${cm.layer}', null, true)`;
+      const jumpCall = `jumpToFootnoteHighlight('${cm.paraId}', '${cm.hlId}', '${cm.layer}')`;
+      const isFocused = Boolean(focusedNoteTarget && focusedNoteTarget.hlId === cm.hlId);
+      return `
+        <div class="fn-card fn-layer-${layerKey} ${isActive ? 'active-fn' : ''} ${isFocused ? 'note-card-focused' : ''}" id="${cardId}" onclick="if (!event.target.closest('.fn-del-btn')) { ${linkCall}; }">
+          <div class="fn-card-top">
+            <span class="fn-card-jump" onclick="event.stopPropagation(); ${jumpCall}" title="Jump to ${escapeHtml(layerDisplay)}${cm.snippet ? ': ' + escapeHtml(cm.snippet) : ''}">
+              <span class="fn-layer-badge layer-${layerKey}">${layerDisplay}</span>
+              ${termHtml}
+            </span>
+            ${isScribe ? `<button class="fn-del-btn" onclick="event.stopPropagation(); deleteHighlightComment('${cm.paraId}', '${cm.hlId}')" title="Resolve / delete comment">✕</button>` : ""}
+          </div>
+          <div style="font-size:11px;color:var(--ink-muted);display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;">
+            <strong>${escapeHtml(c.author || 'Member')}</strong>
+            <span id="${timeId}" style="color:var(--ink-faint);">${escapeHtml(ts)}</span>
+          </div>
+          ${isScribe ? `
+            <textarea id="${taId}" class="fn-textarea" placeholder="Write discussion comment (not exported)..." onfocus="${linkCall}" oninput="onInlineCommentChange('${cm.paraId}', '${cm.hlId}', this.value, '${timeId}')">${escapeHtml(c.text || '')}</textarea>
+          ` : `
+            <div style="font-size:12.5px;line-height:1.5;white-space:pre-wrap;">${escapeHtml(c.text || '')}</div>
+          `}
+        </div>
+      `;
+    }).join("");
+    return;
+  }
 
   if (footnotes.length === 0) {
     body.innerHTML = `<div style="font-size:12.5px;color:var(--ink-faint);line-height:1.6;padding:12px 6px;">No editorial notes on this text yet.<br><br>Click any sentence and press <strong>+ Add Note</strong>, or drag-select any word or phrase to highlight and add a note.</div>`;
@@ -4563,11 +4708,79 @@ function deleteHighlightNote(paraId, hlId) {
   renderNotesRail();
 }
 
-function focusFootnote(ev, num) {
-  ev.stopPropagation();
+function onInlineCommentChange(paraId, hlId, value, timeElId) {
+  const doc = getActiveDoc();
+  const para = doc && doc.paragraphs.find(p => p.id === paraId);
+  const hl = para && (para.highlights || []).find(h => h.id === hlId);
+  if (!hl || !hl.comment) return;
+  pushUndoSnapshot("Edit comment", `hlcomment_${paraId}_${hlId}`);
+  hl.comment.text = value;
+  hl.comment.updatedAt = getServerNowMs();
+  if (timeElId) {
+    const el = document.getElementById(timeElId);
+    if (el) el.textContent = formatNoteTimestamp(hl.comment.updatedAt);
+  }
+  saveState(activeDocId, para.id);
+}
+
+function deleteHighlightComment(paraId, hlId) {
+  const doc = getActiveDoc();
+  const para = doc && doc.paragraphs.find(p => p.id === paraId);
+  const hl = para && (para.highlights || []).find(h => h.id === hlId);
+  if (!hl) return;
+  pushUndoSnapshot("Delete comment");
+  hl.comment = null;
+  if (hl.color === "comment" && !hl.note) {
+    para.highlights = (para.highlights || []).filter(h => h.id !== hlId);
+  }
+  saveState(activeDocId, para.id);
+  renderPrimaryStage();
+  renderNotesRail();
+}
+
+function addCommentToHighlight(paraId, hlId) {
+  if (!isScribe) return;
+  const doc = getActiveDoc();
+  const para = doc && doc.paragraphs.find(p => p.id === paraId);
+  const hl = para && (para.highlights || []).find(h => h.id === hlId);
+  if (!hl) return;
+  pushUndoSnapshot("Add comment");
+  const nowMs = getServerNowMs();
+  hl.comment = { author: getCurrentUserName(), createdAt: nowMs, updatedAt: nowMs, text: "" };
+  closePopover();
+  saveState(activeDocId, para.id);
+  notesRailTab = "comments";
   const rail = document.getElementById("notesRail");
   if (rail && rail.classList.contains("collapsed")) toggleNotesRail();
+  renderPrimaryStage();
+  renderNotesRail();
+  const card = document.getElementById(`cm_card_${hlId}`);
+  const ta = document.getElementById(`cm_ta_${hlId}`);
+  if (card) card.scrollIntoView({ behavior: "smooth", block: "center" });
+  if (ta) ta.focus();
+}
+
+function focusFootnote(ev, num) {
+  ev.stopPropagation();
+  notesRailTab = "notes";
+  const rail = document.getElementById("notesRail");
+  if (rail && rail.classList.contains("collapsed")) toggleNotesRail();
+  renderNotesRail();
   const card = document.getElementById(`fn_card_${num}`);
+  if (card) {
+    card.scrollIntoView({ behavior: "smooth", block: "center" });
+    card.classList.add("flash-fn");
+    setTimeout(() => card.classList.remove("flash-fn"), 1200);
+  }
+}
+
+function focusComment(ev, hlId) {
+  ev.stopPropagation();
+  notesRailTab = "comments";
+  const rail = document.getElementById("notesRail");
+  if (rail && rail.classList.contains("collapsed")) toggleNotesRail();
+  renderNotesRail();
+  const card = document.getElementById(`cm_card_${hlId}`);
   if (card) {
     card.scrollIntoView({ behavior: "smooth", block: "center" });
     card.classList.add("flash-fn");
@@ -4774,14 +4987,15 @@ function showHlToolbar(rect) {
   const tb = document.getElementById("hlToolbar");
   if (!tb) return;
   const swatches = HL_COLORS.map(c =>
-    `<button type="button" class="hl-swatch sw-${c.id}" onclick="createHighlightFromPending('${c.id}', false)" title="Highlight (${c.label})"></button>`
+    `<button type="button" class="hl-swatch sw-${c.id}" onclick="createHighlightFromPending('${c.id}', 'highlight')" title="Highlight (${c.label})"></button>`
   ).join("");
   tb.innerHTML = `
     ${swatches}
-    <button type="button" class="hl-tb-btn" onclick="createHighlightFromPending(lastHighlightColor, true)" title="Highlight and add a linked note">+ Note</button>
+    <button type="button" class="hl-tb-btn" onclick="createHighlightFromPending(lastHighlightColor, 'note')" title="Highlight and add an Editorial Note (exported as footnote)">+ Note</button>
+    <button type="button" class="hl-tb-btn" onclick="createHighlightFromPending('comment', 'comment')" title="Add an internal discussion comment (not exported)">💬 Comment</button>
   `;
   tb.classList.add("open");
-  const x = Math.max(12, Math.min(window.innerWidth - 220, rect.left + rect.width / 2 - 95));
+  const x = Math.max(12, Math.min(window.innerWidth - 300, rect.left + rect.width / 2 - 135));
   const y = Math.max(54, rect.top - 42);
   tb.style.left = x + "px";
   tb.style.top = y + "px";
@@ -4793,15 +5007,19 @@ function hideHlToolbar() {
   if (tb) tb.classList.remove("open");
 }
 
-function createHighlightFromPending(color, withNote) {
+function createHighlightFromPending(color, mode) {
   if (!isScribe || !pendingHighlightSelection) return;
   const { paraId, layer, start, end, snapshot } = pendingHighlightSelection;
   const doc = getActiveDoc();
   const para = doc && doc.paragraphs.find(p => p.id === paraId);
   if (!para) { hideHlToolbar(); return; }
 
-  lastHighlightColor = color || "amber";
-  pushUndoSnapshot(withNote ? "Highlight & add note" : "Highlight term");
+  const isNote = mode === "note" || mode === true;
+  const isComment = mode === "comment";
+  if (!isComment && color && color !== "comment") lastHighlightColor = color;
+  const appliedColor = isComment ? "comment" : (color || lastHighlightColor || "amber");
+
+  pushUndoSnapshot(isComment ? "Add comment" : (isNote ? "Highlight & add note" : "Highlight term"));
   para.highlights = para.highlights || [];
   const nowMs = getServerNowMs();
   const newId = "hl_" + Date.now() + "_" + Math.floor(Math.random() * 10000);
@@ -4811,22 +5029,24 @@ function createHighlightFromPending(color, withNote) {
     start,
     end,
     snapshot,
-    color: lastHighlightColor,
-    note: withNote ? { author: getCurrentUserName(), createdAt: nowMs, updatedAt: nowMs, text: "" } : null
+    color: appliedColor,
+    note: isNote ? { author: getCurrentUserName(), createdAt: nowMs, updatedAt: nowMs, text: "" } : null,
+    comment: isComment ? { author: getCurrentUserName(), createdAt: nowMs, updatedAt: nowMs, text: "" } : null
   });
 
   window.getSelection().removeAllRanges();
   hideHlToolbar();
   saveState(activeDocId, para.id);
 
-  if (withNote) {
+  if (isNote || isComment) {
+    notesRailTab = isComment ? "comments" : "notes";
     const rail = document.getElementById("notesRail");
     if (rail && rail.classList.contains("collapsed")) toggleNotesRail();
   }
   renderPrimaryStage();
   renderNotesRail();
 
-  if (withNote) {
+  if (isNote) {
     const created = buildDocumentFootnotes(doc).find(f => f.kind === "highlight" && f.hlId === newId);
     if (created) {
       const card = document.getElementById(`fn_card_${created.num}`);
@@ -4834,6 +5054,11 @@ function createHighlightFromPending(color, withNote) {
       if (card) card.scrollIntoView({ behavior: "smooth", block: "center" });
       if (ta) ta.focus();
     }
+  } else if (isComment) {
+    const card = document.getElementById(`cm_card_${newId}`);
+    const ta = document.getElementById(`cm_ta_${newId}`);
+    if (card) card.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (ta) ta.focus();
   }
 }
 
@@ -4849,9 +5074,22 @@ function onHighlightClick(ev, paraId, hlId) {
 
   const fn = buildDocumentFootnotes(doc).find(f => f.kind === "highlight" && f.hlId === hlId);
   if (fn) {
+    notesRailTab = "notes";
     const rail = document.getElementById("notesRail");
     if (rail && rail.classList.contains("collapsed")) toggleNotesRail();
+    renderNotesRail();
     const card = document.getElementById(`fn_card_${fn.num}`);
+    if (card) {
+      card.scrollIntoView({ behavior: "smooth", block: "center" });
+      card.classList.add("flash-fn");
+      setTimeout(() => card.classList.remove("flash-fn"), 1200);
+    }
+  } else if (hl.comment) {
+    notesRailTab = "comments";
+    const rail = document.getElementById("notesRail");
+    if (rail && rail.classList.contains("collapsed")) toggleNotesRail();
+    renderNotesRail();
+    const card = document.getElementById(`cm_card_${hlId}`);
     if (card) {
       card.scrollIntoView({ behavior: "smooth", block: "center" });
       card.classList.add("flash-fn");
@@ -4869,13 +5107,14 @@ function onHighlightClick(ev, paraId, hlId) {
 
   pop.innerHTML = `
     <div class="popover-title">
-      <span>Highlight</span>
+      <span>${hl.color === 'comment' ? 'Comment' : 'Highlight'}</span>
       <span style="cursor:pointer" onclick="closePopover()">✕</span>
     </div>
     <div style="font-family:${hl.layer === 'english' ? 'var(--font-en)' : 'var(--font-jp)'};font-size:14.5px;font-weight:700;margin-bottom:8px;">「${escapeHtml(disp)}」</div>
     ${isScribe ? `<div style="display:flex;align-items:center;gap:6px;margin-bottom:9px;">${swatches}</div>` : ""}
     <div style="display:flex;gap:6px;flex-wrap:wrap;">
       ${!hl.note && isScribe ? `<button class="btn btn-sm active" onclick="addNoteToHighlight('${paraId}', '${hlId}')">+ Add Note</button>` : ""}
+      ${!hl.comment && isScribe ? `<button class="btn btn-sm" onclick="addCommentToHighlight('${paraId}', '${hlId}')">💬 Comment</button>` : ""}
       <button class="btn btn-sm" onclick="closePopover();jumpToFootnoteSentence('${paraId}', ${sentIdx})">✎ Edit Sentence</button>
       ${isScribe ? `<button class="btn btn-sm" style="color:var(--scribe);border-color:#daa298;" onclick="removeHighlight('${paraId}', '${hlId}')">Remove</button>` : ""}
     </div>
