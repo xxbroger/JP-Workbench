@@ -708,9 +708,7 @@
     -webkit-user-select: none;
     letter-spacing: 0;
   }
-  body.ruby-hover rt { opacity: 0; transition: opacity 0.14s; }
-  body.ruby-hover ruby:hover rt { opacity: 1; color: var(--scribe); }
-  body.ruby-hidden rt { display: none; }
+
 
   .kunoji {
     display: inline-block;
@@ -1179,13 +1177,7 @@
       </select>
       <button class="btn" id="enProductToggleBtn" onclick="toggleEnglishProductPane()" title="Show/Hide English translation alongside the text">📖 English</button>
 
-      <span class="control-label" style="margin-left:4px;">Ruby:</span>
-      <div class="seg-control" id="rubyControl">
-        <button class="active" onclick="setRubyMode('full', this)">Full</button>
-        <button onclick="setRubyMode('hover', this)">Hover</button>
-        <button onclick="setRubyMode('hidden', this)">Off</button>
-      </div>
-      <button class="btn" id="kunInlineBtn" onclick="toggleKunInline()" title="Show alternate kun-readings inline alongside vertical columns">左傍注 Alt Kun</button>
+
       <div class="seg-control" title="Adjust Text Size">
         <button onclick="adjustFontSize(-1.5)">A−</button>
         <button onclick="adjustFontSize(1.5)">A+</button>
@@ -4266,17 +4258,6 @@ function closePopover() {
   document.getElementById("popover").classList.remove("open");
 }
 
-function setRubyMode(mode, btn) {
-  document.body.classList.remove("ruby-full", "ruby-hover", "ruby-hidden");
-  document.body.classList.add("ruby-" + mode);
-  document.querySelectorAll("#rubyControl button").forEach(b => b.classList.remove("active"));
-  btn.classList.add("active");
-}
-
-function toggleKunInline() {
-  document.body.classList.toggle("show-kun-inline");
-  document.getElementById("kunInlineBtn").classList.toggle("active");
-}
 
 
 function adjustFontSize(delta) {
