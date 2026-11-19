@@ -1402,16 +1402,10 @@
       <button class="btn" onclick="toggleSidebar()" title="Show/Hide Corpus Sidebar">☰ Corpus</button>
 
       <div class="seg-control primary-picker" id="stageViewTabs">
-        <button id="tab_primary" class="active" onclick="setStageView('primary')">原文 漢文</button>
+        <button id="tab_primary" class="active" onclick="setStageView('primary')">原文</button>
         <button id="tab_kakikudashi" style="display:none;" onclick="setStageView('kakikudashi')">書き下し Kakikudashi</button>
       </div>
       <button class="btn btn-sm" id="kkToggleTopbarBtn" onclick="toggleDocKakikudashiLayer()" title="Turn 書き下し (Kakikudashi) on or off for this text">+ 書き下し</button>
-
-      <select class="style-select" id="primaryStyleSelect" onchange="onChangePrimaryStyle(this.value)" title="Text style">
-        <option value="kanbun">漢文 Kanbun</option>
-        <option value="wakan">和漢混じり文 Wakan</option>
-        <option value="wabun">和文 Wabun</option>
-      </select>
       <button class="btn" id="enProductToggleBtn" onclick="toggleEnglishProductPane()" title="Show/Hide English translation alongside the text">📖 English</button>
 
 
@@ -2786,7 +2780,6 @@ function renderJapaneseRich(raw, regPrefix) {
 function syncTopbarControls() {
   const doc = getActiveDoc();
   if (!doc) return;
-  const st = getPrimaryStyleInfo(doc.primaryStyle);
 
   if (!doc.hasKakikudashi && stageView === "kakikudashi") {
     stageView = "primary";
@@ -2795,10 +2788,9 @@ function syncTopbarControls() {
   const tabPrim = document.getElementById("tab_primary");
   const tabKk = document.getElementById("tab_kakikudashi");
   const kkToggleBtn = document.getElementById("kkToggleTopbarBtn");
-  const sel = document.getElementById("primaryStyleSelect");
 
   if (tabPrim) {
-    tabPrim.textContent = `原文 ${st.short}`;
+    tabPrim.textContent = "原文";
     tabPrim.classList.toggle("active", stageView === "primary");
   }
   if (tabKk) {
@@ -2809,10 +2801,6 @@ function syncTopbarControls() {
     kkToggleBtn.textContent = doc.hasKakikudashi ? "✓ 書き下し" : "+ 書き下し";
     kkToggleBtn.classList.toggle("active", Boolean(doc.hasKakikudashi));
     kkToggleBtn.disabled = !isScribe;
-  }
-  if (sel) {
-    sel.value = doc.primaryStyle || "kanbun";
-    sel.disabled = !isScribe;
   }
   syncUndoRedoButtons();
 }
@@ -3002,24 +2990,20 @@ function renderSidebar() {
   let html = `<div class="corpus-group-label" style="display:flex;justify-content:space-between;align-items:center;"><span>Active Paratexts</span><button class="btn btn-sm" style="padding:1px 7px;font-size:10.5px;" onclick="openNewDocModal()" title="Create a new text">+ New Text</button></div>`;
   for (const doc of state.corpus) {
     const active = doc.id === activeDocId ? "active" : "";
-    const st = getPrimaryStyleInfo(doc.primaryStyle);
     html += `
       <div class="corpus-item ${active}" onclick="selectDoc('${doc.id}')">
         <div class="corpus-item-top">
           <span>${escapeHtml(doc.title.split("—")[0])}</span>
-          <span class="badge-lang ${st.badgeCls}">${st.short}</span>
         </div>
         <div class="corpus-item-sub">${escapeHtml(doc.author)}</div>
       </div>`;
   }
   html += `<div class="corpus-group-label" style="margin-top:10px">Sourcebook Census (25 Collections)</div>`;
   for (const s of STUB_COLLECTIONS) {
-    const st = getPrimaryStyleInfo(s.style);
     html += `
       <div class="corpus-item stub">
         <div class="corpus-item-top">
           <span>${escapeHtml(s.title)}</span>
-          <span class="badge-lang ${st.badgeCls}">${st.short}</span>
         </div>
         <div class="corpus-item-sub">${escapeHtml(s.sub)}</div>
       </div>`;
@@ -3043,10 +3027,9 @@ function selectDoc(id) {
 function renderBanner() {
   const doc = getActiveDoc();
   if (!doc) return;
-  const st = getPrimaryStyleInfo(doc.primaryStyle);
   const viewHint = stageView === "kakikudashi"
-    ? "Viewing full 書き下し (click any passage to edit or map)"
-    : `<strong>${st.short}</strong> · Click any sentence to edit`;
+    ? "Viewing 書き下し · Click any passage to edit or map"
+    : "Click any sentence to edit, or drag to highlight";
   const banner = document.getElementById("paratextBanner");
   banner.innerHTML = `
     <div class="paratext-title-row">
@@ -3055,7 +3038,7 @@ function renderBanner() {
         <span class="paratext-meta">${escapeHtml(doc.author)} · ${viewHint}</span>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        ${isScribe ? `<button class="btn btn-sm" onclick="openEditDocInfoModal()" title="Edit this text's title, author, style, and source info">✎ Edit Info</button>` : ""}
+        ${isScribe ? `<button class="btn btn-sm" onclick="openEditDocInfoModal()" title="Edit this text's title, author, and source info">✎ Edit Info</button>` : ""}
         <button class="btn btn-sm active" onclick="openRawTextModal('${stageView === 'kakikudashi' ? 'kakikudashi' : 'primary'}')" title="Paste, edit, or clear raw text">📝 Feed / Edit Raw Text</button>
         <button class="btn btn-sm" onclick="toggleWitnessDrawer()">📜 Source &amp; Witness Info</button>
         ${!cloud.ready ? `<button class="btn btn-sm" onclick="resetDemoData()" title="Restore initial sample state">↺ Reset Demo</button>` : ""}
@@ -3489,7 +3472,7 @@ function renderPrimarySentenceCard(doc, para, units, idx) {
   return `
     <div class="layer-card is-primary-card">
       <div class="layer-card-head">
-        <span>原文 ${st.short}</span>
+        <span>原文</span>
       </div>
       <div class="cw-tategaki-preview" id="${previewId}">${renderJapaneseRich(sentText, `cw_prim_${para.id}_${idx}`)}</div>
       ${editorHtml}
@@ -5440,7 +5423,7 @@ function exportWordDocx() {
   // 1. Full Original Text (natural paragraphs)
   const primParas = paras.filter(p => (p.primaryText || "").trim());
   if (primParas.length) {
-    addP(wTextRun(`原文（${st.short}）`, { bold: true, size: 24, color: "233B5D" }), { spaceBefore: 200, spaceAfter: 80 });
+    addP(wTextRun("原文", { bold: true, size: 24, color: "233B5D" }), { spaceBefore: 200, spaceAfter: 80 });
     primParas.forEach(p => {
       const primRuns = buildRunsWithFnInsertions(p.primaryText || "", true, primInsertionsByPara[p.id]);
       addP(primRuns, { spaceAfter: 140, line: 340 });
@@ -5573,11 +5556,10 @@ function exportWordDocx() {
 
 function exportMarkdown() {
   const doc = getActiveDoc();
-  const st = getPrimaryStyleInfo(doc.primaryStyle);
   let md = `# ${doc.title}\n${doc.author}\n\n> ${doc.metadata}\n\n`;
   const paras = doc.paragraphs || [];
   const primBlocks = paras.map(p => resolveJapaneseForExport(p.primaryText || "").trim()).filter(Boolean);
-  if (primBlocks.length) md += `## 原文（${st.short}）\n\n${primBlocks.join("\n\n")}\n\n`;
+  if (primBlocks.length) md += `## 原文\n\n${primBlocks.join("\n\n")}\n\n`;
 
   if (doc.hasKakikudashi) {
     const kkBlocks = paras.map(p => resolveJapaneseForExport(p.kakikudashiText || "").trim()).filter(Boolean);
@@ -5795,10 +5777,9 @@ function mergeRawLineBreaks() {
 function renderRawTextModal() {
   const doc = getActiveDoc();
   if (!doc) return;
-  const st = getPrimaryStyleInfo(rawModalStyle);
   const val = rawModalDrafts[rawModalLayer] || "";
   const placeholderMap = {
-    primary: `Paste raw ${st.short} text here. Leave a blank line between paragraphs. Every 「。」 becomes a clickable sentence.`,
+    primary: "Paste raw 原文 text here. Leave a blank line between paragraphs. Every 「。」 becomes a clickable sentence.",
     kakikudashi: "Paste 書き下し (Kakikudashi) here with blank lines between paragraphs, or leave empty if not needed.",
     english: "Paste or edit the English translation here. Leave a blank line between paragraphs."
   };
@@ -5809,15 +5790,10 @@ function renderRawTextModal() {
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
         <div class="seg-control primary-picker">
-          <button class="${rawModalLayer === 'primary' ? 'active' : ''}" onclick="switchRawTextLayer('primary')">原文 ${st.short}</button>
+          <button class="${rawModalLayer === 'primary' ? 'active' : ''}" onclick="switchRawTextLayer('primary')">原文</button>
           <button class="${rawModalLayer === 'kakikudashi' ? 'active' : ''}" onclick="switchRawTextLayer('kakikudashi')">書き下し</button>
           <button class="${rawModalLayer === 'english' ? 'active' : ''}" onclick="switchRawTextLayer('english')">English</button>
         </div>
-        <select class="style-select" onchange="onRawModalStyleChange(this.value)" title="Change text style">
-          <option value="kanbun" ${rawModalStyle === 'kanbun' ? 'selected' : ''}>漢文 Kanbun</option>
-          <option value="wakan" ${rawModalStyle === 'wakan' ? 'selected' : ''}>和漢混じり文 Wakan</option>
-          <option value="wabun" ${rawModalStyle === 'wabun' ? 'selected' : ''}>和文 Wabun</option>
-        </select>
       </div>
       <span id="rawStatsLabel" style="font-size:12px;font-weight:600;color:var(--accent);">${computeRawStatsText(rawModalLayer, val)}</span>
     </div>
@@ -5920,16 +5896,11 @@ function openNewDocModal() {
       <input id="nd_title" type="text" placeholder="e.g. 02.02 上巻序 — Sanbōe, Vol. 1 Preface" style="padding:6px 8px;border:1px solid var(--border-strong);border-radius:6px;">
       <label><strong>Author / Date</strong></label>
       <input id="nd_author" type="text" placeholder="e.g. 源為憲 Minamoto no Tamenori (984)" style="padding:6px 8px;border:1px solid var(--border-strong);border-radius:6px;">
-      <label><strong>Text Style</strong></label>
-      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-        <select id="nd_style" onchange="onNewDocStyleChange()" style="padding:6px 8px;border:1px solid var(--border-strong);border-radius:6px;">
-          <option value="kanbun">漢文 Kanbun</option>
-          <option value="wakan">和漢混じり文 Wakan-majiribun</option>
-          <option value="wabun">和文 Wabun</option>
-        </select>
+      <label><strong>書き下し</strong></label>
+      <div>
         <label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;">
           <input type="checkbox" id="nd_has_kk" checked onchange="renderNewDocTabs()">
-          Include 書き下し
+          Include 書き下し layer
         </label>
       </div>
       <label><strong>Source Info</strong></label>
@@ -5951,16 +5922,6 @@ function openNewDocModal() {
   document.getElementById("newDocModal").classList.add("open");
 }
 
-function onNewDocStyleChange() {
-  const ta = document.getElementById("nd_text");
-  if (ta) newDocDrafts[newDocActiveTab] = ta.value;
-  const style = document.getElementById("nd_style").value;
-  const kkCheck = document.getElementById("nd_has_kk");
-  if (kkCheck) kkCheck.checked = (style === "kanbun");
-  if (!kkCheck.checked && newDocActiveTab === "kakikudashi") newDocActiveTab = "primary";
-  renderNewDocTabs();
-}
-
 function switchNewDocTab(tab) {
   const ta = document.getElementById("nd_text");
   if (ta) newDocDrafts[newDocActiveTab] = ta.value;
@@ -5969,14 +5930,12 @@ function switchNewDocTab(tab) {
 }
 
 function renderNewDocTabs() {
-  const style = document.getElementById("nd_style").value;
-  const st = getPrimaryStyleInfo(style);
   const hasKk = document.getElementById("nd_has_kk").checked;
   if (!hasKk && newDocActiveTab === "kakikudashi") newDocActiveTab = "primary";
 
   const tabsHost = document.getElementById("nd_tabs");
   tabsHost.innerHTML = `
-    <button type="button" class="${newDocActiveTab === 'primary' ? 'active' : ''}" onclick="switchNewDocTab('primary')">原文 ${st.short}</button>
+    <button type="button" class="${newDocActiveTab === 'primary' ? 'active' : ''}" onclick="switchNewDocTab('primary')">原文</button>
     ${hasKk ? `<button type="button" class="${newDocActiveTab === 'kakikudashi' ? 'active' : ''}" onclick="switchNewDocTab('kakikudashi')">書き下し</button>` : ""}
     <button type="button" class="${newDocActiveTab === 'english' ? 'active' : ''}" onclick="switchNewDocTab('english')">English</button>
   `;
@@ -5988,7 +5947,7 @@ function renderNewDocTabs() {
     ta.placeholder = newDocActiveTab === "english"
       ? "Paste English translation draft here (blank line between paragraphs)..."
       : (newDocActiveTab === "primary"
-          ? `Paste ${st.short} text here (blank line between paragraphs)...`
+          ? "Paste 原文 text here (blank line between paragraphs)..."
           : "Paste 書き下し here (blank line between paragraphs)...");
   }
 }
@@ -6009,16 +5968,11 @@ function openEditDocInfoModal() {
       <input id="ed_title" type="text" value="${escapeHtml(doc.title || '')}" style="padding:6px 8px;border:1px solid var(--border-strong);border-radius:6px;">
       <label><strong>Author / Date</strong></label>
       <input id="ed_author" type="text" value="${escapeHtml(doc.author || '')}" style="padding:6px 8px;border:1px solid var(--border-strong);border-radius:6px;">
-      <label><strong>Text Style</strong></label>
-      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-        <select id="ed_style" style="padding:6px 8px;border:1px solid var(--border-strong);border-radius:6px;">
-          <option value="kanbun" ${doc.primaryStyle === 'kanbun' ? 'selected' : ''}>漢文 Kanbun</option>
-          <option value="wakan" ${doc.primaryStyle === 'wakan' ? 'selected' : ''}>和漢混じり文 Wakan-majiribun</option>
-          <option value="wabun" ${doc.primaryStyle === 'wabun' ? 'selected' : ''}>和文 Wabun</option>
-        </select>
+      <label><strong>書き下し</strong></label>
+      <div>
         <label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;">
           <input type="checkbox" id="ed_has_kk" ${doc.hasKakikudashi ? 'checked' : ''}>
-          Include 書き下し
+          Include 書き下し layer
         </label>
       </div>
       <label style="align-self:start;padding-top:6px;"><strong>Source Info</strong></label>
@@ -6048,7 +6002,6 @@ function saveEditDocInfoModal() {
   doc.title = title;
   doc.collection = title.split("—")[0].trim();
   doc.author = (document.getElementById("ed_author").value || "").trim();
-  doc.primaryStyle = document.getElementById("ed_style").value;
   doc.hasKakikudashi = document.getElementById("ed_has_kk").checked;
   doc._explicitHasKk = true;
   doc.metadata = (document.getElementById("ed_meta").value || "").trim();
@@ -6070,7 +6023,7 @@ async function createNewDocFromModal() {
   const rawId = (document.getElementById("nd_id").value || "").trim();
   const title = (document.getElementById("nd_title").value || "").trim();
   const author = (document.getElementById("nd_author").value || "").trim();
-  const primaryStyle = document.getElementById("nd_style").value;
+  const primaryStyle = "kanbun";
   const hasKakikudashi = document.getElementById("nd_has_kk").checked;
   const metadata = (document.getElementById("nd_meta").value || "").trim();
 
