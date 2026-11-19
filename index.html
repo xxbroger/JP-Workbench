@@ -1493,13 +1493,34 @@ function buildInitialCorpus() {
       type: "kanbun",
       bookmarkAfterPara: null,
       bookmarkLabel: "",
-      metadata: "比較伝本：前田家本、真福寺本模本（不忍文庫本）。今後の読書会セッション用：各「。」単位の文の分割・結合と英訳パッセージ手動紐付けをテストできます。",
+      metadata: "校訂・出典注：電子本文による暫定転記（原本画像との独立校合は未了。特に下巻序は伝本間の欠脱に注意）。比較伝本：前田家本、真福寺本日本霊異記（不忍文庫本・鎌倉時代初期写の忠実な模本）。",
       paragraphs: [
         createSeededParagraph("l1", "第1段", [
           {
             kanbun: "夫善惡因果者，著於內經。吉凶得失，載諸外典。今探是賢劫尺迦一代教文，有三時。一，正法五百年。二，像法千年。三，末法萬年。自佛涅槃以來，迄于延曆六年歲次丁卯，而逕一千七百廿二年。過正像二而入末法。然日本從佛法傳適以還，迄于延曆六年而逕二百卅六歲也。",
             kakikudashi: "夫（そ）れ善悪（ぜんあく）の因果は、内経（ないきゃう）に著（あらは）る。吉凶（きっきょう）の得失は、諸（もろもろ）の外典（げてん）に載（の）す。今是（こ）の賢劫（けんごふ）の釈迦（しゃか）一代の教文を探るに、三時有り。一には正法（しゃうぼう）五百年。二には像法（ざうぼう）千年。三には末法（まっぽう）万年なり。仏の涅槃より以来、延暦（えんりゃく）六年歳次丁卯に迄（いた）るまで、一千七百二十二年を逕（へ）たり。正・像の二つを過ぎて末法に入れり。然して日本に仏法伝はりてより以還（このかた）、延暦六年に迄るまで二百三十六歳を逕たり。",
             english: "Good and evil karma are set forth in the Inner Scriptures, while good and ill fortune are recorded in the Outer Classics. Examining Śākyamuni's teachings in this Auspicious Kalpa, there are Three Periods: five hundred years of the True Dharma, one thousand years of the Semblance Dharma, and ten thousand years of the Degenerate Dharma (mappō). From the Buddha's nirvāṇa down to the cyclical year hinoto-u, the sixth year of Enryaku (787), 1,722 years have elapsed—passing through the True and Semblance ages into the Degenerate Dharma—while 236 years have passed since the Dharma first reached Japan."
+          }
+        ]),
+        createSeededParagraph("l2", "第2段", [
+          {
+            kanbun: "夫花咲無聲，雞鳴無淚。觀代修善之者，若石峰花。作惡之者，似土山毛。匪磰因果作罪，以比無目之人履叵失之兮虎尾。甘嗜名利殺生，疑託鬼之人抱毒蛇。莫朽之號惡種。叵見之號善根。惡報遄來如水鏡。向之即現。夸力颯被如谷響。喚之必應。現報若之，人不慎乎。此生空過，後悔無益。暫爾身詎伯存之。泛爾命孰常恃之。既入末劫，何弗仂矣。喃汎言惻，那免劫災。唯資施眾僧一搏食，於修善之福而不逢當來飢饉之災。苦賴持一日不殺戒，於行道之力而不值末劫刀兵之怨。",
+            kakikudashi: "",
+            english: ""
+          }
+        ]),
+        createSeededParagraph("l3", "第3段", [
+          {
+            kanbun: "昔有一比丘，住山坐禪。每齋食時，拆飲施烏。烏常啄效，每日來候。比丘齋食訖後，嚼楊枝，嗽口洒手，把礫而翫。烏居籬外。時彼比丘，不瞪居烏，投礫中烏。烏頭破飛即死，死生猪，猪住其山。彼猪至於比丘室上，頹石求食，徑下中比丘而死。猪不思賊，石自來殺。無記作罪，無記報怨。何況乎發惡心殺，無彼怨報歟。",
+            kakikudashi: "",
+            english: ""
+          }
+        ]),
+        createSeededParagraph("l4", "第4段", [
+          {
+            kanbun: "殖惡之因，怨惡之果，是吾迷心。作於福因而鑒菩提，是我寤懷。羊僧景戒，所學者未得天台智者之問術。所悟者未得神人辯者之答術。是猶以螺酌海因管窺天者矣。匪傳燈之良匠，而強訂睠斯事。剋轍淨剎，奔心覺路。遠愧前非，長祈後善。注寄異事，示言提流。授手欲勸，濡足欲導。庶掃地共生西方極樂。傾巢同住天上寶堂者矣。諾樂右京藥師寺沙門景戒錄",
+            kakikudashi: "",
+            english: ""
           }
         ])
       ]
@@ -3359,6 +3380,50 @@ function triggerImportJson() {
   document.getElementById("jsonImportInput").click();
 }
 
+async function uploadDocsMergeToCloud(docsList) {
+  if (!cloud.ready || !cloud.db || !cloud.user) return;
+  setSyncStatus("saving", "🟡 Uploading Update…");
+  try {
+    const { doc, writeBatch } = cloud.sdk;
+    const batch = writeBatch(cloud.db);
+    docsList.forEach((dObj, idx) => {
+      batch.set(doc(cloud.db, "docs", dObj.id), {
+        id: dObj.id,
+        orderIndex: dObj.orderIndex || (idx + 1),
+        collection: dObj.collection || "",
+        title: dObj.title || dObj.id,
+        author: dObj.author || "",
+        type: dObj.type || "kanbun",
+        bookmarkAfterPara: dObj.bookmarkAfterPara || null,
+        bookmarkLabel: dObj.bookmarkLabel || "",
+        metadata: dObj.metadata || "",
+        paraOrder: (dObj.paragraphs || []).map(p => p.id),
+        updatedBy: getCurrentUserName(),
+        updatedAt: Date.now()
+      });
+      (dObj.paragraphs || []).forEach(pObj => {
+        batch.set(doc(cloud.db, "docs", dObj.id, "paragraphs", pObj.id), {
+          id: pObj.id,
+          label: pObj.label,
+          kanbunText: pObj.kanbunText || "",
+          kakikudashiText: pObj.kakikudashiText || "",
+          englishText: pObj.englishText || "",
+          kbMeta: pObj.kbMeta || [],
+          kkMeta: pObj.kkMeta || [],
+          updatedBy: getCurrentUserName(),
+          updatedByUid: cloud.user.uid,
+          updatedAt: Date.now()
+        });
+      });
+    });
+    await batch.commit();
+    setSyncStatus("synced", "🟢 Live Synced");
+  } catch (err) {
+    console.error("Merge upload failed:", err);
+    setSyncStatus("error", "🔴 Upload Failed");
+  }
+}
+
 function handleImportJson(ev) {
   const file = ev.target.files && ev.target.files[0];
   if (!file) return;
@@ -3366,16 +3431,30 @@ function handleImportJson(ev) {
   reader.onload = async () => {
     try {
       const parsed = JSON.parse(reader.result);
-      if (!parsed || !Array.isArray(parsed.corpus)) {
-        alert("Invalid backup file: expected a JSON export from this workbench.");
+      if (parsed && parsed.mode === "merge" && Array.isArray(parsed.docs)) {
+        parsed.docs.forEach(newDoc => {
+          const i = state.corpus.findIndex(d => d.id === newDoc.id);
+          if (i >= 0) state.corpus[i] = newDoc;
+          else state.corpus.push(newDoc);
+        });
+        state.corpus.sort((a, b) => (a.orderIndex || 99) - (b.orderIndex || 99));
+        activeDocId = parsed.docs[0] ? parsed.docs[0].id : activeDocId;
+        activeSelection = null;
+        saveLocalState();
+        if (cloud.ready) {
+          await uploadDocsMergeToCloud(parsed.docs);
+        }
+      } else if (parsed && Array.isArray(parsed.corpus)) {
+        state = { corpus: parsed.corpus, kunSelections: parsed.kunSelections || {} };
+        activeDocId = state.corpus[0].id;
+        activeSelection = null;
+        saveLocalState();
+        if (cloud.ready) {
+          await seedStarterCorpusToCloud(state);
+        }
+      } else {
+        alert("Invalid JSON file: expected a full backup or a merge update file.");
         return;
-      }
-      state = { corpus: parsed.corpus, kunSelections: parsed.kunSelections || {} };
-      activeDocId = state.corpus[0].id;
-      activeSelection = null;
-      saveLocalState();
-      if (cloud.ready) {
-        await seedStarterCorpusToCloud(state);
       }
       closeCompanionWindow();
       updatePrimaryPickerButtons();
