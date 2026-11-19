@@ -384,17 +384,165 @@
     cursor: default;
   }
 
-  /* Stage Body */
+  /* Main Split: Primary Stage + Always-Visible Horizontal Editorial Notes Rail */
+  .main-split {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+  }
   .stage-body {
     flex: 1;
     display: flex;
     flex-direction: column;
     min-height: 0;
+    min-width: 0;
     position: relative;
   }
   .stage-body.dock-left {
     flex-direction: row-reverse;
   }
+
+  /* Persistent Right-Hand Editorial Notes Rail (Always Horizontal) */
+  aside.notes-rail {
+    width: 340px;
+    min-width: 290px;
+    max-width: 390px;
+    background: var(--bg-card);
+    border-left: 1px solid var(--border-strong);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    z-index: 20;
+  }
+  aside.notes-rail.collapsed { display: none; }
+  .notes-rail-head {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-subtle);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+  .notes-rail-head h3 {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .notes-rail-sub {
+    font-size: 10.5px;
+    color: var(--ink-muted);
+    margin-top: 2px;
+  }
+  .notes-rail-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px 12px 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    background: #faf7f0;
+  }
+  .fn-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-left: 3.5px solid var(--accent);
+    border-radius: 8px;
+    padding: 9px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    transition: box-shadow 0.15s, border-color 0.15s;
+  }
+  .fn-card.cat-variant { border-left-color: var(--var-line); }
+  .fn-card.cat-locus { border-left-color: #7a5195; }
+  .fn-card.cat-suggestion { border-left-color: var(--scribe); }
+  .fn-card.active-fn {
+    box-shadow: 0 0 0 2px rgba(184, 93, 0, 0.35);
+    background: #fffdf7;
+  }
+  .fn-card.flash-fn {
+    box-shadow: 0 0 0 3px rgba(38, 74, 120, 0.45);
+  }
+  .fn-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .fn-num-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border: 1px solid #bfd3ec;
+    border-radius: 99px;
+    padding: 1px 8px;
+    cursor: pointer;
+  }
+  .fn-num-pill:hover { background: #d4e4f7; }
+  .fn-edit-row {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+  }
+  .fn-edit-row select, .fn-edit-row input {
+    font-family: var(--font-ui);
+    font-size: 11.5px;
+    padding: 3px 6px;
+    border: 1px solid var(--border-strong);
+    border-radius: 5px;
+    background: #fff;
+    color: var(--ink);
+  }
+  .fn-textarea {
+    width: 100%;
+    font-family: var(--font-ui);
+    font-size: 12.5px;
+    line-height: 1.5;
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: #fffdfb;
+    color: var(--ink);
+    resize: vertical;
+    min-height: 54px;
+  }
+  .fn-textarea:focus { outline: none; border-color: var(--accent); background: #fff; }
+  .fn-del-btn {
+    background: transparent;
+    border: none;
+    color: var(--ink-faint);
+    cursor: pointer;
+    font-size: 12px;
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+  .fn-del-btn:hover { background: var(--scribe-soft); color: var(--scribe); }
+  .fn-badge {
+    writing-mode: horizontal-tb;
+    display: inline-block;
+    font-family: var(--font-ui);
+    font-size: 9.5px;
+    font-weight: 700;
+    background: var(--accent);
+    color: #fff;
+    border-radius: 99px;
+    padding: 0 5px;
+    line-height: 15px;
+    margin: 1px 2px;
+    vertical-align: super;
+    cursor: pointer;
+  }
+  .fn-badge:hover { background: #183254; }
 
   .primary-stage {
     flex: 1;
@@ -1129,6 +1277,7 @@
       <div class="role-pill is-scribe" id="rolePill" onclick="toggleRole()" title="Personal safety toggle: unlock editing or switch to read-only browsing">
         <span id="roleLabel">✏️ Editing Unlocked</span>
       </div>
+      <button class="btn active" id="notesRailToggleBtn" onclick="toggleNotesRail()" title="Show/Hide always-visible Editorial Notes panel">📝 Notes</button>
       <button class="btn" onclick="exportMarkdown()" title="Export active text + notes to Markdown">⬇ MD</button>
       <button class="btn" onclick="exportJsonBackup()" title="Download full corpus + notes JSON backup">⬇ JSON</button>
       <button class="btn" onclick="triggerImportJson()" title="Restore or merge a JSON backup file">⬆ Import</button>
@@ -1137,30 +1286,45 @@
     </div>
   </header>
 
-  <div class="stage-body" id="stageBody">
-    <div class="primary-stage">
-      <div class="paratext-banner" id="paratextBanner"></div>
-      <div id="primaryCanvasHost" style="flex:1;display:flex;flex-direction:column;min-height:0;"></div>
+  <div class="main-split">
+    <div class="stage-body" id="stageBody">
+      <div class="primary-stage">
+        <div class="paratext-banner" id="paratextBanner"></div>
+        <div id="primaryCanvasHost" style="flex:1;display:flex;flex-direction:column;min-height:0;"></div>
+      </div>
+
+      <section class="companion-window mode-float" id="companionWindow">
+        <div class="cw-header" id="cwHeader">
+          <div class="cw-title">
+            <span id="cwTitleText">Sentence Inspector</span>
+            <button class="cw-btn" onclick="stepSentence(-1)" title="Previous sentence (↑ / →)">← Prev Sentence</button>
+            <button class="cw-btn" onclick="stepSentence(1)" title="Next sentence (↓ / ←)">Next Sentence →</button>
+            <button class="cw-btn" onclick="openParaDankuModal()" title="Edit 。 sentence punctuation across this entire paragraph">✂ Paragraph Punctuation</button>
+            <button class="cw-btn active" onclick="addFootnoteForActiveSentence()" title="Add a numbered footnote linked to this sentence across all text forms">+ Add Note</button>
+          </div>
+          <div class="cw-controls">
+            <button class="cw-btn active" id="editPrimaryToggleBtn" onclick="toggleShowPrimaryInWindow()" title="Show or hide editor for the primary layer inside this window">✓ Primary Included</button>
+            <button class="cw-btn active" id="winMode_float" onclick="setWindowMode('float')" title="Floating draggable window">⧉ Float</button>
+            <button class="cw-btn" id="winMode_bottom" onclick="setWindowMode('bottom')" title="Dock at bottom">⬓ Bottom</button>
+            <button class="cw-btn" id="winMode_left" onclick="setWindowMode('left')" title="Dock on left">◫ Left</button>
+            <button class="cw-btn" onclick="closeCompanionWindow()" title="Close window (Esc)">✕</button>
+          </div>
+        </div>
+        <div class="cw-body" id="cwBody"></div>
+      </section>
     </div>
 
-    <section class="companion-window mode-float" id="companionWindow">
-      <div class="cw-header" id="cwHeader">
-        <div class="cw-title">
-          <span id="cwTitleText">Sentence Inspector</span>
-          <button class="cw-btn" onclick="stepSentence(-1)" title="Previous sentence (↑ / →)">← Prev Sentence</button>
-          <button class="cw-btn" onclick="stepSentence(1)" title="Next sentence (↓ / ←)">Next Sentence →</button>
-          <button class="cw-btn" onclick="openParaDankuModal()" title="Edit 。 sentence punctuation across this entire paragraph">✂ Paragraph Punctuation</button>
+    <!-- Persistent Horizontal Editorial Notes Panel -->
+    <aside class="notes-rail" id="notesRail">
+      <div class="notes-rail-head">
+        <div>
+          <h3>Editorial Notes <span id="notesRailCount">(0)</span></h3>
+          <div class="notes-rail-sub">Linked across Kanbun, Kakikudashi &amp; English</div>
         </div>
-        <div class="cw-controls">
-          <button class="cw-btn active" id="editPrimaryToggleBtn" onclick="toggleShowPrimaryInWindow()" title="Show or hide editor for the primary layer inside this window">✓ Primary Included</button>
-          <button class="cw-btn active" id="winMode_float" onclick="setWindowMode('float')" title="Floating draggable window">⧉ Float</button>
-          <button class="cw-btn" id="winMode_bottom" onclick="setWindowMode('bottom')" title="Dock at bottom">⬓ Bottom</button>
-          <button class="cw-btn" id="winMode_left" onclick="setWindowMode('left')" title="Dock on left">◫ Left</button>
-          <button class="cw-btn" onclick="closeCompanionWindow()" title="Close window (Esc)">✕</button>
-        </div>
+        <button class="btn btn-sm" onclick="toggleNotesRail()" title="Hide Editorial Notes panel">✕</button>
       </div>
-      <div class="cw-body" id="cwBody"></div>
-    </section>
+      <div class="notes-rail-body" id="notesRailBody"></div>
+    </aside>
   </div>
 </div>
 
@@ -1945,6 +2109,9 @@ function subscribeToDocParagraphs(docId) {
       if (activeSelection && !isActivelyTypingInCompanion()) {
         renderCompanionWindow();
       }
+      if (!isActivelyTypingInNotesRail()) {
+        renderNotesRail();
+      }
     }
   }, () => {});
 }
@@ -1954,6 +2121,13 @@ function isActivelyTypingInCompanion() {
   if (!el) return false;
   const win = document.getElementById("companionWindow");
   return Boolean(win && win.contains(el) && (el.tagName === "TEXTAREA" || el.tagName === "INPUT"));
+}
+
+function isActivelyTypingInNotesRail() {
+  const el = document.activeElement;
+  if (!el) return false;
+  const rail = document.getElementById("notesRail");
+  return Boolean(rail && rail.contains(el) && (el.tagName === "TEXTAREA" || el.tagName === "INPUT" || el.tagName === "SELECT"));
 }
 
 async function publishPresence() {
@@ -2283,15 +2457,17 @@ function renderPrimaryStage() {
     for (const p of doc.paragraphs) {
       const isBookmarked = doc.bookmarkAfterPara === p.id;
       const { units, metaArr } = getParaUnitsAndMeta(p, primaryLayer);
+      const fnMap = buildFootnoteLookupMap(doc);
       const sentsHtml = units.length > 0 ? units.map((u, idx) => {
         const isActive = activeSelection &&
           activeSelection.paraId === p.id &&
           activeSelection.anchorLayer === primaryLayer &&
           activeSelection.idx === idx;
-        const m = metaArr[idx] || {};
-        const nCount = (m.notes || []).length;
-        const badge = nCount ? `<span class="note-indicator" title="${nCount} note(s)">${nCount}</span>` : "";
-        return `<span class="doc-sent ${isActive ? 'active-sent' : ''}" data-para="${p.id}" data-layer="${primaryLayer}" data-idx="${idx}" onclick="onPrimarySentClick(event, '${p.id}', '${primaryLayer}', ${idx})"><span class="ku-num">${idx + 1}</span>${renderJapaneseRich(u.text, `main_${p.id}_${primaryLayer}_${idx}`)}${badge}</span>`;
+        const canonIndices = getCanonicalAnchorIndices(doc, p, primaryLayer, idx);
+        const fnBadges = canonIndices.flatMap(ci => fnMap[`${p.id}:${ci}`] || [])
+          .map(fn => `<span class="fn-badge" onclick="focusFootnote(event, ${fn.num})" title="Jump to Editorial Note ${fn.num}">${fn.num}</span>`)
+          .join("");
+        return `<span class="doc-sent ${isActive ? 'active-sent' : ''}" data-para="${p.id}" data-layer="${primaryLayer}" data-idx="${idx}" onclick="onPrimarySentClick(event, '${p.id}', '${primaryLayer}', ${idx})"><span class="ku-num">${idx + 1}</span>${renderJapaneseRich(u.text, `main_${p.id}_${primaryLayer}_${idx}`)}${fnBadges}</span>`;
       }).join("") : `<span class="doc-sent en-unassigned" style="font-size:13px;font-family:var(--font-ui);" onclick="openRawTextModal('${primaryLayer}')">［未入力 — クリックして本文を入力・貼付］</span>`;
 
       parasHtml += `
@@ -2315,12 +2491,15 @@ function renderPrimaryStage() {
       }, { passive: false });
     }
   }
+  if (!isActivelyTypingInNotesRail()) renderNotesRail();
 }
 
 function renderEnglishParagraphInteractive(para, anchorLayer) {
   const en = para.englishText || "";
   if (!en) return `<span class="en-unassigned" onclick="onPrimarySentClick(event, '${para.id}', '${anchorLayer}', 0)">[No English translation yet — click to open sentence editor]</span>`;
 
+  const doc = getActiveDoc();
+  const fnMap = buildFootnoteLookupMap(doc);
   const { units, metaArr } = getParaUnitsAndMeta(para, anchorLayer);
   const bounds = new Set([0, en.length]);
   units.forEach((_, idx) => {
@@ -2351,8 +2530,14 @@ function renderEnglishParagraphInteractive(para, anchorLayer) {
       const rs = metaArr[idx].enRanges || [];
       return rs.some(r => r.start === a);
     }) ? `<span class="ku-num" style="margin-right:3px;">Sent ${owners.map(x => x + 1).join(",")}</span>` : "";
+    const endFns = owners.filter(idx => {
+      const rs = metaArr[idx].enRanges || [];
+      return rs.length > 0 && rs[rs.length - 1].end === b;
+    }).flatMap(idx => fnMap[`${para.id}:${idx}`] || [])
+      .map(fn => `<span class="fn-badge" onclick="focusFootnote(event, ${fn.num})" title="Jump to Editorial Note ${fn.num}">${fn.num}</span>`)
+      .join("");
 
-    html += `<span class="doc-sent ${isActive ? 'active-sent' : ''} ${unassignedCls}" onclick="onPrimarySentClick(event, '${para.id}', '${anchorLayer}', ${targetIdx})" title="${owners.length ? 'Assigned to Sentence ' + owners.map(x => x + 1).join(', ') : 'Unassigned English — click to assign'}">${kuTag}${escapeHtml(slice)}</span>`;
+    html += `<span class="doc-sent ${isActive ? 'active-sent' : ''} ${unassignedCls}" onclick="onPrimarySentClick(event, '${para.id}', '${anchorLayer}', ${targetIdx})" title="${owners.length ? 'Assigned to Sentence ' + owners.map(x => x + 1).join(', ') : 'Unassigned English — click to assign'}">${kuTag}${escapeHtml(slice)}${endFns}</span>`;
   }
   return html;
 }
@@ -2487,12 +2672,9 @@ function renderCompanionWindow() {
     cards.push(renderEnglishAssignmentCard(doc, para, anchorLayer, idx, anchorMeta, primaryLayer === "english"));
   }
 
-  const notesHtml = renderCompanionNotes(para, anchorLayer, idx, anchorMeta);
-
   document.getElementById("cwBody").innerHTML = `
     <div id="cwPeerNoticeSlot"></div>
     <div class="cw-layers-grid">${cards.join("")}</div>
-    ${notesHtml}
   `;
 
   updatePeerNoticeInCompanion();
@@ -2694,9 +2876,13 @@ function commitJpSliceReplacement(para, cardLayer, startIdx, endIdx, replacement
   } else if (primaryLayer === cardLayer) {
     const bgSpan = document.querySelector(`.doc-sent[data-para="${para.id}"][data-layer="${cardLayer}"][data-idx="${startIdx}"]`);
     if (bgSpan && newUnits[startIdx]) {
-      const nCount = (metaArr[startIdx] && metaArr[startIdx].notes || []).length;
-      const badge = nCount ? `<span class="note-indicator">${nCount}</span>` : "";
-      bgSpan.innerHTML = `<span class="ku-num">${startIdx + 1}</span>${renderJapaneseRich(newUnits[startIdx].text, `main_${para.id}_${cardLayer}_${startIdx}`)}${badge}`;
+      const doc = getActiveDoc();
+      const fnMap = buildFootnoteLookupMap(doc);
+      const canonIndices = getCanonicalAnchorIndices(doc, para, cardLayer, startIdx);
+      const fnBadges = canonIndices.flatMap(ci => fnMap[`${para.id}:${ci}`] || [])
+        .map(fn => `<span class="fn-badge" onclick="focusFootnote(event, ${fn.num})" title="Jump to Editorial Note ${fn.num}">${fn.num}</span>`)
+        .join("");
+      bgSpan.innerHTML = `<span class="ku-num">${startIdx + 1}</span>${renderJapaneseRich(newUnits[startIdx].text, `main_${para.id}_${cardLayer}_${startIdx}`)}${fnBadges}`;
     }
   }
 }
@@ -3101,81 +3287,245 @@ function saveParaDankuModal() {
   if (activeSelection) renderCompanionWindow();
 }
 
-function renderCompanionNotes(para, anchorLayer, idx, anchorMeta) {
-  const notes = anchorMeta.notes || [];
-  const formId = `cwnote_${para.id}_${anchorLayer}_${idx}`;
-  const defaultAuthor = getCurrentUserName();
-  const listHtml = notes.map(n => `
-    <div class="note-card cat-${n.cat}">
-      <div class="note-meta">
-        <span>
-          <span class="note-tag">${escapeHtml(n.tag)}</span>
-          <strong style="margin-left:5px;">${escapeHtml(n.author)}</strong>
-        </span>
-      </div>
-      <div>
-        ${n.lemma ? `<span class="note-lemma">「${escapeHtml(n.lemma)}」</span>` : ""}
-        <span>${escapeHtml(n.text)}</span>
-      </div>
-    </div>
-  `).join("");
-
-  return `
-    <div class="cw-notes-box">
-      <div class="layer-card-head" style="margin-bottom:6px;">
-        <span>Philological Notes on Sentence ${idx + 1} (${notes.length})</span>
-        <button class="btn btn-sm" onclick="toggleNoteForm('${formId}')">+ Drop Philological Note</button>
-      </div>
-      ${listHtml || `<div style="font-size:12px;color:var(--ink-faint);">No notes on this sentence yet.</div>`}
-      <div class="add-note-form" id="${formId}">
-        <div class="add-note-row">
-          <input type="text" id="${formId}_author" placeholder="Your name" value="${escapeHtml(defaultAuthor)}" style="width:120px;">
-          <select id="${formId}_cat">
-            <option value="variant">校異 Variant / Punctuation</option>
-            <option value="locus">典拠 Locus / Allusion</option>
-            <option value="grammar">語釈 Grammar / Parsing</option>
-            <option value="suggestion">試訳 Translation Note</option>
-          </select>
-          <input type="text" id="${formId}_lemma" placeholder="Lemma (e.g. 恐寒心貽)" style="flex:1;min-width:110px;">
-        </div>
-        <textarea id="${formId}_text" placeholder="Write paleography, punctuation argument, locus classicus, or translation note..."></textarea>
-        <div style="display:flex;justify-content:flex-end;gap:6px;">
-          <button class="btn btn-sm" onclick="toggleNoteForm('${formId}')">Cancel</button>
-          <button class="btn btn-sm active" onclick="submitNote('${para.id}', '${anchorLayer}', ${idx}, '${formId}')">Post Note</button>
-        </div>
-      </div>
-    </div>
-  `;
+// ============================================================================
+// PERSISTENT FOOTNOTE-STYLE EDITORIAL NOTES RAIL (SHARED ACROSS ALL 3 LAYERS)
+// ============================================================================
+function getCanonicalNoteLayer(doc) {
+  return doc && doc.type === "wabun" ? "kakikudashi" : "kanbun";
 }
 
-function toggleNoteForm(id) {
-  const el = document.getElementById(id);
-  if (el) el.classList.toggle("open");
+function getCanonicalAnchorIndices(doc, para, layer, idx) {
+  const canon = getCanonicalNoteLayer(doc);
+  if (layer === canon || layer === "english") return [idx];
+  const { units: canonUnits, metaArr: canonMeta } = getParaUnitsAndMeta(para, canon);
+  const { units: layerUnits } = getParaUnitsAndMeta(para, layer);
+  if (canonUnits.length === 0) return [];
+  if (canonUnits.length === layerUnits.length) return [idx];
+  const matches = [];
+  canonMeta.forEach((m, ci) => {
+    const ps = m.pairStart ?? ci;
+    const pe = m.pairEnd ?? ps;
+    if (idx >= ps && idx <= pe) matches.push(ci);
+  });
+  return matches.length ? matches : [Math.min(idx, canonUnits.length - 1)];
 }
 
-function submitNote(paraId, anchorLayer, idx, formId) {
-  const author = document.getElementById(formId + "_author").value.trim() || getCurrentUserName();
-  const cat = document.getElementById(formId + "_cat").value;
-  const lemma = document.getElementById(formId + "_lemma").value.trim();
-  const text = document.getElementById(formId + "_text").value.trim();
-  if (!text) return;
+function buildDocumentFootnotes(doc) {
+  if (!doc) return [];
+  const canon = getCanonicalNoteLayer(doc);
+  const list = [];
+  let num = 1;
+  (doc.paragraphs || []).forEach(p => {
+    const { units, metaArr } = getParaUnitsAndMeta(p, canon);
+    const maxCount = Math.max(units.length, metaArr.length);
+    for (let si = 0; si < maxCount; si++) {
+      const notes = (metaArr[si] && metaArr[si].notes) || [];
+      notes.forEach((n, ni) => {
+        list.push({
+          num: num++,
+          paraId: p.id,
+          paraLabel: p.label,
+          sentIdx: si,
+          noteIdx: ni,
+          note: n
+        });
+      });
+    }
+  });
+  return list;
+}
 
-  const tagMap = {
-    variant: "校異 Variant",
-    locus: "典拠 Locus",
-    grammar: "語釈 Grammar",
-    suggestion: "試訳 Note"
-  };
+function buildFootnoteLookupMap(doc) {
+  const map = {};
+  buildDocumentFootnotes(doc).forEach(fn => {
+    const key = `${fn.paraId}:${fn.sentIdx}`;
+    if (!map[key]) map[key] = [];
+    map[key].push(fn);
+  });
+  return map;
+}
 
+function toggleNotesRail() {
+  const rail = document.getElementById("notesRail");
+  const btn = document.getElementById("notesRailToggleBtn");
+  if (!rail) return;
+  const collapsed = rail.classList.toggle("collapsed");
+  if (btn) btn.classList.toggle("active", !collapsed);
+}
+
+function renderNotesRail() {
+  const body = document.getElementById("notesRailBody");
+  const countEl = document.getElementById("notesRailCount");
+  if (!body) return;
   const doc = getActiveDoc();
-  const para = doc.paragraphs.find(p => p.id === paraId);
-  const { metaArr } = getParaUnitsAndMeta(para, anchorLayer);
-  const m = metaArr[idx];
+  if (!doc) return;
+  const footnotes = buildDocumentFootnotes(doc);
+  if (countEl) countEl.textContent = `(${footnotes.length})`;
+
+  if (footnotes.length === 0) {
+    body.innerHTML = `<div style="font-size:12.5px;color:var(--ink-faint);line-height:1.6;padding:12px 6px;">No editorial notes on this text yet.<br><br>Click any sentence in the primary text and press <strong>+ Add Note</strong> in the top bar of the editing window to insert a numbered footnote linked across Kanbun, Kakikudashi, and English.</div>`;
+    return;
+  }
+
+  const activeCanonSet = new Set();
+  if (activeSelection) {
+    const activePara = doc.paragraphs.find(p => p.id === activeSelection.paraId);
+    if (activePara) {
+      getCanonicalAnchorIndices(doc, activePara, activeSelection.anchorLayer, activeSelection.idx)
+        .forEach(ci => activeCanonSet.add(`${activePara.id}:${ci}`));
+    }
+  }
+
+  body.innerHTML = footnotes.map(fn => {
+    const n = fn.note;
+    const isActive = activeCanonSet.has(`${fn.paraId}:${fn.sentIdx}`);
+    const cardId = `fn_card_${fn.num}`;
+    const taId = `fn_ta_${fn.num}`;
+    return `
+      <div class="fn-card cat-${escapeHtml(n.cat || 'grammar')} ${isActive ? 'active-fn' : ''}" id="${cardId}">
+        <div class="fn-card-top">
+          <span class="fn-num-pill" onclick="jumpToFootnoteSentence('${fn.paraId}', ${fn.sentIdx})" title="Jump to ${escapeHtml(fn.paraLabel)} · Sentence ${fn.sentIdx + 1}">
+            [${fn.num}] ${escapeHtml(fn.paraLabel)} · Sent ${fn.sentIdx + 1}
+          </span>
+          ${isScribe ? `<button class="fn-del-btn" onclick="deleteFootnote('${fn.paraId}', ${fn.sentIdx}, ${fn.noteIdx})" title="Delete note [${fn.num}]">✕</button>` : ""}
+        </div>
+        ${isScribe ? `
+          <div class="fn-edit-row">
+            <select onchange="onInlineNoteFieldChange('${fn.paraId}', ${fn.sentIdx}, ${fn.noteIdx}, 'cat', this.value)">
+              <option value="variant" ${n.cat === 'variant' ? 'selected' : ''}>校異 Variant</option>
+              <option value="locus" ${n.cat === 'locus' ? 'selected' : ''}>典拠 Locus</option>
+              <option value="grammar" ${n.cat === 'grammar' ? 'selected' : ''}>語釈 Grammar</option>
+              <option value="suggestion" ${n.cat === 'suggestion' ? 'selected' : ''}>試訳 Note</option>
+            </select>
+            <input type="text" value="${escapeHtml(n.lemma || '')}" placeholder="Lemma" style="flex:1;min-width:75px;font-family:var(--font-jp);" oninput="onInlineNoteFieldChange('${fn.paraId}', ${fn.sentIdx}, ${fn.noteIdx}, 'lemma', this.value)">
+            <input type="text" value="${escapeHtml(n.author || '')}" placeholder="Author" style="width:74px;" oninput="onInlineNoteFieldChange('${fn.paraId}', ${fn.sentIdx}, ${fn.noteIdx}, 'author', this.value)">
+          </div>
+          <textarea id="${taId}" class="fn-textarea" placeholder="Write editorial note, textual variant, locus classicus, or translation discussion..." oninput="onInlineNoteFieldChange('${fn.paraId}', ${fn.sentIdx}, ${fn.noteIdx}, 'text', this.value)">${escapeHtml(n.text || '')}</textarea>
+        ` : `
+          <div style="font-size:11px;color:var(--ink-muted);">
+            <span class="note-tag">${escapeHtml(n.tag || '')}</span>
+            <strong style="margin-left:4px;">${escapeHtml(n.author || '')}</strong>
+          </div>
+          <div style="font-size:12.5px;line-height:1.5;">
+            ${n.lemma ? `<span class="note-lemma">「${escapeHtml(n.lemma)}」</span>` : ""}
+            <span>${escapeHtml(n.text || '')}</span>
+          </div>
+        `}
+      </div>
+    `;
+  }).join("");
+}
+
+function addFootnoteForActiveSentence() {
+  if (!activeSelection) return;
+  if (!isScribe) {
+    alert("Unlock editing in the top bar to add a note.");
+    return;
+  }
+  const doc = getActiveDoc();
+  const para = doc && doc.paragraphs.find(p => p.id === activeSelection.paraId);
+  if (!para) return;
+  const canon = getCanonicalNoteLayer(doc);
+  const canonIndices = getCanonicalAnchorIndices(doc, para, activeSelection.anchorLayer, activeSelection.idx);
+  const targetIdx = canonIndices.length ? canonIndices[0] : 0;
+  const { metaArr } = getParaUnitsAndMeta(para, canon);
+  const m = metaArr[targetIdx];
   m.notes = m.notes || [];
-  m.notes.push({ author, cat, tag: tagMap[cat], lemma, text });
+  m.notes.push({
+    author: getCurrentUserName(),
+    cat: "grammar",
+    tag: "語釈 Grammar",
+    lemma: "",
+    text: ""
+  });
+  const newNoteIdx = m.notes.length - 1;
+  saveState(activeDocId, para.id);
+
+  const rail = document.getElementById("notesRail");
+  if (rail && rail.classList.contains("collapsed")) toggleNotesRail();
+
+  renderPrimaryStage();
+  renderNotesRail();
+
+  const allFns = buildDocumentFootnotes(doc);
+  const created = allFns.find(f => f.paraId === para.id && f.sentIdx === targetIdx && f.noteIdx === newNoteIdx);
+  if (created) {
+    const card = document.getElementById(`fn_card_${created.num}`);
+    const ta = document.getElementById(`fn_ta_${created.num}`);
+    if (card) card.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (ta) ta.focus();
+  }
+}
+
+function onInlineNoteFieldChange(paraId, sentIdx, noteIdx, field, value) {
+  const doc = getActiveDoc();
+  const para = doc && doc.paragraphs.find(p => p.id === paraId);
+  if (!para) return;
+  const canon = getCanonicalNoteLayer(doc);
+  const { metaArr } = getParaUnitsAndMeta(para, canon);
+  const n = metaArr[sentIdx] && metaArr[sentIdx].notes && metaArr[sentIdx].notes[noteIdx];
+  if (!n) return;
+  n[field] = value;
+  if (field === "cat") {
+    const tagMap = {
+      variant: "校異 Variant",
+      locus: "典拠 Locus",
+      grammar: "語釈 Grammar",
+      suggestion: "試訳 Note"
+    };
+    n.tag = tagMap[value] || "Note";
+    renderNotesRail();
+  }
+  saveState(activeDocId, para.id);
+}
+
+function deleteFootnote(paraId, sentIdx, noteIdx) {
+  const doc = getActiveDoc();
+  const para = doc && doc.paragraphs.find(p => p.id === paraId);
+  if (!para) return;
+  const canon = getCanonicalNoteLayer(doc);
+  const { metaArr } = getParaUnitsAndMeta(para, canon);
+  if (!metaArr[sentIdx] || !metaArr[sentIdx].notes) return;
+  metaArr[sentIdx].notes.splice(noteIdx, 1);
   saveState(activeDocId, para.id);
   renderPrimaryStage();
+  renderNotesRail();
+}
+
+function focusFootnote(ev, num) {
+  ev.stopPropagation();
+  const rail = document.getElementById("notesRail");
+  if (rail && rail.classList.contains("collapsed")) toggleNotesRail();
+  const card = document.getElementById(`fn_card_${num}`);
+  if (card) {
+    card.scrollIntoView({ behavior: "smooth", block: "center" });
+    card.classList.add("flash-fn");
+    setTimeout(() => card.classList.remove("flash-fn"), 1200);
+  }
+}
+
+function jumpToFootnoteSentence(paraId, canonSentIdx) {
+  const doc = getActiveDoc();
+  if (!doc) return;
+  const canon = getCanonicalNoteLayer(doc);
+  let targetLayer = primaryLayer === "english" ? canon : primaryLayer;
+  let targetIdx = canonSentIdx;
+  if (targetLayer !== canon) {
+    const para = doc.paragraphs.find(p => p.id === paraId);
+    if (para) {
+      const { metaArr } = getParaUnitsAndMeta(para, canon);
+      const m = metaArr[canonSentIdx];
+      if (m && typeof m.pairStart === "number") targetIdx = m.pairStart;
+    }
+  }
+  activeSelection = { paraId, anchorLayer: targetLayer, idx: targetIdx };
+  pendingSelectionRange = null;
+  renderPrimaryStage();
+  document.getElementById("companionWindow").classList.add("open");
   renderCompanionWindow();
+  const activeEl = document.querySelector(".doc-sent.active-sent");
+  if (activeEl) activeEl.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
+  publishPresence();
 }
 
 (function initDraggableWindow() {
@@ -3339,6 +3689,7 @@ function toggleRole() {
   pill.className = "role-pill " + (isScribe ? "is-scribe" : "is-annotator");
   label.textContent = isScribe ? "✏️ Editing Unlocked" : "👁 Read-Only Safety";
   if (activeSelection) renderCompanionWindow();
+  renderNotesRail();
 }
 
 function setBookmark(paraId) {
@@ -3671,7 +4022,12 @@ async function applyRawTextModal() {
   }
 }
 
+let newDocDrafts = { kanbun: "", kakikudashi: "", english: "" };
+let newDocActiveTab = "kanbun";
+
 function openNewDocModal() {
+  newDocDrafts = { kanbun: "", kakikudashi: "", english: "" };
+  newDocActiveTab = "kanbun";
   document.getElementById("newDocModalBody").innerHTML = `
     <div style="display:grid;grid-template-columns:110px 1fr;gap:8px;align-items:center;font-size:12.5px;">
       <label><strong>ID</strong></label>
@@ -3681,23 +4037,69 @@ function openNewDocModal() {
       <label><strong>Author / Date</strong></label>
       <input id="nd_author" type="text" placeholder="e.g. 源為憲 Minamoto no Tamenori (984)" style="padding:6px 8px;border:1px solid var(--border-strong);border-radius:6px;">
       <label><strong>Text Type</strong></label>
-      <select id="nd_type" style="padding:6px 8px;border:1px solid var(--border-strong);border-radius:6px;">
+      <select id="nd_type" onchange="onNewDocTypeChange()" style="padding:6px 8px;border:1px solid var(--border-strong);border-radius:6px;">
         <option value="kanbun">漢文 3-Form (Kanbun + Kakikudashi + English)</option>
         <option value="wabun">和文 2-Form (Wabun + English)</option>
+        <option value="english">English (English-First — can still add Japanese later)</option>
       </select>
       <label><strong>Source Info</strong></label>
       <input id="nd_meta" type="text" placeholder="Edition, manuscript witness, or citation..." style="padding:6px 8px;border:1px solid var(--border-strong);border-radius:6px;">
     </div>
     <div>
-      <div style="font-size:12px;font-weight:700;margin-bottom:4px;">Initial Raw Text (Kanbun for 3-Form, or Wabun for 2-Form — blank line separates paragraphs):</div>
-      <textarea id="nd_text" style="min-height:150px;" placeholder="Paste the primary text here..."></textarea>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
+        <span style="font-size:12px;font-weight:700;">Initial Raw Text (blank line separates paragraphs):</span>
+        <div class="seg-control primary-picker" id="nd_tabs"></div>
+      </div>
+      <textarea id="nd_text" style="min-height:150px;" oninput="newDocDrafts[newDocActiveTab]=this.value" placeholder="Paste raw text here..."></textarea>
     </div>
     <div style="display:flex;justify-content:flex-end;gap:8px;">
       <button class="btn" onclick="closeNewDocModal()">Cancel</button>
       <button class="btn active" onclick="createNewDocFromModal()">Create &amp; Sync Text</button>
     </div>
   `;
+  renderNewDocTabs();
   document.getElementById("newDocModal").classList.add("open");
+}
+
+function onNewDocTypeChange() {
+  const ta = document.getElementById("nd_text");
+  if (ta) newDocDrafts[newDocActiveTab] = ta.value;
+  const selType = document.getElementById("nd_type").value;
+  if (selType === "wabun") newDocActiveTab = "kakikudashi";
+  else if (selType === "english") newDocActiveTab = "english";
+  else newDocActiveTab = "kanbun";
+  renderNewDocTabs();
+}
+
+function switchNewDocTab(tab) {
+  const ta = document.getElementById("nd_text");
+  if (ta) newDocDrafts[newDocActiveTab] = ta.value;
+  newDocActiveTab = tab;
+  renderNewDocTabs();
+}
+
+function renderNewDocTabs() {
+  const selType = document.getElementById("nd_type").value;
+  const isWabun = selType === "wabun";
+  if (isWabun && newDocActiveTab === "kanbun") newDocActiveTab = "kakikudashi";
+
+  const tabsHost = document.getElementById("nd_tabs");
+  tabsHost.innerHTML = `
+    ${!isWabun ? `<button type="button" class="${newDocActiveTab === 'kanbun' ? 'active' : ''}" onclick="switchNewDocTab('kanbun')">漢文 Kanbun</button>` : ""}
+    <button type="button" class="${newDocActiveTab === 'kakikudashi' ? 'active' : ''}" onclick="switchNewDocTab('kakikudashi')">${isWabun ? '校訂和文 Wabun' : '書き下し Kakikudashi'}</button>
+    <button type="button" class="${newDocActiveTab === 'english' ? 'active' : ''}" onclick="switchNewDocTab('english')">English</button>
+  `;
+
+  const ta = document.getElementById("nd_text");
+  if (ta) {
+    ta.value = newDocDrafts[newDocActiveTab] || "";
+    ta.style.fontFamily = newDocActiveTab === "english" ? "var(--font-en)" : "var(--font-jp)";
+    ta.placeholder = newDocActiveTab === "english"
+      ? "Paste English text here (leave a blank line between paragraphs)..."
+      : (newDocActiveTab === "kanbun"
+          ? "Paste Kanbun here (leave a blank line between paragraphs)..."
+          : "Paste Kakikudashi / Wabun here (leave a blank line between paragraphs)...");
+  }
 }
 
 function closeNewDocModal() {
@@ -3705,43 +4107,61 @@ function closeNewDocModal() {
 }
 
 async function createNewDocFromModal() {
+  const ta = document.getElementById("nd_text");
+  if (ta) newDocDrafts[newDocActiveTab] = ta.value;
+
   const rawId = (document.getElementById("nd_id").value || "").trim();
   const title = (document.getElementById("nd_title").value || "").trim();
   const author = (document.getElementById("nd_author").value || "").trim();
-  const type = document.getElementById("nd_type").value;
+  const selType = document.getElementById("nd_type").value;
+  const storedType = selType === "wabun" ? "wabun" : "kanbun";
   const metadata = (document.getElementById("nd_meta").value || "").trim();
-  const rawText = document.getElementById("nd_text").value || "";
+
   if (!rawId || !title) {
     alert("Please enter at least an ID (e.g. 02.02) and a Title.");
     return;
   }
-  const chunks = splitRawChunks(rawText);
-  const paragraphs = (chunks.length ? chunks : [""]).map((txt, i) => ({
-    id: `p${i + 1}`,
-    label: `第${i + 1}段`,
-    kanbunText: type === "kanbun" ? txt : "",
-    kakikudashiText: type === "wabun" ? txt : "",
-    englishText: "",
-    kbMeta: [],
-    kkMeta: []
-  }));
+
+  const kbChunks = storedType === "wabun" ? [] : splitRawChunks(newDocDrafts.kanbun);
+  const kkChunks = splitRawChunks(newDocDrafts.kakikudashi);
+  const enChunks = splitRawChunks(newDocDrafts.english);
+  const maxLen = Math.max(1, kbChunks.length, kkChunks.length, enChunks.length);
+
+  const paragraphs = [];
+  for (let i = 0; i < maxLen; i++) {
+    paragraphs.push({
+      id: `p${i + 1}`,
+      label: `第${i + 1}段`,
+      kanbunText: kbChunks[i] || "",
+      kakikudashiText: kkChunks[i] || "",
+      englishText: enChunks[i] || "",
+      kbMeta: [],
+      kkMeta: []
+    });
+  }
+
   const newDoc = {
     id: rawId,
     orderIndex: state.corpus.length + 1,
     collection: title.split("—")[0].trim(),
     title,
     author,
-    type,
+    type: storedType,
     bookmarkAfterPara: null,
     bookmarkLabel: "",
     metadata,
     paragraphs
   };
+
   const existingIdx = state.corpus.findIndex(d => d.id === rawId);
   if (existingIdx >= 0) state.corpus[existingIdx] = newDoc;
   else state.corpus.push(newDoc);
+
   activeDocId = rawId;
   activeSelection = null;
+  if (selType === "english") primaryLayer = "english";
+  else if (selType === "wabun") primaryLayer = "kakikudashi";
+
   saveLocalState();
   closeNewDocModal();
   closeCompanionWindow();
