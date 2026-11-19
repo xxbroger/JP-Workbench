@@ -5093,9 +5093,13 @@ function exportWordDocx() {
     bodyParas.push(`<w:p>${pPrXml}${runsXml}</w:p>`);
   };
 
+  // Assign Word footnote IDs sequentially (1, 2, 3...) in exact document emission order
+  // (原文 -> 書き下し -> English) so Word's native footnotes are always strictly in order
+  // and 1-to-1 matched with word/footnotes.xml regardless of website reading-order numbers.
+  const wordFootnotes = [];
   const buildRunsWithFnInsertions = (rawText, isJapanese, insertions) => {
     const text = rawText || "";
-    const sorted = (insertions || []).slice().sort((a, b) => (a.pos - b.pos) || (a.num - b.num));
+    const sorted = (insertions || []).slice().sort((a, b) => (a.pos - b.pos) || (a.fn.num - b.fn.num));
     let runs = "";
     let cursor = 0;
     sorted.forEach(ins => {
@@ -5105,7 +5109,9 @@ function exportWordDocx() {
         runs += wTextRun(isJapanese ? resolveJapaneseForExport(seg) : seg, { size: 22 });
         cursor = clamped;
       }
-      runs += wFootnoteRefRun(ins.num);
+      const wordId = wordFootnotes.length + 1;
+      wordFootnotes.push({ wordId, fn: ins.fn });
+      runs += wFootnoteRefRun(wordId);
     });
     if (cursor < text.length) {
       const tail = text.slice(cursor);
@@ -5145,7 +5151,7 @@ function exportWordDocx() {
         if (enRanges.length > 0) {
           const pos = Math.min(enText.length, enRanges[enRanges.length - 1].end);
           fns.forEach(fn => {
-            enInsertionsByPara[p.id].push({ pos, num: fn.num });
+            enInsertionsByPara[p.id].push({ pos, fn });
             placedInEn.add(fn.num);
           });
         }
@@ -5155,7 +5161,7 @@ function exportWordDocx() {
     units.forEach((u, idx) => {
       const fns = (fnMap[`${p.id}:${idx}`] || []).filter(fn => !placedInEn.has(fn.num));
       fns.forEach(fn => {
-        primInsertionsByPara[p.id].push({ pos: u.end, num: fn.num });
+        primInsertionsByPara[p.id].push({ pos: u.end, fn });
       });
     });
   });
@@ -5166,15 +5172,15 @@ function exportWordDocx() {
     if (!p) return;
     const hl = fn.highlight;
     if (hl.layer === "primary" && (p.primaryText || "").trim()) {
-      primInsertionsByPara[p.id].push({ pos: Math.min(p.primaryText.length, hl.end), num: fn.num });
+      primInsertionsByPara[p.id].push({ pos: Math.min(p.primaryText.length, hl.end), fn });
     } else if (hl.layer === "kakikudashi" && doc.hasKakikudashi && (p.kakikudashiText || "").trim()) {
-      kkInsertionsByPara[p.id].push({ pos: Math.min(p.kakikudashiText.length, hl.end), num: fn.num });
+      kkInsertionsByPara[p.id].push({ pos: Math.min(p.kakikudashiText.length, hl.end), fn });
     } else if (hl.layer === "english" && (p.englishText || "").trim()) {
-      enInsertionsByPara[p.id].push({ pos: Math.min(p.englishText.length, hl.end), num: fn.num });
+      enInsertionsByPara[p.id].push({ pos: Math.min(p.englishText.length, hl.end), fn });
     } else {
       const { units } = getParaUnitsAndMeta(p);
       const u = units[fn.sentIdx] || units[units.length - 1];
-      primInsertionsByPara[p.id].push({ pos: u ? u.end : (p.primaryText || "").length, num: fn.num });
+      primInsertionsByPara[p.id].push({ pos: u ? u.end : (p.primaryText || "").length, fn });
     }
   });
 
@@ -5208,7 +5214,7 @@ function exportWordDocx() {
     });
   }
 
-  const footnotesEntriesXml = footnotes.map(fn => {
+  const footnotesEntriesXml = wordFootnotes.map(({ wordId, fn }) => {
     const n = fn.note || {};
     const ts = formatNoteTimestamp(n.updatedAt || n.createdAt);
     const meta = [n.author || "Member", ts].filter(Boolean).join(" · ");
@@ -5218,10 +5224,10 @@ function exportWordDocx() {
       const term = fn.highlight.layer === "english" ? `"${fn.snippet}"` : `「${fn.snippet}」`;
       loc = `[${layerLabel}] ${term} `;
     } else if (fn.snippet) {
-      loc = `「${fn.snippet}」 `;
+      loc = `[Sentence] 「${fn.snippet}」 `;
     }
     return `
-    <w:footnote w:id="${fn.num}">
+    <w:footnote w:id="${wordId}">
       <w:p>
         <w:pPr><w:pStyle w:val="FootnoteText"/></w:pPr>
         <w:r><w:rPr><w:rStyle w:val="FootnoteReference"/></w:rPr><w:footnoteRef/></w:r>
