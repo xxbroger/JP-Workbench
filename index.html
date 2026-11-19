@@ -554,14 +554,70 @@
   mark.hl-mark:hover { filter: brightness(0.95); }
   mark.hl-mark.flash-hl { box-shadow: 0 0 0 3px rgba(38, 74, 120, 0.55); }
 
-  .fn-card.hl-card-amber { border-left-color: #c78500; }
-  .fn-card.hl-card-sage  { border-left-color: #2d7a47; }
-  .fn-card.hl-card-sky   { border-left-color: #2b6cb0; }
-  .fn-card.hl-card-rose  { border-left-color: #b83b56; }
-  .fn-num-pill.hl-pill-amber { background: #fff3d1; border-color: #e6be6a; color: #7a4c00; }
-  .fn-num-pill.hl-pill-sage  { background: #e3f5e9; border-color: #9ad1ad; color: #1f5c34; }
-  .fn-num-pill.hl-pill-sky   { background: #e4f1fd; border-color: #9dc6ee; color: #1d4f82; }
-  .fn-num-pill.hl-pill-rose  { background: #fde9ed; border-color: #e8a7b4; color: #8c263d; }
+  /* Distinct visual identity by source view in Editorial Notes */
+  .fn-card.fn-layer-sentence    { border-left: 4px solid #3c5473; background: var(--bg-card); }
+  .fn-card.fn-layer-primary     { border-left: 4px solid #a63228; background: #fffaf9; }
+  .fn-card.fn-layer-kakikudashi { border-left: 4px solid #1f7a5a; background: #f7fcf9; }
+  .fn-card.fn-layer-english     { border-left: 4px solid #3454b4; background: #f8faff; }
+  .fn-card.active-fn { box-shadow: 0 0 0 2px rgba(184, 93, 0, 0.35); }
+
+  .fn-card-jump {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: wrap;
+    cursor: pointer;
+    max-width: calc(100% - 26px);
+  }
+  .fn-num-tag {
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--ink-muted);
+    letter-spacing: 0.01em;
+  }
+  .fn-layer-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    padding: 1.5px 7px;
+    border-radius: 4px;
+    line-height: 1.35;
+  }
+  .fn-layer-badge.layer-sentence    { background: #e8eff8; color: #264366; border: 1px solid #c3d5ec; }
+  .fn-layer-badge.layer-primary     { background: #a63228; color: #ffffff; }
+  .fn-layer-badge.layer-kakikudashi { background: #1f7a5a; color: #ffffff; }
+  .fn-layer-badge.layer-english     { background: #3454b4; color: #ffffff; }
+
+  .fn-term-chip {
+    display: inline-flex;
+    align-items: center;
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 1px 7px;
+    border-radius: 4px;
+    line-height: 1.35;
+    max-width: 170px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .fn-term-chip.hl-chip-amber { background: rgba(255, 208, 92, 0.48); color: #663f00; border: 1px solid #e6be6a; }
+  .fn-term-chip.hl-chip-sage  { background: rgba(126, 201, 149, 0.42); color: #184d2b; border: 1px solid #96cfa9; }
+  .fn-term-chip.hl-chip-sky   { background: rgba(122, 184, 245, 0.40); color: #184775; border: 1px solid #99c3ec; }
+  .fn-term-chip.hl-chip-rose  { background: rgba(242, 148, 165, 0.42); color: #7d1f35; border: 1px solid #e6a3b0; }
+  .fn-sent-snippet {
+    font-size: 11.5px;
+    color: var(--ink-muted);
+    font-family: var(--font-jp);
+    max-width: 165px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .fn-card-jump:hover .fn-layer-badge { filter: brightness(0.92); }
+  .fn-card-jump:hover .fn-term-chip   { filter: brightness(0.95); }
 
   .hl-toolbar {
     position: fixed;
@@ -4232,11 +4288,13 @@ function renderNotesRail() {
     const taId = `fn_ta_${fn.num}`;
     const timeId = `fn_time_${fn.num}`;
     const ts = formatNoteTimestamp(n.updatedAt || n.createdAt);
-    const cardExtraCls = isHl ? `hl-card-${fn.color || 'amber'}` : "";
-    const pillExtraCls = isHl ? `hl-pill-${fn.color || 'amber'}` : "";
-    const pillLabel = isHl
-      ? `[${fn.num}] ${escapeHtml(fn.layerLabel)}${fn.snippet ? ' · ' + escapeHtml(fn.snippet) : ''}`
-      : `[${fn.num}]${fn.snippet ? ' ' + escapeHtml(fn.snippet) : ''}`;
+    const layerKey = isHl ? (fn.layer || "primary") : "sentence";
+    const layerDisplay = isHl
+      ? (fn.layer === "primary" ? "原文" : (fn.layer === "kakikudashi" ? "書き下し" : "English"))
+      : "Sentence";
+    const termHtml = isHl
+      ? (fn.snippet ? `<span class="fn-term-chip hl-chip-${fn.color || 'amber'}">${escapeHtml(fn.snippet)}</span>` : "")
+      : (fn.snippet ? `<span class="fn-sent-snippet">${escapeHtml(fn.snippet)}</span>` : "");
     const jumpCall = isHl
       ? `jumpToFootnoteHighlight('${fn.paraId}', '${fn.hlId}', '${fn.layer}')`
       : `jumpToFootnoteSentence('${fn.paraId}', ${fn.sentIdx})`;
@@ -4247,10 +4305,12 @@ function renderNotesRail() {
       ? `onInlineHighlightNoteChange('${fn.paraId}', '${fn.hlId}', this.value, '${timeId}')`
       : `onInlineNoteFieldChange('${fn.paraId}', ${fn.sentIdx}, ${fn.noteIdx}, this.value, '${timeId}')`;
     return `
-      <div class="fn-card ${cardExtraCls} ${isActive ? 'active-fn' : ''}" id="${cardId}">
+      <div class="fn-card fn-layer-${layerKey} ${isActive ? 'active-fn' : ''}" id="${cardId}">
         <div class="fn-card-top">
-          <span class="fn-num-pill ${pillExtraCls}" onclick="${jumpCall}" title="Jump to ${escapeHtml(fn.snippet || 'linked text')}">
-            ${pillLabel}
+          <span class="fn-card-jump" onclick="${jumpCall}" title="Jump to ${escapeHtml(layerDisplay)}${fn.snippet ? ': ' + escapeHtml(fn.snippet) : ''}">
+            <span class="fn-num-tag">[${fn.num}]</span>
+            <span class="fn-layer-badge layer-${layerKey}">${layerDisplay}</span>
+            ${termHtml}
           </span>
           ${isScribe ? `<button class="fn-del-btn" onclick="${delCall}" title="${isHl ? 'Delete note (keeps color highlight)' : 'Delete note'}">✕</button>` : ""}
         </div>
