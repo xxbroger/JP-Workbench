@@ -1195,6 +1195,8 @@
     <div class="topbar-right">
       <span class="sync-pill" id="syncPill" title="Cloud synchronization status">⚪ Local Mode</span>
       <div class="presence-avatars" id="presenceAvatars" title="Online group members"></div>
+      <button class="btn btn-sm" id="undoBtn" onclick="requestUndo()" title="Undo last edit (Cmd/Ctrl+Z)" disabled>↶ Undo</button>
+      <button class="btn btn-sm" id="redoBtn" onclick="requestRedo()" title="Redo (Cmd+Shift+Z / Ctrl+Y)" disabled>↷ Redo</button>
       <div class="role-pill is-scribe" id="rolePill" onclick="toggleRole()" title="Personal safety toggle: unlock editing or switch to read-only browsing">
         <span id="roleLabel">✏️ Editing Unlocked</span>
       </div>
@@ -1287,6 +1289,17 @@
       <button class="cw-btn" onclick="closeEditDocInfoModal()">✕</button>
     </div>
     <div class="modal-body" id="editDocInfoBody"></div>
+  </div>
+</div>
+
+<!-- Undo / Redo Collaboration Warning Modal -->
+<div class="modal-backdrop" id="undoConfirmModal">
+  <div class="modal-card" style="width:min(480px,94vw);">
+    <div class="modal-head">
+      <span id="undoConfirmTitle">↶ Confirm Undo</span>
+      <button class="cw-btn" onclick="closeUndoConfirmModal()">✕</button>
+    </div>
+    <div class="modal-body" id="undoConfirmBody"></div>
   </div>
 </div>
 
@@ -2548,6 +2561,136 @@ function syncTopbarControls() {
     sel.value = doc.primaryStyle || "kanbun";
     sel.disabled = !isScribe;
   }
+  syncUndoRedoButtons();
+}
+
+const docUndoHistory = {};
+let pendingHistoryAction = null; // "undo" | "redo"
+
+function getDocHistory(docId) {
+  if (!docUndoHistory[docId]) {
+    docUndoHistory[docId] = { undo: [], redo: [], lastKey: "", lastAt: 0 };
+  }
+  return docUndoHistory[docId];
+}
+
+function pushUndoSnapshot(label, debounceKey) {
+  const doc = getActiveDoc();
+  if (!doc) return;
+  const hist = getDocHistory(doc.id);
+  const now = Date.now();
+  if (debounceKey && hist.lastKey === debounceKey && (now - hist.lastAt) < 2500) {
+    hist.lastAt = now;
+    return;
+  }
+  hist.lastKey = debounceKey || "";
+  hist.lastAt = now;
+  hist.undo.push({ label: label || "Edit", snapshot: JSON.parse(JSON.stringify(doc)) });
+  if (hist.undo.length > 40) hist.undo.shift();
+  hist.redo = [];
+  syncUndoRedoButtons();
+}
+
+function syncUndoRedoButtons() {
+  const doc = getActiveDoc();
+  const undoBtn = document.getElementById("undoBtn");
+  const redoBtn = document.getElementById("redoBtn");
+  const hist = doc ? getDocHistory(doc.id) : { undo: [], redo: [] };
+  if (undoBtn) {
+    undoBtn.disabled = !isScribe || hist.undo.length === 0;
+    const top = hist.undo[hist.undo.length - 1];
+    undoBtn.title = top ? `Undo: ${top.label} (Cmd/Ctrl+Z)` : "Nothing to undo";
+  }
+  if (redoBtn) {
+    redoBtn.disabled = !isScribe || hist.redo.length === 0;
+    const top = hist.redo[hist.redo.length - 1];
+    redoBtn.title = top ? `Redo: ${top.label} (Cmd+Shift+Z / Ctrl+Y)` : "Nothing to redo";
+  }
+}
+
+function requestUndo() {
+  if (!isScribe) return;
+  const doc = getActiveDoc();
+  if (!doc) return;
+  const hist = getDocHistory(doc.id);
+  if (!hist.undo.length) return;
+  openUndoConfirmModal("undo", hist.undo[hist.undo.length - 1].label);
+}
+
+function requestRedo() {
+  if (!isScribe) return;
+  const doc = getActiveDoc();
+  if (!doc) return;
+  const hist = getDocHistory(doc.id);
+  if (!hist.redo.length) return;
+  openUndoConfirmModal("redo", hist.redo[hist.redo.length - 1].label);
+}
+
+function openUndoConfirmModal(action, label) {
+  pendingHistoryAction = action;
+  const isUndo = action === "undo";
+  const otherPeersOnDoc = (cloud.ready && cloud.user)
+    ? Object.values(cloud.onlinePeers).filter(p => p.uid !== cloud.user.uid && p.docId === activeDocId)
+    : [];
+  const peersWarn = otherPeersOnDoc.length
+    ? `<div style="background:var(--scribe-soft);border:1px solid #daa298;color:var(--scribe);border-radius:7px;padding:8px 10px;font-size:12px;line-height:1.5;"><strong>Currently viewing this text:</strong> ${otherPeersOnDoc.map(p => escapeHtml(p.name || p.email)).join(", ")} — check with them before rolling back.</div>`
+    : "";
+
+  document.getElementById("undoConfirmTitle").textContent = isUndo ? "↶ Confirm Undo" : "↷ Confirm Redo";
+  document.getElementById("undoConfirmBody").innerHTML = `
+    <div style="font-size:13.5px;line-height:1.55;">
+      ${isUndo ? "Undo" : "Redo"}: <strong>${escapeHtml(label)}</strong>
+    </div>
+    <div style="background:var(--danku-bg);border:1px solid #e6be81;color:#7c4000;border-radius:7px;padding:9px 11px;font-size:12.5px;line-height:1.55;">
+      <strong>Collaboration heads-up:</strong> Rolling back restores your browser's saved snapshot of this text and syncs it for everyone. If someone else edited this text just now, their recent change may be overwritten.
+    </div>
+    ${peersWarn}
+    <div style="display:flex;justify-content:flex-end;gap:8px;">
+      <button class="btn" onclick="closeUndoConfirmModal()">Cancel</button>
+      <button class="btn active" onclick="confirmPendingHistoryAction()">${isUndo ? "↶ Confirm Undo" : "↷ Confirm Redo"}</button>
+    </div>
+  `;
+  document.getElementById("undoConfirmModal").classList.add("open");
+}
+
+function closeUndoConfirmModal() {
+  pendingHistoryAction = null;
+  document.getElementById("undoConfirmModal").classList.remove("open");
+}
+
+async function confirmPendingHistoryAction() {
+  const action = pendingHistoryAction;
+  closeUndoConfirmModal();
+  if (!action) return;
+  const doc = getActiveDoc();
+  if (!doc) return;
+  const hist = getDocHistory(doc.id);
+  const fromStack = action === "undo" ? hist.undo : hist.redo;
+  const toStack = action === "undo" ? hist.redo : hist.undo;
+  if (!fromStack.length) return;
+
+  const entry = fromStack.pop();
+  toStack.push({ label: entry.label, snapshot: JSON.parse(JSON.stringify(doc)) });
+  hist.lastKey = "";
+  hist.lastAt = 0;
+
+  const restored = normalizeDocSchema(entry.snapshot);
+  const idx = state.corpus.findIndex(d => d.id === doc.id);
+  if (idx >= 0) state.corpus[idx] = restored;
+
+  if (activeSelection && !restored.paragraphs.some(p => p.id === activeSelection.paraId)) {
+    activeSelection = null;
+    document.getElementById("companionWindow").classList.remove("open");
+  }
+
+  saveLocalState();
+  syncTopbarControls();
+  renderSidebar();
+  renderBanner();
+  renderPrimaryStage();
+  if (activeSelection) renderCompanionWindow();
+  renderNotesRail();
+  if (cloud.ready) await uploadDocsMergeToCloud([restored]);
 }
 
 function setStageView(view) {
@@ -2563,6 +2706,7 @@ function setStageView(view) {
 function onChangePrimaryStyle(newStyle) {
   const doc = getActiveDoc();
   if (!doc || !PRIMARY_STYLE_LABELS[newStyle]) return;
+  pushUndoSnapshot("Change text style");
   doc.primaryStyle = newStyle;
   if (newStyle === "wabun" && !doc.paragraphs.some(p => (p.kakikudashiText || "").trim())) {
     doc.hasKakikudashi = false;
@@ -2587,6 +2731,7 @@ function toggleEnglishProductPane() {
 function toggleDocKakikudashiLayer() {
   const doc = getActiveDoc();
   if (!doc) return;
+  pushUndoSnapshot(doc.hasKakikudashi ? "Hide 書き下し" : "Enable 書き下し");
   doc.hasKakikudashi = !doc.hasKakikudashi;
   doc._explicitHasKk = true;
   if (!doc.hasKakikudashi && stageView === "kakikudashi") {
@@ -3196,6 +3341,7 @@ function applyPrimarySentenceEdit(taId, paraId, idx) {
 }
 
 function commitPrimarySliceReplacement(para, idx, replacementText, fullReRender) {
+  pushUndoSnapshot(fullReRender ? "Edit sentence punctuation" : "Edit original text", fullReRender ? null : `prim_${para.id}_${idx}`);
   const { units, metaArr } = getParaUnitsAndMeta(para);
   if (units.length === 0) {
     para.primaryText = replacementText;
@@ -3299,6 +3445,7 @@ async function splitParagraphAfterSentence(paraId, idx) {
   const pIdx = doc.paragraphs.findIndex(p => p.id === paraId);
   if (pIdx < 0) return;
   const para = doc.paragraphs[pIdx];
+  pushUndoSnapshot("Split paragraph");
   syncLayerSnapshots(para, "kakikudashi");
   syncLayerSnapshots(para, "english");
   const { units, metaArr } = getParaUnitsAndMeta(para);
@@ -3369,6 +3516,7 @@ async function mergeWithNextParagraph(paraId) {
   if (!doc) return;
   const pIdx = doc.paragraphs.findIndex(p => p.id === paraId);
   if (pIdx < 0 || pIdx >= doc.paragraphs.length - 1) return;
+  pushUndoSnapshot("Join next paragraph");
   const p1 = doc.paragraphs[pIdx];
   const p2 = doc.paragraphs[pIdx + 1];
   syncLayerSnapshots(p1, "kakikudashi");
@@ -3425,6 +3573,7 @@ function onDirectSpanInput(paraId, idx, layerKind, newVal, previewId) {
   const doc = getActiveDoc();
   const para = doc && doc.paragraphs.find(p => p.id === paraId);
   if (!para) return;
+  pushUndoSnapshot(layerKind === "kakikudashi" ? "Edit 書き下し" : "Edit English", `span_${paraId}_${idx}_${layerKind}`);
   const { metaArr } = getParaUnitsAndMeta(para);
   const m = metaArr[idx];
   if (!m) return;
@@ -3644,6 +3793,7 @@ function assignSelectedSpan(layerKind, appendMode) {
   const doc = getActiveDoc();
   const para = doc.paragraphs.find(p => p.id === activeSelection.paraId);
   if (!para) return;
+  pushUndoSnapshot(layerKind === "kakikudashi" ? "Map 書き下し span" : "Map English span");
 
   const { idx } = activeSelection;
   const { metaArr } = getParaUnitsAndMeta(para);
@@ -3675,6 +3825,7 @@ function clearSpanAssignment(paraId, idx, layerKind) {
   const doc = getActiveDoc();
   const para = doc.paragraphs.find(p => p.id === paraId);
   if (!para) return;
+  pushUndoSnapshot(layerKind === "kakikudashi" ? "Unlink 書き下し span" : "Unlink English span");
   const { metaArr } = getParaUnitsAndMeta(para);
   const { rangesField } = getLayerConfig(layerKind);
   if (metaArr[idx]) metaArr[idx][rangesField] = [];
@@ -3689,6 +3840,7 @@ function onFullParaLayerInput(paraId, layerKind, val) {
   const doc = getActiveDoc();
   const para = doc.paragraphs.find(p => p.id === paraId);
   if (!para) return;
+  pushUndoSnapshot(layerKind === "kakikudashi" ? "Edit full 書き下し paragraph" : "Edit full English paragraph", `full_${paraId}_${layerKind}`);
   const { textField } = getLayerConfig(layerKind);
   para[textField] = val;
   syncLayerSnapshots(para, layerKind);
@@ -3892,6 +4044,7 @@ function addFootnoteForActiveSentence() {
   const targetIdx = activeSelection.idx;
   const m = metaArr[targetIdx];
   if (!m) return;
+  pushUndoSnapshot("Add editorial note");
   m.notes = m.notes || [];
   const nowMs = getServerNowMs();
   m.notes.push({
@@ -3926,6 +4079,7 @@ function onInlineNoteFieldChange(paraId, sentIdx, noteIdx, value, timeElId) {
   const { metaArr } = getParaUnitsAndMeta(para);
   const n = metaArr[sentIdx] && metaArr[sentIdx].notes && metaArr[sentIdx].notes[noteIdx];
   if (!n) return;
+  pushUndoSnapshot("Edit editorial note", `note_${paraId}_${sentIdx}_${noteIdx}`);
   n.text = value;
   n.updatedAt = getServerNowMs();
   if (timeElId) {
@@ -3941,6 +4095,7 @@ function deleteFootnote(paraId, sentIdx, noteIdx) {
   if (!para) return;
   const { metaArr } = getParaUnitsAndMeta(para);
   if (!metaArr[sentIdx] || !metaArr[sentIdx].notes) return;
+  pushUndoSnapshot("Delete editorial note");
   metaArr[sentIdx].notes.splice(noteIdx, 1);
   saveState(activeDocId, para.id);
   renderPrimaryStage();
@@ -4000,11 +4155,28 @@ function jumpToFootnoteSentence(paraId, sentIdx) {
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
     if (document.getElementById("popover").classList.contains("open")) closePopover();
+    else if (document.getElementById("undoConfirmModal").classList.contains("open")) closeUndoConfirmModal();
     else if (document.getElementById("editDocInfoModal").classList.contains("open")) closeEditDocInfoModal();
     else if (document.getElementById("rawTextModal").classList.contains("open")) closeRawTextModal();
     else if (document.getElementById("newDocModal").classList.contains("open")) closeNewDocModal();
     else if (document.getElementById("paraDankuModal").classList.contains("open")) closeParaDankuModal();
     else if (activeSelection) closeCompanionWindow();
+    return;
+  }
+
+  const tag = (document.activeElement && document.activeElement.tagName) || "";
+  const inField = tag === "TEXTAREA" || tag === "INPUT" || tag === "SELECT";
+  const anyModalOpen = Boolean(document.querySelector(".modal-backdrop.open"));
+  if (!inField && !anyModalOpen && isScribe) {
+    const mod = e.metaKey || e.ctrlKey;
+    if (mod && !e.altKey && e.key.toLowerCase() === "z") {
+      e.preventDefault();
+      if (e.shiftKey) requestRedo();
+      else requestUndo();
+    } else if (e.ctrlKey && !e.metaKey && !e.altKey && e.key.toLowerCase() === "y") {
+      e.preventDefault();
+      requestRedo();
+    }
   }
 });
 
@@ -4738,6 +4910,7 @@ function renderRawTextModal() {
 async function applyRawTextModal() {
   const doc = getActiveDoc();
   if (!doc) return;
+  pushUndoSnapshot("Feed / Edit Raw Text");
   const ta = document.getElementById("rawTextArea");
   if (ta) rawModalDrafts[rawModalLayer] = ta.value;
 
@@ -4939,6 +5112,7 @@ function saveEditDocInfoModal() {
     alert("Title cannot be empty.");
     return;
   }
+  pushUndoSnapshot("Edit text info");
   doc.title = title;
   doc.collection = title.split("—")[0].trim();
   doc.author = (document.getElementById("ed_author").value || "").trim();
