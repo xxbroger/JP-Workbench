@@ -1213,14 +1213,14 @@
         <button id="tab_primary" class="active" onclick="setStageView('primary')">原文 漢文</button>
         <button id="tab_kakikudashi" style="display:none;" onclick="setStageView('kakikudashi')">書き下し Kakikudashi</button>
       </div>
-      <button class="btn btn-sm" id="addKkTopbarBtn" style="display:none;" onclick="enableKakikudashiFromTopbar()" title="Enable the optional 書き下し (Kakikudashi) layer and dedicated tab for this text">+ 書き下し</button>
+      <button class="btn btn-sm" id="kkToggleTopbarBtn" onclick="toggleDocKakikudashiLayer()" title="Turn 書き下し (Kakikudashi) on or off for this text">+ 書き下し</button>
 
-      <select class="style-select" id="primaryStyleSelect" onchange="onChangePrimaryStyle(this.value)" title="Register of this document's primary source text">
+      <select class="style-select" id="primaryStyleSelect" onchange="onChangePrimaryStyle(this.value)" title="Text style">
         <option value="kanbun">漢文 Kanbun</option>
         <option value="wakan">和漢混じり文 Wakan</option>
         <option value="wabun">和文 Wabun</option>
       </select>
-      <button class="btn" id="enProductToggleBtn" onclick="toggleEnglishProductPane()" title="Show/Hide assembled English Translation product alongside the text">📖 English Product</button>
+      <button class="btn" id="enProductToggleBtn" onclick="toggleEnglishProductPane()" title="Show/Hide English translation alongside the text">📖 English</button>
 
       <span class="control-label" style="margin-left:4px;">Ruby:</span>
       <div class="seg-control" id="rubyControl">
@@ -1262,7 +1262,6 @@
         <div class="cw-header" id="cwHeader">
           <div class="cw-title">
             <span id="cwTitleText">Sentence Editor</span>
-            <button class="cw-btn" id="cwKakikudashiBtn" onclick="toggleDocKakikudashiLayer()" title="Add or hide the optional 書き下し (Kakikudashi) layer">+ 書き下し Layer</button>
             <button class="cw-btn active" onclick="addFootnoteForActiveSentence()" title="Add a numbered footnote to the Editorial Notes panel">+ Add Note</button>
           </div>
           <div class="cw-controls">
@@ -2550,7 +2549,7 @@ function syncTopbarControls() {
 
   const tabPrim = document.getElementById("tab_primary");
   const tabKk = document.getElementById("tab_kakikudashi");
-  const addKkBtn = document.getElementById("addKkTopbarBtn");
+  const kkToggleBtn = document.getElementById("kkToggleTopbarBtn");
   const sel = document.getElementById("primaryStyleSelect");
 
   if (tabPrim) {
@@ -2561,8 +2560,10 @@ function syncTopbarControls() {
     tabKk.style.display = doc.hasKakikudashi ? "inline-block" : "none";
     tabKk.classList.toggle("active", stageView === "kakikudashi");
   }
-  if (addKkBtn) {
-    addKkBtn.style.display = (!doc.hasKakikudashi && isScribe) ? "inline-flex" : "none";
+  if (kkToggleBtn) {
+    kkToggleBtn.textContent = doc.hasKakikudashi ? "✓ 書き下し" : "+ 書き下し";
+    kkToggleBtn.classList.toggle("active", Boolean(doc.hasKakikudashi));
+    kkToggleBtn.disabled = !isScribe;
   }
   if (sel) {
     sel.value = doc.primaryStyle || "kanbun";
@@ -2578,19 +2579,6 @@ function setStageView(view) {
   syncTopbarControls();
   renderBanner();
   renderPrimaryStage();
-}
-
-function enableKakikudashiFromTopbar() {
-  const doc = getActiveDoc();
-  if (!doc) return;
-  doc.hasKakikudashi = true;
-  doc._explicitHasKk = true;
-  stageView = "kakikudashi";
-  saveState(doc.id, null);
-  syncTopbarControls();
-  renderBanner();
-  renderPrimaryStage();
-  if (activeSelection) renderCompanionWindow();
 }
 
 function onChangePrimaryStyle(newStyle) {
@@ -2629,7 +2617,7 @@ function toggleDocKakikudashiLayer() {
   syncTopbarControls();
   renderBanner();
   renderPrimaryStage();
-  renderCompanionWindow();
+  if (activeSelection) renderCompanionWindow();
 }
 
 function renderSidebar() {
@@ -2680,8 +2668,8 @@ function renderBanner() {
   if (!doc) return;
   const st = getPrimaryStyleInfo(doc.primaryStyle);
   const viewHint = stageView === "kakikudashi"
-    ? "Viewing full 書き下し (click any passage to inspect or map to Primary sentences)"
-    : `Primary: <strong>${st.short}</strong> · Click any sentence to edit`;
+    ? "Viewing full 書き下し (click any passage to edit or map)"
+    : `<strong>${st.short}</strong> · Click any sentence to edit`;
   const banner = document.getElementById("paratextBanner");
   banner.innerHTML = `
     <div class="paratext-title-row">
@@ -2690,7 +2678,7 @@ function renderBanner() {
         <span class="paratext-meta">${escapeHtml(doc.author)} · ${viewHint}</span>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        <button class="btn btn-sm active" onclick="openRawTextModal('${stageView === 'kakikudashi' ? 'kakikudashi' : 'primary'}')" title="Paste, edit, or clear raw Primary, Kakikudashi, or English text">📝 Feed / Edit Raw Text</button>
+        <button class="btn btn-sm active" onclick="openRawTextModal('${stageView === 'kakikudashi' ? 'kakikudashi' : 'primary'}')" title="Paste, edit, or clear raw text">📝 Feed / Edit Raw Text</button>
         <button class="btn btn-sm" onclick="toggleWitnessDrawer()">📜 Source &amp; Witness Info</button>
         ${!cloud.ready ? `<button class="btn btn-sm" onclick="resetDemoData()" title="Restore initial sample state">↺ Reset Demo</button>` : ""}
       </div>
@@ -2753,8 +2741,8 @@ function renderPrimaryStage() {
     enPaneHtml = `
       <div class="english-product-pane" id="englishProductPane">
         <div class="english-product-head">
-          <span>📖 English Translation (Final Product)</span>
-          <button class="btn btn-sm" onclick="toggleEnglishProductPane()" title="Hide English Product pane">✕</button>
+          <span>📖 English Translation</span>
+          <button class="btn btn-sm" onclick="toggleEnglishProductPane()" title="Hide English pane">✕</button>
         </div>
         <div class="english-product-body">${enBlocks}</div>
       </div>
@@ -2831,7 +2819,7 @@ function renderKakikudashiParagraphInteractive(doc, para, fnMap) {
       .map(fn => `<span class="fn-badge" onclick="focusFootnote(event, ${fn.num})" title="Jump to Editorial Note ${fn.num}">${fn.num}</span>`)
       .join("");
 
-    html += `<span class="doc-sent ${isActive ? 'active-sent' : ''} ${unassignedCls}" onclick="onKakikudashiSpanClick(event, '${para.id}', ${targetIdx}, ${isUnmapped ? 'true' : 'false'})" title="${!isUnmapped ? 'Mapped to Primary Sentence ' + owners.map(x => x + 1).join(', ') : 'Unmapped 書き下し — click to map to a Primary sentence'}">${kuTag}${renderJapaneseRich(slice, `kkmain_${para.id}_${i}`)}${endFns}</span>`;
+    html += `<span class="doc-sent ${isActive ? 'active-sent' : ''} ${unassignedCls}" onclick="onKakikudashiSpanClick(event, '${para.id}', ${targetIdx}, ${isUnmapped ? 'true' : 'false'})" title="${!isUnmapped ? 'Mapped to Sentence ' + owners.map(x => x + 1).join(', ') : 'Unmapped 書き下し — click to map to a sentence'}">${kuTag}${renderJapaneseRich(slice, `kkmain_${para.id}_${i}`)}${endFns}</span>`;
   }
   return html;
 }
@@ -2958,12 +2946,6 @@ function renderCompanionWindow() {
   document.getElementById("cwTitleText").textContent =
     `${doc.id} · ${para.label} · Sentence ${idx + 1} of ${units.length}`;
 
-  const kkBtn = document.getElementById("cwKakikudashiBtn");
-  if (kkBtn) {
-    kkBtn.textContent = doc.hasKakikudashi ? "✓ 書き下し Layer" : "+ 書き下し Layer";
-    kkBtn.classList.toggle("active", Boolean(doc.hasKakikudashi));
-  }
-
   const cards = [];
   cards.push(renderPrimarySentenceCard(doc, para, units, idx));
   if (doc.hasKakikudashi) {
@@ -3022,8 +3004,7 @@ function renderPrimarySentenceCard(doc, para, units, idx) {
   return `
     <div class="layer-card is-primary-card">
       <div class="layer-card-head">
-        <span>1. Primary · ${st.short} (Sentence ${idx + 1})</span>
-        <span class="layer-badge-primary">Primary Text</span>
+        <span>原文 ${st.short} (Sentence ${idx + 1})</span>
       </div>
       <div class="cw-tategaki-preview" id="${previewId}">${renderJapaneseRich(sentText, `cw_prim_${para.id}_${idx}`)}</div>
       ${editorHtml}
@@ -3067,8 +3048,7 @@ function renderOptionalKakikudashiCard(doc, para, idx, sentMeta) {
   return `
     <div class="layer-card">
       <div class="layer-card-head">
-        <span>2. 書き下し Kakikudashi (Sentence ${idx + 1})</span>
-        <span class="layer-badge-optional">Optional Layer</span>
+        <span>書き下し Kakikudashi (Sentence ${idx + 1})</span>
       </div>
       <div class="cw-tategaki-preview" id="${previewId}">${assignedText ? renderJapaneseRich(assignedText, `cw_kk_${para.id}_${idx}`) : `<span style="color:var(--ink-faint);font-size:13px;">（未紐付・未入力）</span>`}</div>
       ${editorHtml}
@@ -3104,7 +3084,6 @@ function renderOptionalKakikudashiCard(doc, para, idx, sentMeta) {
 }
 
 function renderEnglishProductCard(doc, para, idx, sentMeta) {
-  const stepNum = doc.hasKakikudashi ? "3" : "2";
   const en = para.englishText || "";
   const ranges = (sentMeta && sentMeta.enRanges) || [];
   const assignedText = ranges.map(r => en.slice(r.start, r.end)).join(" … ");
@@ -3132,8 +3111,7 @@ function renderEnglishProductCard(doc, para, idx, sentMeta) {
   return `
     <div class="layer-card is-product-card">
       <div class="layer-card-head">
-        <span>${stepNum}. English Translation (Sentence ${idx + 1})</span>
-        <span class="layer-badge-product">Final Product</span>
+        <span>English Translation (Sentence ${idx + 1})</span>
       </div>
       ${mainEditorHtml}
       <div>
@@ -3157,7 +3135,7 @@ function renderEnglishProductCard(doc, para, idx, sentMeta) {
           <div class="en-mapper-box" id="enMapperBox" data-total-len="${en.length}">${renderParagraphSpanMapperBox(para, idx, "english")}</div>
           ${showFullEnParaEditor && isScribe ? `
             <div>
-              <div style="font-size:11px;color:var(--ink-muted);margin-bottom:3px;">Full Paragraph English Product:</div>
+              <div style="font-size:11px;color:var(--ink-muted);margin-bottom:3px;">Full Paragraph English:</div>
               <textarea class="layer-textarea en-input" style="min-height:85px;" oninput="onFullParaLayerInput('${para.id}', 'english', this.value)">${escapeHtml(en)}</textarea>
             </div>
           ` : ""}
@@ -3666,11 +3644,11 @@ function openParaDankuModal(explicitParaId) {
 
   document.getElementById("paraModalBody").innerHTML = `
     <div style="font-size:12.5px;color:var(--ink-muted);line-height:1.5;">
-      Add, move, or delete sentence markers <strong>「。」</strong> in the primary text below to adjust clickable sentences.
+      Add, move, or delete sentence markers <strong>「。」</strong> in the text below to adjust clickable sentences.
       <span style="margin-left:8px;cursor:pointer;color:var(--bookmark);font-weight:600;" onclick="setBookmark('${para.id}');closeParaDankuModal();">🔖 Toggle Session Bookmark on ${escapeHtml(para.label)}</span>
     </div>
     <div>
-      <div style="font-size:12px;font-weight:700;margin-bottom:4px;">Primary Text · ${st.short} (<span id="modalPrimCount">${sentCount}</span> clickable 「。」 sentences):</div>
+      <div style="font-size:12px;font-weight:700;margin-bottom:4px;">原文 ${st.short} (<span id="modalPrimCount">${sentCount}</span> clickable 「。」 sentences):</div>
       <textarea id="modalPrimTa" oninput="document.getElementById('modalPrimCount').textContent=splitByMaru(this.value).length" ${!isScribe ? 'readonly' : ''}>${escapeHtml(para.primaryText)}</textarea>
     </div>
     <div style="display:flex;justify-content:flex-end;gap:8px;">
@@ -4317,9 +4295,9 @@ function renderRawTextModal() {
   const st = getPrimaryStyleInfo(rawModalStyle);
   const val = rawModalDrafts[rawModalLayer] || "";
   const placeholderMap = {
-    primary: `Paste raw ${st.short} primary text here. Leave a blank line between paragraphs (第1段, 第2段…). Every 「。」 becomes a clickable sentence.`,
-    kakikudashi: "Optional: paste 書き下し (Kakikudashi) here with blank lines between paragraphs, or leave empty if not needed.",
-    english: "Paste or edit the English translation product here. Leave a blank line between paragraphs to align with 第1段, 第2段…."
+    primary: `Paste raw ${st.short} text here. Leave a blank line between paragraphs (第1段, 第2段…). Every 「。」 becomes a clickable sentence.`,
+    kakikudashi: "Paste 書き下し (Kakikudashi) here with blank lines between paragraphs, or leave empty if not needed.",
+    english: "Paste or edit the English translation here. Leave a blank line between paragraphs to align with 第1段, 第2段…."
   };
 
   document.getElementById("rawModalTitle").textContent = `📝 Feed / Edit Raw Text — ${doc.id} · ${doc.title.split("—")[0].trim()}`;
@@ -4328,11 +4306,11 @@ function renderRawTextModal() {
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
         <div class="seg-control primary-picker">
-          <button class="${rawModalLayer === 'primary' ? 'active' : ''}" onclick="switchRawTextLayer('primary')">1. Primary (${st.short})</button>
-          <button class="${rawModalLayer === 'kakikudashi' ? 'active' : ''}" onclick="switchRawTextLayer('kakikudashi')">2. 書き下し (Optional)</button>
-          <button class="${rawModalLayer === 'english' ? 'active' : ''}" onclick="switchRawTextLayer('english')">3. English Product</button>
+          <button class="${rawModalLayer === 'primary' ? 'active' : ''}" onclick="switchRawTextLayer('primary')">原文 ${st.short}</button>
+          <button class="${rawModalLayer === 'kakikudashi' ? 'active' : ''}" onclick="switchRawTextLayer('kakikudashi')">書き下し</button>
+          <button class="${rawModalLayer === 'english' ? 'active' : ''}" onclick="switchRawTextLayer('english')">English</button>
         </div>
-        <select class="style-select" onchange="onRawModalStyleChange(this.value)" title="Change primary text style">
+        <select class="style-select" onchange="onRawModalStyleChange(this.value)" title="Change text style">
           <option value="kanbun" ${rawModalStyle === 'kanbun' ? 'selected' : ''}>漢文 Kanbun</option>
           <option value="wakan" ${rawModalStyle === 'wakan' ? 'selected' : ''}>和漢混じり文 Wakan</option>
           <option value="wabun" ${rawModalStyle === 'wabun' ? 'selected' : ''}>和文 Wabun</option>
@@ -4438,7 +4416,7 @@ function openNewDocModal() {
       <input id="nd_title" type="text" placeholder="e.g. 02.02 上巻序 — Sanbōe, Vol. 1 Preface" style="padding:6px 8px;border:1px solid var(--border-strong);border-radius:6px;">
       <label><strong>Author / Date</strong></label>
       <input id="nd_author" type="text" placeholder="e.g. 源為憲 Minamoto no Tamenori (984)" style="padding:6px 8px;border:1px solid var(--border-strong);border-radius:6px;">
-      <label><strong>Primary Style</strong></label>
+      <label><strong>Text Style</strong></label>
       <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
         <select id="nd_style" onchange="onNewDocStyleChange()" style="padding:6px 8px;border:1px solid var(--border-strong);border-radius:6px;">
           <option value="kanbun">漢文 Kanbun</option>
@@ -4447,7 +4425,7 @@ function openNewDocModal() {
         </select>
         <label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;">
           <input type="checkbox" id="nd_has_kk" checked onchange="renderNewDocTabs()">
-          Include optional 書き下し layer
+          Include 書き下し
         </label>
       </div>
       <label><strong>Source Info</strong></label>
@@ -4458,7 +4436,7 @@ function openNewDocModal() {
         <span style="font-size:12px;font-weight:700;">Initial Raw Text (blank line separates paragraphs):</span>
         <div class="seg-control primary-picker" id="nd_tabs"></div>
       </div>
-      <textarea id="nd_text" style="min-height:150px;" oninput="newDocDrafts[newDocActiveTab]=this.value" placeholder="Paste primary text here..."></textarea>
+      <textarea id="nd_text" style="min-height:150px;" oninput="newDocDrafts[newDocActiveTab]=this.value" placeholder="Paste text here..."></textarea>
     </div>
     <div style="display:flex;justify-content:flex-end;gap:8px;">
       <button class="btn" onclick="closeNewDocModal()">Cancel</button>
@@ -4494,9 +4472,9 @@ function renderNewDocTabs() {
 
   const tabsHost = document.getElementById("nd_tabs");
   tabsHost.innerHTML = `
-    <button type="button" class="${newDocActiveTab === 'primary' ? 'active' : ''}" onclick="switchNewDocTab('primary')">1. Primary (${st.short})</button>
-    ${hasKk ? `<button type="button" class="${newDocActiveTab === 'kakikudashi' ? 'active' : ''}" onclick="switchNewDocTab('kakikudashi')">2. 書き下し</button>` : ""}
-    <button type="button" class="${newDocActiveTab === 'english' ? 'active' : ''}" onclick="switchNewDocTab('english')">${hasKk ? '3' : '2'}. English Product</button>
+    <button type="button" class="${newDocActiveTab === 'primary' ? 'active' : ''}" onclick="switchNewDocTab('primary')">原文 ${st.short}</button>
+    ${hasKk ? `<button type="button" class="${newDocActiveTab === 'kakikudashi' ? 'active' : ''}" onclick="switchNewDocTab('kakikudashi')">書き下し</button>` : ""}
+    <button type="button" class="${newDocActiveTab === 'english' ? 'active' : ''}" onclick="switchNewDocTab('english')">English</button>
   `;
 
   const ta = document.getElementById("nd_text");
@@ -4504,10 +4482,10 @@ function renderNewDocTabs() {
     ta.value = newDocDrafts[newDocActiveTab] || "";
     ta.style.fontFamily = newDocActiveTab === "english" ? "var(--font-en)" : "var(--font-jp)";
     ta.placeholder = newDocActiveTab === "english"
-      ? "Optional: paste English translation draft here (blank line between paragraphs)..."
+      ? "Paste English translation draft here (blank line between paragraphs)..."
       : (newDocActiveTab === "primary"
-          ? `Paste ${st.short} primary text here (blank line between paragraphs)...`
-          : "Optional: paste 書き下し here (blank line between paragraphs)...");
+          ? `Paste ${st.short} text here (blank line between paragraphs)...`
+          : "Paste 書き下し here (blank line between paragraphs)...");
   }
 }
 
