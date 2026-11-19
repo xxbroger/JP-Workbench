@@ -534,6 +534,76 @@
     cursor: pointer;
   }
   .fn-badge:hover { background: #183254; }
+  .fn-badge.hl-fn-amber { background: #b87300; }
+  .fn-badge.hl-fn-sage  { background: #2d7a47; }
+  .fn-badge.hl-fn-sky   { background: #2667a8; }
+  .fn-badge.hl-fn-rose  { background: #b83b56; }
+
+  /* Term / Character Color-Block Highlights */
+  mark.hl-mark {
+    color: inherit;
+    border-radius: 3px;
+    padding: 1px 0;
+    cursor: pointer;
+    transition: box-shadow 0.15s, background 0.15s;
+  }
+  mark.hl-amber { background: rgba(255, 208, 92, 0.46); }
+  mark.hl-sage  { background: rgba(126, 201, 149, 0.40); }
+  mark.hl-sky   { background: rgba(122, 184, 245, 0.38); }
+  mark.hl-rose  { background: rgba(242, 148, 165, 0.40); }
+  mark.hl-mark:hover { filter: brightness(0.95); }
+  mark.hl-mark.flash-hl { box-shadow: 0 0 0 3px rgba(38, 74, 120, 0.55); }
+
+  .fn-card.hl-card-amber { border-left-color: #c78500; }
+  .fn-card.hl-card-sage  { border-left-color: #2d7a47; }
+  .fn-card.hl-card-sky   { border-left-color: #2b6cb0; }
+  .fn-card.hl-card-rose  { border-left-color: #b83b56; }
+  .fn-num-pill.hl-pill-amber { background: #fff3d1; border-color: #e6be6a; color: #7a4c00; }
+  .fn-num-pill.hl-pill-sage  { background: #e3f5e9; border-color: #9ad1ad; color: #1f5c34; }
+  .fn-num-pill.hl-pill-sky   { background: #e4f1fd; border-color: #9dc6ee; color: #1d4f82; }
+  .fn-num-pill.hl-pill-rose  { background: #fde9ed; border-color: #e8a7b4; color: #8c263d; }
+
+  .hl-toolbar {
+    position: fixed;
+    z-index: 320;
+    background: #233b5d;
+    color: #fff;
+    border-radius: 99px;
+    padding: 5px 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.22);
+    display: none;
+    align-items: center;
+    gap: 6px;
+    font-size: 11.5px;
+    user-select: none;
+  }
+  .hl-toolbar.open { display: inline-flex; }
+  .hl-swatch {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.85);
+    cursor: pointer;
+    padding: 0;
+    transition: transform 0.12s;
+  }
+  .hl-swatch:hover { transform: scale(1.16); }
+  .hl-swatch.sw-amber { background: #ffd05c; }
+  .hl-swatch.sw-sage  { background: #7ec995; }
+  .hl-swatch.sw-sky   { background: #7ab8f5; }
+  .hl-swatch.sw-rose  { background: #f294a5; }
+  .hl-tb-btn {
+    background: rgba(255,255,255,0.16);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.28);
+    border-radius: 99px;
+    padding: 2px 9px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: var(--font-ui);
+  }
+  .hl-tb-btn:hover { background: rgba(255,255,255,0.28); }
 
   .primary-stage {
     flex: 1;
@@ -1296,6 +1366,7 @@
 </div>
 
 <div class="popover" id="popover"></div>
+<div class="hl-toolbar" id="hlToolbar"></div>
 
 <script>
 // ============================================================================
@@ -1459,10 +1530,12 @@ function normalizeParagraphSchema(rawPara, docStyle) {
       primaryText: rawPara.primaryText,
       kakikudashiText,
       englishText: rawPara.englishText || "",
-      sentMeta
+      sentMeta,
+      highlights: Array.isArray(rawPara.highlights) ? JSON.parse(JSON.stringify(rawPara.highlights)) : []
     };
     syncLayerSnapshots(paraObj, "kakikudashi");
     syncLayerSnapshots(paraObj, "english");
+    syncHighlightSnapshots(paraObj);
     return paraObj;
   }
 
@@ -1492,10 +1565,12 @@ function normalizeParagraphSchema(rawPara, docStyle) {
     primaryText,
     kakikudashiText,
     englishText: rawPara.englishText || "",
-    sentMeta
+    sentMeta,
+    highlights: Array.isArray(rawPara.highlights) ? JSON.parse(JSON.stringify(rawPara.highlights)) : []
   };
   syncLayerSnapshots(paraObj, "kakikudashi");
   syncLayerSnapshots(paraObj, "english");
+  syncHighlightSnapshots(paraObj);
   return paraObj;
 }
 
@@ -1568,6 +1643,7 @@ function serializeParaForCloud(pObj, dObj) {
     kakikudashiText: isWabun && !dObj.hasKakikudashi ? "" : kkFull,
     englishText: pObj.englishText || "",
     sentMeta,
+    highlights: Array.isArray(pObj.highlights) ? pObj.highlights : [],
     // Backward-compatible mirror fields
     kanbunText: isWabun ? "" : (pObj.primaryText || ""),
     kbMeta: isWabun ? [] : legacyMeta,
@@ -2804,24 +2880,111 @@ function renderBanner() {
   `;
 }
 
+const HL_COLORS = [
+  { id: "amber", label: "Amber" },
+  { id: "sage",  label: "Sage" },
+  { id: "sky",   label: "Sky" },
+  { id: "rose",  label: "Rose" }
+];
+let pendingHighlightSelection = null;
+let lastHighlightColor = "amber";
+
+function getLayerTextField(layer) {
+  if (layer === "kakikudashi") return "kakikudashiText";
+  if (layer === "english") return "englishText";
+  return "primaryText";
+}
+
+function syncHighlightSnapshots(para) {
+  if (!para) return;
+  para.highlights = Array.isArray(para.highlights) ? para.highlights : [];
+  para.highlights.forEach(h => {
+    const full = para[getLayerTextField(h.layer)] || "";
+    if (typeof h.start !== "number" || typeof h.end !== "number") return;
+    const cur = full.slice(h.start, h.end);
+    if (h.snapshot && cur !== h.snapshot) {
+      const found = full.indexOf(h.snapshot);
+      if (found >= 0) {
+        h.start = found;
+        h.end = found + h.snapshot.length;
+      } else {
+        h.start = Math.min(h.start, full.length);
+        h.end = Math.min(h.end, full.length);
+        h.snapshot = full.slice(h.start, h.end);
+      }
+    } else if (!h.snapshot) {
+      h.snapshot = cur;
+    }
+  });
+  para.highlights = para.highlights.filter(h => h.end > h.start);
+}
+
+function renderJapaneseRichWithHighlights(raw, regPrefix, paraId, layer, rawOffset, highlights, hlFnMap) {
+  if (!raw) return "";
+  const relevant = (highlights || [])
+    .filter(h => h.layer === layer && h.end > rawOffset && h.start < rawOffset + raw.length)
+    .sort((a, b) => a.start - b.start);
+  if (!relevant.length) return renderJapaneseRich(raw, regPrefix);
+
+  let out = "";
+  let pos = 0;
+  relevant.forEach((h, hi) => {
+    const s = Math.max(0, h.start - rawOffset);
+    const e = Math.min(raw.length, h.end - rawOffset);
+    if (e <= pos || e <= s) return;
+    if (s > pos) out += renderJapaneseRich(raw.slice(pos, s), `${regPrefix}_pre_${hi}`);
+    const sliceHtml = renderJapaneseRich(raw.slice(s, e), `${regPrefix}_hl_${hi}`);
+    const fnNum = hlFnMap && hlFnMap[h.id];
+    const badgeHtml = fnNum ? `<span class="fn-badge hl-fn-${h.color || 'amber'}" onclick="focusFootnote(event, ${fnNum})" title="Jump to Editorial Note ${fnNum}">${fnNum}</span>` : "";
+    out += `<mark class="hl-mark hl-${h.color || 'amber'}" data-hl-id="${h.id}" onclick="onHighlightClick(event, '${paraId}', '${h.id}')" title="${fnNum ? 'Click to jump to Note ' + fnNum + ' or edit highlight' : 'Click to edit color, add note, or remove highlight'}">${sliceHtml}</mark>${badgeHtml}`;
+    pos = e;
+  });
+  if (pos < raw.length) out += renderJapaneseRich(raw.slice(pos), `${regPrefix}_tail`);
+  return out;
+}
+
+function renderEnglishSliceWithHighlights(slice, sliceStart, paraId, highlights, hlFnMap) {
+  if (!slice) return "";
+  const relevant = (highlights || [])
+    .filter(h => h.layer === "english" && h.end > sliceStart && h.start < sliceStart + slice.length)
+    .sort((a, b) => a.start - b.start);
+  if (!relevant.length) return escapeHtml(slice);
+
+  let out = "";
+  let pos = 0;
+  relevant.forEach(h => {
+    const s = Math.max(0, h.start - sliceStart);
+    const e = Math.min(slice.length, h.end - sliceStart);
+    if (e <= pos || e <= s) return;
+    if (s > pos) out += escapeHtml(slice.slice(pos, s));
+    const fnNum = hlFnMap && hlFnMap[h.id];
+    const badgeHtml = fnNum ? `<span class="fn-badge hl-fn-${h.color || 'amber'}" onclick="focusFootnote(event, ${fnNum})" title="Jump to Editorial Note ${fnNum}">${fnNum}</span>` : "";
+    out += `<mark class="hl-mark hl-${h.color || 'amber'}" data-hl-id="${h.id}" onclick="onHighlightClick(event, '${paraId}', '${h.id}')" title="${fnNum ? 'Click to jump to Note ' + fnNum + ' or edit highlight' : 'Click to edit color, add note, or remove highlight'}">${escapeHtml(slice.slice(s, e))}</mark>${badgeHtml}`;
+    pos = e;
+  });
+  if (pos < slice.length) out += escapeHtml(slice.slice(pos));
+  return out;
+}
+
 function renderPrimaryStage() {
   POPOVER_REGISTRY = {};
   const doc = getActiveDoc();
   const host = document.getElementById("primaryCanvasHost");
   if (!doc || !host) return;
 
-  const fnMap = buildFootnoteLookupMap(doc);
+  const { sentMap: fnMap, hlMap: hlFnMap } = buildFootnoteLookupMaps(doc);
   let parasHtml = "";
 
   for (const p of doc.paragraphs) {
     syncLayerSnapshots(p, "kakikudashi");
     syncLayerSnapshots(p, "english");
+    syncHighlightSnapshots(p);
     const isBookmarked = doc.bookmarkAfterPara === p.id;
     const { units } = getParaUnitsAndMeta(p);
 
     let sentsHtml = "";
     if (stageView === "kakikudashi") {
-      sentsHtml = renderKakikudashiParagraphInteractive(doc, p, fnMap);
+      sentsHtml = renderKakikudashiParagraphInteractive(doc, p, fnMap, hlFnMap);
     } else {
       sentsHtml = units.length > 0 ? units.map((u, idx) => {
         const isActive = activeSelection &&
@@ -2830,12 +2993,12 @@ function renderPrimaryStage() {
         const fnBadges = (fnMap[`${p.id}:${idx}`] || [])
           .map(fn => `<span class="fn-badge" onclick="focusFootnote(event, ${fn.num})" title="Jump to Editorial Note ${fn.num}">${fn.num}</span>`)
           .join("");
-        return `<span class="doc-sent ${isActive ? 'active-sent' : ''}" data-para="${p.id}" data-idx="${idx}" onclick="onPrimarySentClick(event, '${p.id}', ${idx})">${renderJapaneseRich(u.text, `main_${p.id}_${idx}`)}${fnBadges}</span>`;
+        return `<span class="doc-sent ${isActive ? 'active-sent' : ''}" data-para="${p.id}" data-idx="${idx}" data-raw-start="${u.start}" data-raw-end="${u.end}" onclick="onPrimarySentClick(event, '${p.id}', ${idx})">${renderJapaneseRichWithHighlights(u.text, `main_${p.id}_${idx}`, p.id, "primary", u.start, p.highlights, hlFnMap)}${fnBadges}</span>`;
       }).join("") : `<span class="doc-sent en-unassigned" style="font-size:13px;font-family:var(--font-ui);" onclick="openRawTextModal('primary')">［未入力 — クリックして原文を入力・貼付］</span>`;
     }
 
     parasHtml += `
-      <div class="tategaki-para">
+      <div class="tategaki-para" data-para-id="${p.id}" data-layer="${stageView}">
         ${isBookmarked ? `<span class="bookmark-vert" onclick="setBookmark('${p.id}')" title="Click to remove bookmark">🔖</span>` : ""}
         ${sentsHtml}
       </div>
@@ -2845,9 +3008,9 @@ function renderPrimaryStage() {
   let enPaneHtml = "";
   if (showEnglishProductPane) {
     const enBlocks = doc.paragraphs.map(p => `
-      <div class="en-para-block">
+      <div class="en-para-block" data-para-id="${p.id}" data-layer="english">
         ${doc.bookmarkAfterPara === p.id ? `<div class="en-para-head"><span class="bookmark-vert">🔖 ${escapeHtml(doc.bookmarkLabel)}</span></div>` : ""}
-        <div id="en_prod_para_${p.id}">${renderEnglishParagraphInteractive(doc, p, fnMap)}</div>
+        <div id="en_prod_para_${p.id}">${renderEnglishParagraphInteractive(doc, p, fnMap, hlFnMap)}</div>
       </div>
     `).join("");
 
@@ -2882,7 +3045,7 @@ function renderPrimaryStage() {
   if (!isActivelyTypingInNotesRail()) renderNotesRail();
 }
 
-function renderKakikudashiParagraphInteractive(doc, para, fnMap) {
+function renderKakikudashiParagraphInteractive(doc, para, fnMap, hlFnMap) {
   const kk = para.kakikudashiText || "";
   if (!kk.trim()) {
     return `<span class="doc-sent en-unassigned" style="font-size:13px;font-family:var(--font-ui);" onclick="openRawTextModal('kakikudashi')">［書き下し未入力 — クリックして入力・貼付］</span>`;
@@ -2929,12 +3092,12 @@ function renderKakikudashiParagraphInteractive(doc, para, fnMap) {
       .map(fn => `<span class="fn-badge" onclick="focusFootnote(event, ${fn.num})" title="Jump to Editorial Note ${fn.num}">${fn.num}</span>`)
       .join("");
 
-    html += `<span class="doc-sent ${isActive ? 'active-sent' : ''} ${unassignedCls}" onclick="onKakikudashiSpanClick(event, '${para.id}', ${targetIdx}, ${isUnmapped ? 'true' : 'false'})" title="${!isUnmapped ? escapeHtml('Mapped to: ' + ownerSnips) : 'Unmapped 書き下し — click to map'}">${renderJapaneseRich(slice, `kkmain_${para.id}_${i}`)}${endFns}</span>`;
+    html += `<span class="doc-sent ${isActive ? 'active-sent' : ''} ${unassignedCls}" data-para="${para.id}" data-raw-start="${a}" data-raw-end="${b}" onclick="onKakikudashiSpanClick(event, '${para.id}', ${targetIdx}, ${isUnmapped ? 'true' : 'false'})" title="${!isUnmapped ? escapeHtml('Mapped to: ' + ownerSnips) : 'Unmapped 書き下し — click to map'}">${renderJapaneseRichWithHighlights(slice, `kkmain_${para.id}_${i}`, para.id, "kakikudashi", a, para.highlights, hlFnMap)}${endFns}</span>`;
   }
   return html;
 }
 
-function renderEnglishParagraphInteractive(doc, para, fnMap) {
+function renderEnglishParagraphInteractive(doc, para, fnMap, hlFnMap) {
   const en = para.englishText || "";
   if (!en.trim()) {
     return `<span class="doc-sent en-unassigned" style="font-size:13.5px;" onclick="onPrimarySentClick(event, '${para.id}', 0)">[No English translation yet — click any sentence to translate]</span>`;
@@ -2974,7 +3137,7 @@ function renderEnglishParagraphInteractive(doc, para, fnMap) {
       .map(fn => `<span class="fn-badge" onclick="focusFootnote(event, ${fn.num})" title="Jump to Editorial Note ${fn.num}">${fn.num}</span>`)
       .join("");
 
-    html += `<span class="doc-sent ${isActive ? 'active-sent' : ''} ${unassignedCls}" onclick="onPrimarySentClick(event, '${para.id}', ${targetIdx})" title="${owners.length ? escapeHtml('Linked to: ' + ownerSnips) : 'Unlinked passage — click to map'}">${escapeHtml(slice)}${endFns}</span>`;
+    html += `<span class="doc-sent ${isActive ? 'active-sent' : ''} ${unassignedCls}" data-para="${para.id}" data-raw-start="${a}" data-raw-end="${b}" onclick="onPrimarySentClick(event, '${para.id}', ${targetIdx})" title="${owners.length ? escapeHtml('Linked to: ' + ownerSnips) : 'Unlinked passage — click to map'}">${renderEnglishSliceWithHighlights(slice, a, para.id, para.highlights, hlFnMap)}${endFns}</span>`;
   }
   return html;
 }
@@ -2993,7 +3156,10 @@ function flushAnyPendingDankuEdits() {
 }
 
 function onPrimarySentClick(ev, paraId, idx) {
-  if (ev && ev.target && ev.target.closest("[data-pop]")) return;
+  if (ev && ev.target && (ev.target.closest("[data-pop]") || ev.target.closest("[data-hl-id]"))) return;
+  const sel = window.getSelection();
+  if (sel && !sel.isCollapsed && sel.toString().trim().length > 0) return;
+  hideHlToolbar();
   flushAnyPendingDankuEdits();
   activeSelection = { paraId, idx };
   pendingKkSelectionRange = null;
@@ -3005,7 +3171,9 @@ function onPrimarySentClick(ev, paraId, idx) {
 }
 
 function onKakikudashiSpanClick(ev, paraId, idx, isUnmapped) {
-  if (ev && ev.target && ev.target.closest("[data-pop]")) return;
+  if (ev && ev.target && (ev.target.closest("[data-pop]") || ev.target.closest("[data-hl-id]"))) return;
+  const sel = window.getSelection();
+  if (sel && !sel.isCollapsed && sel.toString().trim().length > 0) return;
   if (isUnmapped) showKkSpanMapper = true;
   onPrimarySentClick(ev, paraId, idx);
 }
@@ -3394,11 +3562,11 @@ function commitPrimarySliceReplacement(para, idx, replacementText, fullReRender)
     const bgSpan = document.querySelector(`.doc-sent[data-para="${para.id}"][data-idx="${idx}"]`);
     if (bgSpan && newUnits[idx]) {
       const doc = getActiveDoc();
-      const fnMap = buildFootnoteLookupMap(doc);
+      const { sentMap: fnMap, hlMap: hlFnMap } = buildFootnoteLookupMaps(doc);
       const fnBadges = (fnMap[`${para.id}:${idx}`] || [])
         .map(fn => `<span class="fn-badge" onclick="focusFootnote(event, ${fn.num})" title="Jump to Editorial Note ${fn.num}">${fn.num}</span>`)
         .join("");
-      bgSpan.innerHTML = `${renderJapaneseRich(newUnits[idx].text, `main_${para.id}_${idx}`)}${fnBadges}`;
+      bgSpan.innerHTML = `${renderJapaneseRichWithHighlights(newUnits[idx].text, `main_${para.id}_${idx}`, para.id, "primary", newUnits[idx].start, para.highlights, hlFnMap)}${fnBadges}`;
     }
   }
 }
@@ -3695,7 +3863,8 @@ function onDirectSpanInput(paraId, idx, layerKind, newVal, previewId) {
   } else if (layerKind === "english") {
     const prodParaEl = document.getElementById(`en_prod_para_${para.id}`);
     if (prodParaEl) {
-      prodParaEl.innerHTML = renderEnglishParagraphInteractive(doc, para, buildFootnoteLookupMap(doc));
+      const { sentMap, hlMap } = buildFootnoteLookupMaps(doc);
+      prodParaEl.innerHTML = renderEnglishParagraphInteractive(doc, para, sentMap, hlMap);
     }
   }
 }
@@ -3849,7 +4018,8 @@ function onFullParaLayerInput(paraId, layerKind, val) {
   } else if (layerKind === "english") {
     const prodParaEl = document.getElementById(`en_prod_para_${para.id}`);
     if (prodParaEl) {
-      prodParaEl.innerHTML = renderEnglishParagraphInteractive(doc, para, buildFootnoteLookupMap(doc));
+      const { sentMap, hlMap } = buildFootnoteLookupMaps(doc);
+      prodParaEl.innerHTML = renderEnglishParagraphInteractive(doc, para, sentMap, hlMap);
     }
   }
 }
@@ -3936,40 +4106,100 @@ function saveParaDankuModal() {
 // ============================================================================
 // PERSISTENT FOOTNOTE-STYLE EDITORIAL NOTES RAIL (RIGHT OF PRIMARY TEXT)
 // ============================================================================
+function resolveHighlightSentenceIdx(para, hl) {
+  const { units, metaArr } = getParaUnitsAndMeta(para);
+  if (!units.length) return 0;
+  if (hl.layer === "primary") {
+    const found = units.findIndex(u => hl.start >= u.start && hl.start < u.end);
+    return found >= 0 ? found : units.length - 1;
+  }
+  const rangesField = hl.layer === "kakikudashi" ? "kkRanges" : "enRanges";
+  const found = metaArr.findIndex(m => (m[rangesField] || []).some(r => hl.start >= r.start && hl.start < r.end));
+  if (found >= 0) return found;
+  const fullLen = Math.max(1, (para[getLayerTextField(hl.layer)] || "").length);
+  return Math.min(units.length - 1, Math.floor((hl.start / fullLen) * units.length));
+}
+
 function buildDocumentFootnotes(doc) {
   if (!doc) return [];
+  const st = getPrimaryStyleInfo(doc.primaryStyle);
+  const layerRank = { primary: 1, kakikudashi: 2, english: 3 };
+  const layerShort = { primary: st.short, kakikudashi: "書き下し", english: "EN" };
   const list = [];
   let num = 1;
+
   (doc.paragraphs || []).forEach(p => {
+    syncHighlightSnapshots(p);
     const { units, metaArr } = getParaUnitsAndMeta(p);
+    const entries = [];
+
     const maxCount = Math.max(units.length, metaArr.length);
     for (let si = 0; si < maxCount; si++) {
       const notes = (metaArr[si] && metaArr[si].notes) || [];
       const snippet = getSentenceSnippet(units[si] && units[si].text, 8);
       notes.forEach((n, ni) => {
-        list.push({
-          num: num++,
+        entries.push({
+          kind: "sentence",
           paraId: p.id,
           paraLabel: p.label,
           sentIdx: si,
+          order: 0,
+          offset: ni,
           snippet,
+          layerLabel: "",
           noteIdx: ni,
           note: n
         });
       });
     }
+
+    (p.highlights || []).forEach(h => {
+      if (!h.note) return;
+      const si = resolveHighlightSentenceIdx(p, h);
+      const rawSnap = (p[getLayerTextField(h.layer)] || "").slice(h.start, h.end) || h.snapshot || "";
+      const snippet = h.layer === "english"
+        ? (rawSnap.length > 22 ? rawSnap.slice(0, 22).trim() + "…" : rawSnap)
+        : getSentenceSnippet(rawSnap, 10);
+      entries.push({
+        kind: "highlight",
+        paraId: p.id,
+        paraLabel: p.label,
+        sentIdx: si,
+        order: layerRank[h.layer] || 1,
+        offset: h.start || 0,
+        layer: h.layer,
+        layerLabel: layerShort[h.layer] || "",
+        color: h.color || "amber",
+        hlId: h.id,
+        highlight: h,
+        snippet,
+        note: h.note
+      });
+    });
+
+    entries.sort((a, b) => (a.sentIdx - b.sentIdx) || (a.order - b.order) || (a.offset - b.offset));
+    entries.forEach(e => list.push({ num: num++, ...e }));
   });
   return list;
 }
 
-function buildFootnoteLookupMap(doc) {
-  const map = {};
+function buildFootnoteLookupMaps(doc) {
+  const sentMap = {};
+  const hlMap = {};
   buildDocumentFootnotes(doc).forEach(fn => {
-    const key = `${fn.paraId}:${fn.sentIdx}`;
-    if (!map[key]) map[key] = [];
-    map[key].push(fn);
+    if (fn.kind === "highlight") {
+      hlMap[fn.hlId] = fn.num;
+    } else {
+      const key = `${fn.paraId}:${fn.sentIdx}`;
+      if (!sentMap[key]) sentMap[key] = [];
+      sentMap[key].push(fn);
+    }
   });
-  return map;
+  return { sentMap, hlMap };
+}
+
+function buildFootnoteLookupMap(doc) {
+  return buildFootnoteLookupMaps(doc).sentMap;
 }
 
 function toggleNotesRail() {
@@ -3990,31 +4220,46 @@ function renderNotesRail() {
   if (countEl) countEl.textContent = `(${footnotes.length})`;
 
   if (footnotes.length === 0) {
-    body.innerHTML = `<div style="font-size:12.5px;color:var(--ink-faint);line-height:1.6;padding:12px 6px;">No editorial notes on this text yet.<br><br>Click any sentence and press <strong>+ Add Note</strong> in the editor window header to add a numbered footnote here.</div>`;
+    body.innerHTML = `<div style="font-size:12.5px;color:var(--ink-faint);line-height:1.6;padding:12px 6px;">No editorial notes on this text yet.<br><br>Click any sentence and press <strong>+ Add Note</strong>, or drag-select any word or phrase to highlight and add a note.</div>`;
     return;
   }
 
   body.innerHTML = footnotes.map(fn => {
     const n = fn.note;
+    const isHl = fn.kind === "highlight";
     const isActive = Boolean(activeSelection && activeSelection.paraId === fn.paraId && activeSelection.idx === fn.sentIdx);
     const cardId = `fn_card_${fn.num}`;
     const taId = `fn_ta_${fn.num}`;
     const timeId = `fn_time_${fn.num}`;
     const ts = formatNoteTimestamp(n.updatedAt || n.createdAt);
+    const cardExtraCls = isHl ? `hl-card-${fn.color || 'amber'}` : "";
+    const pillExtraCls = isHl ? `hl-pill-${fn.color || 'amber'}` : "";
+    const pillLabel = isHl
+      ? `[${fn.num}] ${escapeHtml(fn.layerLabel)}${fn.snippet ? ' · ' + escapeHtml(fn.snippet) : ''}`
+      : `[${fn.num}]${fn.snippet ? ' ' + escapeHtml(fn.snippet) : ''}`;
+    const jumpCall = isHl
+      ? `jumpToFootnoteHighlight('${fn.paraId}', '${fn.hlId}', '${fn.layer}')`
+      : `jumpToFootnoteSentence('${fn.paraId}', ${fn.sentIdx})`;
+    const delCall = isHl
+      ? `deleteHighlightNote('${fn.paraId}', '${fn.hlId}')`
+      : `deleteFootnote('${fn.paraId}', ${fn.sentIdx}, ${fn.noteIdx})`;
+    const inputCall = isHl
+      ? `onInlineHighlightNoteChange('${fn.paraId}', '${fn.hlId}', this.value, '${timeId}')`
+      : `onInlineNoteFieldChange('${fn.paraId}', ${fn.sentIdx}, ${fn.noteIdx}, this.value, '${timeId}')`;
     return `
-      <div class="fn-card ${isActive ? 'active-fn' : ''}" id="${cardId}">
+      <div class="fn-card ${cardExtraCls} ${isActive ? 'active-fn' : ''}" id="${cardId}">
         <div class="fn-card-top">
-          <span class="fn-num-pill" onclick="jumpToFootnoteSentence('${fn.paraId}', ${fn.sentIdx})" title="Jump to ${escapeHtml(fn.snippet || 'linked sentence')}">
-            [${fn.num}]${fn.snippet ? ' ' + escapeHtml(fn.snippet) : ''}
+          <span class="fn-num-pill ${pillExtraCls}" onclick="${jumpCall}" title="Jump to ${escapeHtml(fn.snippet || 'linked text')}">
+            ${pillLabel}
           </span>
-          ${isScribe ? `<button class="fn-del-btn" onclick="deleteFootnote('${fn.paraId}', ${fn.sentIdx}, ${fn.noteIdx})" title="Delete note [${fn.num}]">✕</button>` : ""}
+          ${isScribe ? `<button class="fn-del-btn" onclick="${delCall}" title="${isHl ? 'Delete note (keeps color highlight)' : 'Delete note'}">✕</button>` : ""}
         </div>
         <div style="font-size:11px;color:var(--ink-muted);display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;">
           <strong>${escapeHtml(n.author || 'Member')}</strong>
           <span id="${timeId}" style="color:var(--ink-faint);">${escapeHtml(ts)}</span>
         </div>
         ${isScribe ? `
-          <textarea id="${taId}" class="fn-textarea" placeholder="Write editorial note..." oninput="onInlineNoteFieldChange('${fn.paraId}', ${fn.sentIdx}, ${fn.noteIdx}, this.value, '${timeId}')">${escapeHtml(n.text || '')}</textarea>
+          <textarea id="${taId}" class="fn-textarea" placeholder="Write editorial note..." oninput="${inputCall}">${escapeHtml(n.text || '')}</textarea>
         ` : `
           <div style="font-size:12.5px;line-height:1.5;white-space:pre-wrap;">${escapeHtml(n.text || '')}</div>
         `}
@@ -4055,7 +4300,7 @@ function addFootnoteForActiveSentence() {
   renderNotesRail();
 
   const allFns = buildDocumentFootnotes(doc);
-  const created = allFns.find(f => f.paraId === para.id && f.sentIdx === targetIdx && f.noteIdx === newNoteIdx);
+  const created = allFns.find(f => f.kind === "sentence" && f.paraId === para.id && f.sentIdx === targetIdx && f.noteIdx === newNoteIdx);
   if (created) {
     const card = document.getElementById(`fn_card_${created.num}`);
     const ta = document.getElementById(`fn_ta_${created.num}`);
@@ -4081,6 +4326,21 @@ function onInlineNoteFieldChange(paraId, sentIdx, noteIdx, value, timeElId) {
   saveState(activeDocId, para.id);
 }
 
+function onInlineHighlightNoteChange(paraId, hlId, value, timeElId) {
+  const doc = getActiveDoc();
+  const para = doc && doc.paragraphs.find(p => p.id === paraId);
+  const hl = para && (para.highlights || []).find(h => h.id === hlId);
+  if (!hl || !hl.note) return;
+  pushUndoSnapshot("Edit highlight note", `hlnote_${paraId}_${hlId}`);
+  hl.note.text = value;
+  hl.note.updatedAt = getServerNowMs();
+  if (timeElId) {
+    const el = document.getElementById(timeElId);
+    if (el) el.textContent = formatNoteTimestamp(hl.note.updatedAt);
+  }
+  saveState(activeDocId, para.id);
+}
+
 function deleteFootnote(paraId, sentIdx, noteIdx) {
   const doc = getActiveDoc();
   const para = doc && doc.paragraphs.find(p => p.id === paraId);
@@ -4089,6 +4349,18 @@ function deleteFootnote(paraId, sentIdx, noteIdx) {
   if (!metaArr[sentIdx] || !metaArr[sentIdx].notes) return;
   pushUndoSnapshot("Delete editorial note");
   metaArr[sentIdx].notes.splice(noteIdx, 1);
+  saveState(activeDocId, para.id);
+  renderPrimaryStage();
+  renderNotesRail();
+}
+
+function deleteHighlightNote(paraId, hlId) {
+  const doc = getActiveDoc();
+  const para = doc && doc.paragraphs.find(p => p.id === paraId);
+  const hl = para && (para.highlights || []).find(h => h.id === hlId);
+  if (!hl) return;
+  pushUndoSnapshot("Delete highlight note");
+  hl.note = null;
   saveState(activeDocId, para.id);
   renderPrimaryStage();
   renderNotesRail();
@@ -4119,6 +4391,322 @@ function jumpToFootnoteSentence(paraId, sentIdx) {
   publishPresence();
 }
 
+function jumpToFootnoteHighlight(paraId, hlId, layer) {
+  const doc = getActiveDoc();
+  if (!doc) return;
+  if (layer === "kakikudashi" && doc.hasKakikudashi && stageView !== "kakikudashi") {
+    stageView = "kakikudashi";
+    syncTopbarControls();
+    renderBanner();
+  } else if (layer === "primary" && stageView !== "primary") {
+    stageView = "primary";
+    syncTopbarControls();
+    renderBanner();
+  } else if (layer === "english" && !showEnglishProductPane) {
+    showEnglishProductPane = true;
+    const btn = document.getElementById("enProductToggleBtn");
+    if (btn) btn.classList.toggle("active", true);
+  }
+  renderPrimaryStage();
+  const mark = document.querySelector(`mark[data-hl-id="${hlId}"]`);
+  if (mark) {
+    mark.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+    mark.classList.add("flash-hl");
+    setTimeout(() => mark.classList.remove("flash-hl"), 1400);
+  }
+}
+
+// ============================================================================
+// TERM / CHARACTER DRAG-SELECT HIGHLIGHT TOOLBAR & POPOVER
+// ============================================================================
+function extractCleanSelectionText(range) {
+  const frag = range.cloneContents();
+  frag.querySelectorAll("rt, .fn-badge, .kun-alt-inline, .bookmark-vert").forEach(el => el.remove());
+  return frag.textContent || "";
+}
+
+function findRawSpanForSurface(fullRaw, surface, hintStart, hintEnd, isEnglish) {
+  const target = isEnglish ? surface : surface.replace(/[\s　]+/g, "");
+  if (!target) return null;
+  const hs = Math.max(0, typeof hintStart === "number" ? hintStart : 0);
+  const he = Math.min(fullRaw.length, typeof hintEnd === "number" ? hintEnd : fullRaw.length);
+
+  if (isEnglish) {
+    const localIdx = fullRaw.slice(hs, he).indexOf(target);
+    if (localIdx >= 0) return { start: hs + localIdx, end: hs + localIdx + target.length };
+    const globalIdx = fullRaw.indexOf(target);
+    if (globalIdx >= 0) return { start: globalIdx, end: globalIdx + target.length };
+    return null;
+  }
+
+  // Build surface-to-raw index map skipping furigana （...） and apparatus {{surf|note}} notes
+  const mapSlice = (baseOffset, slice) => {
+    const chars = [];
+    const rawPos = [];
+    let i = 0;
+    while (i < slice.length) {
+      const ch = slice[i];
+      if (ch === "（" || ch === "(") {
+        const close = slice.indexOf(ch === "（" ? "）" : ")", i + 1);
+        if (close > i) { i = close + 1; continue; }
+      }
+      if (ch === "{" && slice[i + 1] === "{") {
+        const bar = slice.indexOf("|", i + 2);
+        const endB = slice.indexOf("}}", i + 2);
+        if (bar > i && endB > bar) {
+          for (let j = i + 2; j < bar; j++) {
+            if (slice[j] === "（") { const cl = slice.indexOf("）", j + 1); if (cl > j && cl < bar) { j = cl; continue; } }
+            chars.push(slice[j]); rawPos.push(baseOffset + j);
+          }
+          i = endB + 2; continue;
+        }
+      }
+      if (ch === "[" && slice[i + 1] === "[") {
+        const endK = slice.indexOf("]]", i + 2);
+        if (endK > i) {
+          const inner = slice.slice(i + 2, endK);
+          const saved = state.kunSelections["kun_" + inner];
+          const opts = (saved && Array.isArray(saved.opts)) ? saved.opts : inner.split("|");
+          const chosen = opts[(saved && typeof saved.idx === "number") ? saved.idx : 0] || opts[0] || "";
+          const cleanChosen = stripParen(chosen);
+          for (let k = 0; k < cleanChosen.length; k++) { chars.push(cleanChosen[k]); rawPos.push(baseOffset + i); }
+          i = endK + 2; continue;
+        }
+      }
+      if (!/[\s　]/.test(ch)) { chars.push(ch); rawPos.push(baseOffset + i); }
+      i++;
+    }
+    const surfStr = chars.join("");
+    const found = surfStr.indexOf(target);
+    if (found < 0) return null;
+    const rStart = rawPos[found];
+    let rEnd = rawPos[found + target.length - 1] + 1;
+    // Expand rEnd cleanly past any immediately attached furigana or [[...]] / {{...}} closing delimiter
+    if (fullRaw[rStart] === "[" && fullRaw[rStart + 1] === "[") {
+      const endK = fullRaw.indexOf("]]", rStart);
+      if (endK >= 0) rEnd = Math.max(rEnd, endK + 2);
+    }
+    if (fullRaw[rEnd] === "（") {
+      const cl = fullRaw.indexOf("）", rEnd + 1);
+      if (cl > rEnd) rEnd = cl + 1;
+    }
+    return { start: rStart, end: Math.min(fullRaw.length, rEnd) };
+  };
+
+  return mapSlice(hs, fullRaw.slice(hs, he)) || mapSlice(0, fullRaw);
+}
+
+function showHlToolbar(rect) {
+  const tb = document.getElementById("hlToolbar");
+  if (!tb) return;
+  const swatches = HL_COLORS.map(c =>
+    `<button type="button" class="hl-swatch sw-${c.id}" onclick="createHighlightFromPending('${c.id}', false)" title="Highlight (${c.label})"></button>`
+  ).join("");
+  tb.innerHTML = `
+    ${swatches}
+    <button type="button" class="hl-tb-btn" onclick="createHighlightFromPending(lastHighlightColor, true)" title="Highlight and add a linked note">+ Note</button>
+  `;
+  tb.classList.add("open");
+  const x = Math.max(12, Math.min(window.innerWidth - 220, rect.left + rect.width / 2 - 95));
+  const y = Math.max(54, rect.top - 42);
+  tb.style.left = x + "px";
+  tb.style.top = y + "px";
+}
+
+function hideHlToolbar() {
+  pendingHighlightSelection = null;
+  const tb = document.getElementById("hlToolbar");
+  if (tb) tb.classList.remove("open");
+}
+
+function createHighlightFromPending(color, withNote) {
+  if (!isScribe || !pendingHighlightSelection) return;
+  const { paraId, layer, start, end, snapshot } = pendingHighlightSelection;
+  const doc = getActiveDoc();
+  const para = doc && doc.paragraphs.find(p => p.id === paraId);
+  if (!para) { hideHlToolbar(); return; }
+
+  lastHighlightColor = color || "amber";
+  pushUndoSnapshot(withNote ? "Highlight & add note" : "Highlight term");
+  para.highlights = para.highlights || [];
+  const nowMs = getServerNowMs();
+  const newId = "hl_" + Date.now() + "_" + Math.floor(Math.random() * 10000);
+  para.highlights.push({
+    id: newId,
+    layer,
+    start,
+    end,
+    snapshot,
+    color: lastHighlightColor,
+    note: withNote ? { author: getCurrentUserName(), createdAt: nowMs, updatedAt: nowMs, text: "" } : null
+  });
+
+  window.getSelection().removeAllRanges();
+  hideHlToolbar();
+  saveState(activeDocId, para.id);
+
+  if (withNote) {
+    const rail = document.getElementById("notesRail");
+    if (rail && rail.classList.contains("collapsed")) toggleNotesRail();
+  }
+  renderPrimaryStage();
+  renderNotesRail();
+
+  if (withNote) {
+    const created = buildDocumentFootnotes(doc).find(f => f.kind === "highlight" && f.hlId === newId);
+    if (created) {
+      const card = document.getElementById(`fn_card_${created.num}`);
+      const ta = document.getElementById(`fn_ta_${created.num}`);
+      if (card) card.scrollIntoView({ behavior: "smooth", block: "center" });
+      if (ta) ta.focus();
+    }
+  }
+}
+
+function onHighlightClick(ev, paraId, hlId) {
+  ev.stopPropagation();
+  const sel = window.getSelection();
+  if (sel && !sel.isCollapsed && sel.toString().trim().length > 0) return;
+  hideHlToolbar();
+  const doc = getActiveDoc();
+  const para = doc && doc.paragraphs.find(p => p.id === paraId);
+  const hl = para && (para.highlights || []).find(h => h.id === hlId);
+  if (!hl) return;
+
+  const fn = buildDocumentFootnotes(doc).find(f => f.kind === "highlight" && f.hlId === hlId);
+  if (fn) {
+    const rail = document.getElementById("notesRail");
+    if (rail && rail.classList.contains("collapsed")) toggleNotesRail();
+    const card = document.getElementById(`fn_card_${fn.num}`);
+    if (card) {
+      card.scrollIntoView({ behavior: "smooth", block: "center" });
+      card.classList.add("flash-fn");
+      setTimeout(() => card.classList.remove("flash-fn"), 1200);
+    }
+  }
+
+  const sentIdx = resolveHighlightSentenceIdx(para, hl);
+  const rawText = (para[getLayerTextField(hl.layer)] || "").slice(hl.start, hl.end) || hl.snapshot;
+  const disp = hl.layer === "english" ? rawText : stripParen(rawText);
+  const pop = document.getElementById("popover");
+  const swatches = HL_COLORS.map(c =>
+    `<button type="button" class="hl-swatch sw-${c.id}" style="${hl.color === c.id ? 'box-shadow:0 0 0 2px #233b5d;' : 'border-color:#c2b9a7;'}" onclick="setHighlightColor('${paraId}', '${hlId}', '${c.id}')" title="Change to ${c.label}"></button>`
+  ).join("");
+
+  pop.innerHTML = `
+    <div class="popover-title">
+      <span>Highlight</span>
+      <span style="cursor:pointer" onclick="closePopover()">✕</span>
+    </div>
+    <div style="font-family:${hl.layer === 'english' ? 'var(--font-en)' : 'var(--font-jp)'};font-size:14.5px;font-weight:700;margin-bottom:8px;">「${escapeHtml(disp)}」</div>
+    ${isScribe ? `<div style="display:flex;align-items:center;gap:6px;margin-bottom:9px;">${swatches}</div>` : ""}
+    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+      ${!hl.note && isScribe ? `<button class="btn btn-sm active" onclick="addNoteToHighlight('${paraId}', '${hlId}')">+ Add Note</button>` : ""}
+      <button class="btn btn-sm" onclick="closePopover();jumpToFootnoteSentence('${paraId}', ${sentIdx})">✎ Edit Sentence</button>
+      ${isScribe ? `<button class="btn btn-sm" style="color:var(--scribe);border-color:#daa298;" onclick="removeHighlight('${paraId}', '${hlId}')">Remove</button>` : ""}
+    </div>
+  `;
+  positionPopover(ev, pop);
+}
+
+function setHighlightColor(paraId, hlId, color) {
+  const doc = getActiveDoc();
+  const para = doc && doc.paragraphs.find(p => p.id === paraId);
+  const hl = para && (para.highlights || []).find(h => h.id === hlId);
+  if (!hl) return;
+  lastHighlightColor = color;
+  pushUndoSnapshot("Change highlight color");
+  hl.color = color;
+  saveState(activeDocId, para.id);
+  closePopover();
+  renderPrimaryStage();
+  renderNotesRail();
+}
+
+function addNoteToHighlight(paraId, hlId) {
+  const doc = getActiveDoc();
+  const para = doc && doc.paragraphs.find(p => p.id === paraId);
+  const hl = para && (para.highlights || []).find(h => h.id === hlId);
+  if (!hl) return;
+  pushUndoSnapshot("Add note to highlight");
+  const nowMs = getServerNowMs();
+  hl.note = { author: getCurrentUserName(), createdAt: nowMs, updatedAt: nowMs, text: "" };
+  saveState(activeDocId, para.id);
+  closePopover();
+  const rail = document.getElementById("notesRail");
+  if (rail && rail.classList.contains("collapsed")) toggleNotesRail();
+  renderPrimaryStage();
+  renderNotesRail();
+  const created = buildDocumentFootnotes(doc).find(f => f.kind === "highlight" && f.hlId === hlId);
+  if (created) {
+    const card = document.getElementById(`fn_card_${created.num}`);
+    const ta = document.getElementById(`fn_ta_${created.num}`);
+    if (card) card.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (ta) ta.focus();
+  }
+}
+
+function removeHighlight(paraId, hlId) {
+  const doc = getActiveDoc();
+  const para = doc && doc.paragraphs.find(p => p.id === paraId);
+  if (!para || !Array.isArray(para.highlights)) return;
+  pushUndoSnapshot("Remove highlight");
+  para.highlights = para.highlights.filter(h => h.id !== hlId);
+  saveState(activeDocId, para.id);
+  closePopover();
+  renderPrimaryStage();
+  renderNotesRail();
+}
+
+document.addEventListener("mouseup", (ev) => {
+  if (!isScribe) return;
+  const tb = document.getElementById("hlToolbar");
+  if (tb && tb.contains(ev.target)) return;
+  setTimeout(() => {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return;
+    const range = sel.getRangeAt(0);
+    const startEl = range.startContainer.nodeType === 1 ? range.startContainer : range.startContainer.parentElement;
+    const endEl = range.endContainer.nodeType === 1 ? range.endContainer : range.endContainer.parentElement;
+    const paraWrap = startEl && startEl.closest("[data-para-id][data-layer]");
+    const endParaWrap = endEl && endEl.closest("[data-para-id][data-layer]");
+    if (!paraWrap || paraWrap !== endParaWrap) return;
+
+    const paraId = paraWrap.getAttribute("data-para-id");
+    const layer = paraWrap.getAttribute("data-layer");
+    const surface = extractCleanSelectionText(range).trim();
+    if (!surface) return;
+
+    const doc = getActiveDoc();
+    const para = doc && doc.paragraphs.find(p => p.id === paraId);
+    if (!para) return;
+
+    const sentSpan = startEl.closest("[data-raw-start]");
+    const endSentSpan = endEl.closest("[data-raw-end]");
+    const hintStart = sentSpan ? Number(sentSpan.getAttribute("data-raw-start")) : 0;
+    const hintEnd = endSentSpan ? Number(endSentSpan.getAttribute("data-raw-end")) : undefined;
+
+    const fullRaw = para[getLayerTextField(layer)] || "";
+    const span = findRawSpanForSurface(fullRaw, surface, hintStart, hintEnd, layer === "english");
+    if (!span || span.end <= span.start) return;
+
+    pendingHighlightSelection = {
+      paraId,
+      layer,
+      start: span.start,
+      end: span.end,
+      snapshot: fullRaw.slice(span.start, span.end)
+    };
+    const rect = range.getBoundingClientRect();
+    if (rect && (rect.width > 0 || rect.height > 0)) showHlToolbar(rect);
+  }, 10);
+});
+
+document.addEventListener("mousedown", (ev) => {
+  const tb = document.getElementById("hlToolbar");
+  if (tb && tb.classList.contains("open") && !tb.contains(ev.target)) hideHlToolbar();
+});
+
 (function initDraggableWindow() {
   const win = document.getElementById("companionWindow");
   const header = document.getElementById("cwHeader");
@@ -4147,6 +4735,7 @@ function jumpToFootnoteSentence(paraId, sentIdx) {
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
     if (document.getElementById("popover").classList.contains("open")) closePopover();
+    else if (document.getElementById("hlToolbar").classList.contains("open")) hideHlToolbar();
     else if (document.getElementById("undoConfirmModal").classList.contains("open")) closeUndoConfirmModal();
     else if (document.getElementById("editDocInfoModal").classList.contains("open")) closeEditDocInfoModal();
     else if (document.getElementById("rawTextModal").classList.contains("open")) closeRawTextModal();
@@ -4426,7 +5015,7 @@ function exportWordDocx() {
   if (!doc) return;
   const st = getPrimaryStyleInfo(doc.primaryStyle);
   const footnotes = buildDocumentFootnotes(doc);
-  const fnMap = buildFootnoteLookupMap(doc);
+  const { sentMap: fnMap } = buildFootnoteLookupMaps(doc);
 
   const bodyParas = [];
   const addP = (runsXml, opts) => {
@@ -4444,6 +5033,27 @@ function exportWordDocx() {
     bodyParas.push(`<w:p>${pPrXml}${runsXml}</w:p>`);
   };
 
+  const buildRunsWithFnInsertions = (rawText, isJapanese, insertions) => {
+    const text = rawText || "";
+    const sorted = (insertions || []).slice().sort((a, b) => (a.pos - b.pos) || (a.num - b.num));
+    let runs = "";
+    let cursor = 0;
+    sorted.forEach(ins => {
+      const clamped = Math.max(cursor, Math.min(text.length, ins.pos));
+      if (clamped > cursor) {
+        const seg = text.slice(cursor, clamped);
+        runs += wTextRun(isJapanese ? resolveJapaneseForExport(seg) : seg, { size: 22 });
+        cursor = clamped;
+      }
+      runs += wFootnoteRefRun(ins.num);
+    });
+    if (cursor < text.length) {
+      const tail = text.slice(cursor);
+      runs += wTextRun(isJapanese ? resolveJapaneseForExport(tail) : tail, { size: 22 });
+    }
+    return runs;
+  };
+
   // Header: Title, Author, Source & Witness Info
   addP(wTextRun(doc.title, { bold: true, size: 32, color: "233B5D" }), { spaceAfter: 80 });
   if ((doc.author || "").trim()) {
@@ -4454,14 +5064,19 @@ function exportWordDocx() {
   }
 
   const paras = doc.paragraphs || [];
+  const primInsertionsByPara = {};
+  const kkInsertionsByPara = {};
   const enInsertionsByPara = {};
   const placedInEn = new Set();
   paras.forEach(p => {
     syncLayerSnapshots(p, "kakikudashi");
     syncLayerSnapshots(p, "english");
+    syncHighlightSnapshots(p);
+    primInsertionsByPara[p.id] = [];
+    kkInsertionsByPara[p.id] = [];
+    enInsertionsByPara[p.id] = [];
     const { units, metaArr } = getParaUnitsAndMeta(p);
     const enText = p.englishText || "";
-    const insList = [];
     if (enText.trim()) {
       units.forEach((_, idx) => {
         const fns = fnMap[`${p.id}:${idx}`] || [];
@@ -4470,13 +5085,37 @@ function exportWordDocx() {
         if (enRanges.length > 0) {
           const pos = Math.min(enText.length, enRanges[enRanges.length - 1].end);
           fns.forEach(fn => {
-            insList.push({ pos, num: fn.num });
+            enInsertionsByPara[p.id].push({ pos, num: fn.num });
             placedInEn.add(fn.num);
           });
         }
       });
     }
-    enInsertionsByPara[p.id] = insList;
+    // Fallback for sentence-level footnotes not placed in English
+    units.forEach((u, idx) => {
+      const fns = (fnMap[`${p.id}:${idx}`] || []).filter(fn => !placedInEn.has(fn.num));
+      fns.forEach(fn => {
+        primInsertionsByPara[p.id].push({ pos: u.end, num: fn.num });
+      });
+    });
+  });
+
+  // Anchor highlight-level footnotes in their exact layer (with safe fallback if a layer is hidden/empty)
+  footnotes.filter(fn => fn.kind === "highlight" && fn.highlight).forEach(fn => {
+    const p = paras.find(x => x.id === fn.paraId);
+    if (!p) return;
+    const hl = fn.highlight;
+    if (hl.layer === "primary" && (p.primaryText || "").trim()) {
+      primInsertionsByPara[p.id].push({ pos: Math.min(p.primaryText.length, hl.end), num: fn.num });
+    } else if (hl.layer === "kakikudashi" && doc.hasKakikudashi && (p.kakikudashiText || "").trim()) {
+      kkInsertionsByPara[p.id].push({ pos: Math.min(p.kakikudashiText.length, hl.end), num: fn.num });
+    } else if (hl.layer === "english" && (p.englishText || "").trim()) {
+      enInsertionsByPara[p.id].push({ pos: Math.min(p.englishText.length, hl.end), num: fn.num });
+    } else {
+      const { units } = getParaUnitsAndMeta(p);
+      const u = units[fn.sentIdx] || units[units.length - 1];
+      primInsertionsByPara[p.id].push({ pos: u ? u.end : (p.primaryText || "").length, num: fn.num });
+    }
   });
 
   // 1. Full Original Text (natural paragraphs)
@@ -4484,13 +5123,7 @@ function exportWordDocx() {
   if (primParas.length) {
     addP(wTextRun(`原文（${st.short}）`, { bold: true, size: 24, color: "233B5D" }), { spaceBefore: 200, spaceAfter: 80 });
     primParas.forEach(p => {
-      const { units } = getParaUnitsAndMeta(p);
-      let primRuns = "";
-      units.forEach((u, idx) => {
-        primRuns += wTextRun(resolveJapaneseForExport(u.text), { size: 22 });
-        const fns = (fnMap[`${p.id}:${idx}`] || []).filter(fn => !placedInEn.has(fn.num));
-        fns.forEach(fn => { primRuns += wFootnoteRefRun(fn.num); });
-      });
+      const primRuns = buildRunsWithFnInsertions(p.primaryText || "", true, primInsertionsByPara[p.id]);
       addP(primRuns, { spaceAfter: 140, line: 340 });
     });
   }
@@ -4500,7 +5133,8 @@ function exportWordDocx() {
   if (kkParas.length) {
     addP(wTextRun("書き下し", { bold: true, size: 24, color: "233B5D" }), { spaceBefore: 220, spaceAfter: 80 });
     kkParas.forEach(p => {
-      addP(wTextRun(resolveJapaneseForExport(p.kakikudashiText), { size: 22 }), { spaceAfter: 140, line: 340 });
+      const kkRuns = buildRunsWithFnInsertions(p.kakikudashiText || "", true, kkInsertionsByPara[p.id]);
+      addP(kkRuns, { spaceAfter: 140, line: 340 });
     });
   }
 
@@ -4509,20 +5143,7 @@ function exportWordDocx() {
   if (enParas.length) {
     addP(wTextRun("English Translation", { bold: true, size: 24, color: "233B5D" }), { spaceBefore: 220, spaceAfter: 80 });
     enParas.forEach(p => {
-      const enText = p.englishText || "";
-      const enInsertions = (enInsertionsByPara[p.id] || []).slice().sort((a, b) => (a.pos - b.pos) || (a.num - b.num));
-      let enRuns = "";
-      let cursor = 0;
-      enInsertions.forEach(ins => {
-        if (ins.pos > cursor) {
-          enRuns += wTextRun(enText.slice(cursor, ins.pos), { size: 22 });
-          cursor = ins.pos;
-        }
-        enRuns += wFootnoteRefRun(ins.num);
-      });
-      if (cursor < enText.length) {
-        enRuns += wTextRun(enText.slice(cursor), { size: 22 });
-      }
+      const enRuns = buildRunsWithFnInsertions(p.englishText || "", false, enInsertionsByPara[p.id]);
       addP(enRuns, { spaceAfter: 160, line: 320 });
     });
   }
@@ -4531,7 +5152,14 @@ function exportWordDocx() {
     const n = fn.note || {};
     const ts = formatNoteTimestamp(n.updatedAt || n.createdAt);
     const meta = [n.author || "Member", ts].filter(Boolean).join(" · ");
-    const loc = fn.snippet ? `「${fn.snippet}」 ` : "";
+    let loc = "";
+    if (fn.kind === "highlight" && fn.highlight) {
+      const layerLabel = fn.highlight.layer === "primary" ? "原文" : (fn.highlight.layer === "kakikudashi" ? "書き下し" : "English");
+      const term = fn.highlight.layer === "english" ? `"${fn.snippet}"` : `「${fn.snippet}」`;
+      loc = `[${layerLabel}] ${term} `;
+    } else if (fn.snippet) {
+      loc = `「${fn.snippet}」 `;
+    }
     return `
     <w:footnote w:id="${fn.num}">
       <w:p>
@@ -4645,7 +5273,11 @@ function exportMarkdown() {
     md += `## Editorial Notes\n\n` + fns.map(fn => {
       const n = fn.note || {};
       const ts = formatNoteTimestamp(n.updatedAt || n.createdAt);
-      const loc = fn.snippet ? `「${fn.snippet}」` : "";
+      let loc = fn.snippet ? `「${fn.snippet}」` : "";
+      if (fn.kind === "highlight" && fn.highlight) {
+        const layerLabel = fn.highlight.layer === "primary" ? "原文" : (fn.highlight.layer === "kakikudashi" ? "書き下し" : "English");
+        loc = fn.highlight.layer === "english" ? `[${layerLabel}] "${fn.snippet}"` : `[${layerLabel}] 「${fn.snippet}」`;
+      }
       return `- **[${fn.num}]${loc ? " " + loc : ""}** (${n.author || "Member"}${ts ? " · " + ts : ""}): ${n.text || ""}`;
     }).join("\n") + `\n\n`;
   }
