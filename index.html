@@ -735,7 +735,57 @@
     min-width: 0;
     overflow: hidden;
   }
+  .topbar-dropdown {
+    position: relative;
+    display: inline-flex;
+  }
+  .topbar-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 245px;
+    background: #fffdfb;
+    border: 1px solid var(--border-strong);
+    border-radius: 9px;
+    box-shadow: 0 10px 28px rgba(35, 30, 20, 0.16);
+    padding: 5px;
+    display: none;
+    flex-direction: column;
+    gap: 2px;
+    z-index: 260;
+  }
+  .topbar-dropdown-menu.open { display: flex; }
+  .topbar-dropdown-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1px;
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    padding: 7px 10px;
+    cursor: pointer;
+    font-family: var(--font-ui);
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .topbar-dropdown-item:hover { background: var(--accent-soft); color: var(--accent); }
+  .topbar-dropdown-item .dropdown-hint {
+    font-size: 10.5px;
+    font-weight: 400;
+    color: var(--ink-faint);
+  }
+  .topbar-dropdown-sep {
+    height: 1px;
+    background: var(--border);
+    margin: 4px 6px;
+  }
+
   .tategaki-primary-wrap {
+    position: relative;
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -743,6 +793,46 @@
     min-width: 0;
     padding: 14px 16px;
   }
+  .tategaki-fade-left,
+  .tategaki-fade-right {
+    position: absolute;
+    top: 15px;
+    bottom: 15px;
+    width: 44px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    z-index: 6;
+  }
+  .tategaki-fade-left {
+    left: 17px;
+    border-radius: 9px 0 0 9px;
+    background: linear-gradient(to right, rgba(212, 200, 178, 0.58) 0%, rgba(251, 248, 241, 0) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding-left: 6px;
+  }
+  .tategaki-fade-right {
+    right: 17px;
+    border-radius: 0 9px 9px 0;
+    background: linear-gradient(to left, rgba(212, 200, 178, 0.48) 0%, rgba(251, 248, 241, 0) 100%);
+  }
+  .tategaki-scroll-pill {
+    writing-mode: horizontal-tb;
+    font-family: var(--font-ui);
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--ink-muted);
+    background: rgba(255, 253, 248, 0.92);
+    border: 1px solid var(--border-strong);
+    border-radius: 99px;
+    padding: 2px 6px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    white-space: nowrap;
+  }
+  .tategaki-primary-wrap.has-more-left .tategaki-fade-left { opacity: 1; }
+  .tategaki-primary-wrap.has-more-right .tategaki-fade-right { opacity: 1; }
   .tategaki-paper {
     flex: 1;
     background: var(--bg-washi);
@@ -1340,10 +1430,28 @@
         <span id="roleLabel">✏️ Editing Unlocked</span>
       </div>
       <button class="btn active" id="notesRailToggleBtn" onclick="toggleNotesRail()" title="Show/Hide always-visible Editorial Notes panel">📝 Notes</button>
-      <button class="btn" onclick="exportWordDocx()" title="Export active text (原文, 書き下し, English &amp; footnotes) as a Microsoft Word .docx file">⬇ Word</button>
-      <button class="btn" onclick="exportMarkdown()" title="Export active text + notes to Markdown">⬇ MD</button>
-      <button class="btn" onclick="exportJsonBackup()" title="Download full corpus + notes JSON backup">⬇ JSON</button>
-      <button class="btn" onclick="triggerImportJson()" title="Restore or merge a JSON backup file">⬆ Import</button>
+      <div class="topbar-dropdown" id="exportDropdown">
+        <button class="btn" id="exportMenuBtn" onclick="toggleExportMenu(event)" title="Export text or manage full backups">⬇ Export ▾</button>
+        <div class="topbar-dropdown-menu" id="exportDropdownMenu">
+          <button class="topbar-dropdown-item" onclick="closeExportMenu(); exportWordDocx();">
+            <span>📄 Export Word (.docx)</span>
+            <span class="dropdown-hint">Current text + native footnotes</span>
+          </button>
+          <button class="topbar-dropdown-item" onclick="closeExportMenu(); exportMarkdown();">
+            <span>📝 Export Markdown (.md)</span>
+            <span class="dropdown-hint">Current text + editorial notes</span>
+          </button>
+          <div class="topbar-dropdown-sep"></div>
+          <button class="topbar-dropdown-item" onclick="closeExportMenu(); exportJsonBackup();">
+            <span>💾 Download Full Backup (.json)</span>
+            <span class="dropdown-hint">Snapshot of all texts &amp; notes</span>
+          </button>
+          <button class="topbar-dropdown-item" onclick="closeExportMenu(); triggerImportJson();">
+            <span>📂 Restore / Merge Backup (.json)</span>
+            <span class="dropdown-hint">Import a saved JSON snapshot</span>
+          </button>
+        </div>
+      </div>
       <input type="file" id="jsonImportInput" accept=".json,application/json" style="display:none;" onchange="handleImportJson(event)">
       <button class="btn" id="signOutBtn" style="display:none;" onclick="signOutFromGoogle()" title="Sign out">Sign out</button>
     </div>
@@ -3103,7 +3211,9 @@ function renderPrimaryStage() {
   }
 
   host.innerHTML = `
-    <div class="tategaki-primary-wrap">
+    <div class="tategaki-primary-wrap" id="tategakiPrimaryWrap">
+      <div class="tategaki-fade-left"><span class="tategaki-scroll-pill">←</span></div>
+      <div class="tategaki-fade-right"></div>
       <div class="tategaki-paper" id="tategakiPaper">${parasHtml}</div>
     </div>
     ${enPaneHtml}
@@ -3117,11 +3227,29 @@ function renderPrimaryStage() {
         e.preventDefault();
       }
     }, { passive: false });
+    paper.addEventListener("scroll", updateTategakiScrollCues, { passive: true });
+    requestAnimationFrame(updateTategakiScrollCues);
   }
 
   if (!isActivelyTypingInNotesRail()) renderNotesRail();
   applyFocusedNoteHighlights(false);
 }
+
+function updateTategakiScrollCues() {
+  const wrap = document.getElementById("tategakiPrimaryWrap");
+  const paper = document.getElementById("tategakiPaper");
+  if (!wrap || !paper) return;
+  const maxScroll = Math.max(0, paper.scrollWidth - paper.clientWidth);
+  if (maxScroll <= 4) {
+    wrap.classList.remove("has-more-left", "has-more-right");
+    return;
+  }
+  const scrolled = Math.abs(paper.scrollLeft);
+  wrap.classList.toggle("has-more-left", scrolled < maxScroll - 6);
+  wrap.classList.toggle("has-more-right", scrolled > 6);
+}
+
+window.addEventListener("resize", updateTategakiScrollCues);
 
 function renderKakikudashiParagraphInteractive(doc, para, fnMap, hlFnMap) {
   const kk = para.kakikudashiText || "";
@@ -4895,9 +5023,31 @@ document.addEventListener("mousedown", (ev) => {
   document.addEventListener("mouseup", () => { dragging = false; });
 })();
 
+function toggleExportMenu(ev) {
+  if (ev) ev.stopPropagation();
+  const menu = document.getElementById("exportDropdownMenu");
+  const btn = document.getElementById("exportMenuBtn");
+  if (!menu) return;
+  const willOpen = !menu.classList.contains("open");
+  menu.classList.toggle("open", willOpen);
+  if (btn) btn.classList.toggle("active", willOpen);
+}
+
+function closeExportMenu() {
+  const menu = document.getElementById("exportDropdownMenu");
+  const btn = document.getElementById("exportMenuBtn");
+  if (menu) menu.classList.remove("open");
+  if (btn) btn.classList.remove("active");
+}
+
+document.addEventListener("mousedown", (e) => {
+  if (!e.target.closest("#exportDropdown")) closeExportMenu();
+});
+
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
-    if (document.getElementById("popover").classList.contains("open")) closePopover();
+    if (document.getElementById("exportDropdownMenu").classList.contains("open")) closeExportMenu();
+    else if (document.getElementById("popover").classList.contains("open")) closePopover();
     else if (document.getElementById("hlToolbar").classList.contains("open")) hideHlToolbar();
     else if (document.getElementById("undoConfirmModal").classList.contains("open")) closeUndoConfirmModal();
     else if (document.getElementById("editDocInfoModal").classList.contains("open")) closeEditDocInfoModal();
