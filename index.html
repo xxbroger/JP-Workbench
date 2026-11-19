@@ -648,22 +648,7 @@
     margin-bottom: 6px;
   }
 
-  .ku-num {
-    writing-mode: horizontal-tb;
-    display: inline-block;
-    font-family: ui-monospace, SFMono-Regular, monospace;
-    font-size: 9.5px;
-    font-weight: 700;
-    color: var(--ink-faint);
-    background: rgba(0,0,0,0.045);
-    border-radius: 3px;
-    padding: 0 3.5px;
-    line-height: 14px;
-    margin: 2px 0;
-    vertical-align: middle;
-    user-select: none;
-  }
-  body.hide-ku-nums .ku-num { display: none; }
+
 
   /* Side-by-Side English Product Preview Column */
   .english-product-pane {
@@ -1062,19 +1047,6 @@
     padding: 1px 0;
   }
   .en-seg-other { border-bottom: 1.5px dotted #7992b5; }
-  .en-seg-badge::before {
-    content: attr(data-badge);
-    font-family: var(--font-ui);
-    font-size: 9px;
-    font-weight: 700;
-    background: rgba(38, 74, 120, 0.14);
-    color: var(--accent);
-    padding: 0 4px;
-    border-radius: 3px;
-    margin-right: 2px;
-    vertical-align: text-top;
-  }
-  .en-seg-active.en-seg-badge::before { background: #b87a00; color: #fff; }
 
   .modal-backdrop {
     position: fixed;
@@ -1176,7 +1148,7 @@
   }
 </style>
 </head>
-<body class="ruby-full hide-ku-nums">
+<body class="ruby-full">
 
 <!-- Google Sign-In Gate (shown automatically when Firebase config is populated) -->
 <div class="auth-overlay" id="authOverlay">
@@ -1229,7 +1201,6 @@
         <button onclick="setRubyMode('hidden', this)">Off</button>
       </div>
       <button class="btn" id="kunInlineBtn" onclick="toggleKunInline()" title="Show alternate kun-readings inline alongside vertical columns">左傍注 Alt Kun</button>
-      <button class="btn" id="kuNumBtn" onclick="toggleKuNums()" title="Show/hide sentence numbers">Sent #</button>
       <div class="seg-control" title="Adjust Text Size">
         <button onclick="adjustFontSize(-1.5)">A−</button>
         <button onclick="adjustFontSize(1.5)">A+</button>
@@ -2507,6 +2478,17 @@ function escapeHtml(str) {
   return (str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
+function getSentenceSnippet(rawText, maxLen) {
+  const limit = maxLen || 8;
+  const clean = stripParen(
+    (rawText || "")
+      .replace(/\[\[([^|\]]+)[^\]]*\]\]/g, "$1")
+      .replace(/\{\{([^|}]+)\|[^}]+\}\}/g, "$1")
+  ).replace(/[\s　]+/g, "").trim();
+  if (!clean) return "";
+  return clean.length > limit ? clean.slice(0, limit) + "…" : clean;
+}
+
 function renderJapaneseRich(raw, regPrefix) {
   if (!raw) return "";
   let html = escapeHtml(raw);
@@ -2713,7 +2695,7 @@ function renderPrimaryStage() {
         const fnBadges = (fnMap[`${p.id}:${idx}`] || [])
           .map(fn => `<span class="fn-badge" onclick="focusFootnote(event, ${fn.num})" title="Jump to Editorial Note ${fn.num}">${fn.num}</span>`)
           .join("");
-        return `<span class="doc-sent ${isActive ? 'active-sent' : ''}" data-para="${p.id}" data-idx="${idx}" onclick="onPrimarySentClick(event, '${p.id}', ${idx})"><span class="ku-num">${idx + 1}</span>${renderJapaneseRich(u.text, `main_${p.id}_${idx}`)}${fnBadges}</span>`;
+        return `<span class="doc-sent ${isActive ? 'active-sent' : ''}" data-para="${p.id}" data-idx="${idx}" onclick="onPrimarySentClick(event, '${p.id}', ${idx})">${renderJapaneseRich(u.text, `main_${p.id}_${idx}`)}${fnBadges}</span>`;
       }).join("") : `<span class="doc-sent en-unassigned" style="font-size:13px;font-family:var(--font-ui);" onclick="openRawTextModal('primary')">［未入力 — クリックして原文を入力・貼付］</span>`;
     }
 
@@ -2807,10 +2789,7 @@ function renderKakikudashiParagraphInteractive(doc, para, fnMap) {
     const isActive = activeSelection && activeSelection.paraId === para.id && owners.includes(activeSelection.idx);
     const unassignedCls = isUnmapped && slice.trim() ? "kk-unassigned" : "";
 
-    const kuTag = owners.length > 0 && owners.some(idx => {
-      const rs = metaArr[idx].kkRanges || [];
-      return rs.some(r => r.start === a);
-    }) ? `<span class="ku-num">${owners.map(x => x + 1).join(",")}</span>` : "";
+    const ownerSnips = owners.map(x => getSentenceSnippet(units[x] && units[x].text, 10)).filter(Boolean).join(" / ");
 
     const endFns = owners.filter(idx => {
       const rs = metaArr[idx].kkRanges || [];
@@ -2819,7 +2798,7 @@ function renderKakikudashiParagraphInteractive(doc, para, fnMap) {
       .map(fn => `<span class="fn-badge" onclick="focusFootnote(event, ${fn.num})" title="Jump to Editorial Note ${fn.num}">${fn.num}</span>`)
       .join("");
 
-    html += `<span class="doc-sent ${isActive ? 'active-sent' : ''} ${unassignedCls}" onclick="onKakikudashiSpanClick(event, '${para.id}', ${targetIdx}, ${isUnmapped ? 'true' : 'false'})" title="${!isUnmapped ? 'Mapped to Sentence ' + owners.map(x => x + 1).join(', ') : 'Unmapped 書き下し — click to map to a sentence'}">${kuTag}${renderJapaneseRich(slice, `kkmain_${para.id}_${i}`)}${endFns}</span>`;
+    html += `<span class="doc-sent ${isActive ? 'active-sent' : ''} ${unassignedCls}" onclick="onKakikudashiSpanClick(event, '${para.id}', ${targetIdx}, ${isUnmapped ? 'true' : 'false'})" title="${!isUnmapped ? escapeHtml('Mapped to: ' + ownerSnips) : 'Unmapped 書き下し — click to map'}">${renderJapaneseRich(slice, `kkmain_${para.id}_${i}`)}${endFns}</span>`;
   }
   return html;
 }
@@ -2856,10 +2835,7 @@ function renderEnglishParagraphInteractive(doc, para, fnMap) {
     const targetIdx = owners.length > 0 ? owners[0] : 0;
     const isActive = activeSelection && activeSelection.paraId === para.id && owners.includes(activeSelection.idx);
     const unassignedCls = owners.length === 0 && slice.trim() ? "en-unassigned" : "";
-    const kuTag = owners.length > 0 && owners.some(idx => {
-      const rs = metaArr[idx].enRanges || [];
-      return rs.some(r => r.start === a);
-    }) ? `<span class="ku-num" style="margin-right:3px;">Sent ${owners.map(x => x + 1).join(",")}</span>` : "";
+    const ownerSnips = owners.map(x => getSentenceSnippet(units[x] && units[x].text, 10)).filter(Boolean).join(" / ");
     const endFns = owners.filter(idx => {
       const rs = metaArr[idx].enRanges || [];
       return rs.length > 0 && rs[rs.length - 1].end === b;
@@ -2867,7 +2843,7 @@ function renderEnglishParagraphInteractive(doc, para, fnMap) {
       .map(fn => `<span class="fn-badge" onclick="focusFootnote(event, ${fn.num})" title="Jump to Editorial Note ${fn.num}">${fn.num}</span>`)
       .join("");
 
-    html += `<span class="doc-sent ${isActive ? 'active-sent' : ''} ${unassignedCls}" onclick="onPrimarySentClick(event, '${para.id}', ${targetIdx})" title="${owners.length ? 'Sentence ' + owners.map(x => x + 1).join(', ') : 'Unlinked passage — click to assign'}">${kuTag}${escapeHtml(slice)}${endFns}</span>`;
+    html += `<span class="doc-sent ${isActive ? 'active-sent' : ''} ${unassignedCls}" onclick="onPrimarySentClick(event, '${para.id}', ${targetIdx})" title="${owners.length ? escapeHtml('Linked to: ' + ownerSnips) : 'Unlinked passage — click to map'}">${escapeHtml(slice)}${endFns}</span>`;
   }
   return html;
 }
@@ -2944,7 +2920,7 @@ function renderCompanionWindow() {
   const sentMeta = metaArr[idx];
 
   document.getElementById("cwTitleText").textContent =
-    `${doc.id} · ${para.label} · Sentence ${idx + 1} of ${units.length}`;
+    `${doc.id} · ${para.label}`;
 
   const cards = [];
   cards.push(renderPrimarySentenceCard(doc, para, units, idx));
@@ -2983,7 +2959,7 @@ function renderPrimarySentenceCard(doc, para, units, idx) {
           </span>
           <span class="markup-group">
             <button type="button" class="markup-btn danku-action" onclick="insertMaruAtCursor('${taId}', '${para.id}', ${idx})" title="Insert 。 at cursor to split into two sentences">✂ Split 。</button>
-            ${canMergeNext ? `<button type="button" class="markup-btn danku-action" onclick="mergeWithNextSentence('${para.id}', ${idx})" title="Merge with Sentence ${idx + 2}">🔗 Merge Next</button>` : ""}
+            ${canMergeNext ? `<button type="button" class="markup-btn danku-action" onclick="mergeWithNextSentence('${para.id}', ${idx})" title="Merge with next sentence">🔗 Merge Next</button>` : ""}
             <button type="button" class="markup-btn danku-pending" id="${applyBtnId}" style="display:none;" onclick="applyPrimarySentenceEdit('${taId}', '${para.id}', ${idx})">⚡ Apply</button>
           </span>
         </div>
@@ -3004,7 +2980,7 @@ function renderPrimarySentenceCard(doc, para, units, idx) {
   return `
     <div class="layer-card is-primary-card">
       <div class="layer-card-head">
-        <span>原文 ${st.short} (Sentence ${idx + 1})</span>
+        <span>原文 ${st.short}</span>
       </div>
       <div class="cw-tategaki-preview" id="${previewId}">${renderJapaneseRich(sentText, `cw_prim_${para.id}_${idx}`)}</div>
       ${editorHtml}
@@ -3036,7 +3012,7 @@ function renderOptionalKakikudashiCard(doc, para, idx, sentMeta) {
         <textarea
           id="${taId}"
           class="layer-textarea jp-input"
-          placeholder="Write 書き下し for Sentence ${idx + 1}, or highlight & map from the full paragraph below..."
+          placeholder="Write 書き下し for this sentence, or highlight & map from the full paragraph below..."
           oninput="onDirectSpanInput('${para.id}', ${idx}, 'kakikudashi', this.value, '${previewId}')"
         >${escapeHtml(assignedText)}</textarea>
       </div>
@@ -3048,7 +3024,7 @@ function renderOptionalKakikudashiCard(doc, para, idx, sentMeta) {
   return `
     <div class="layer-card">
       <div class="layer-card-head">
-        <span>書き下し Kakikudashi (Sentence ${idx + 1})</span>
+        <span>書き下し Kakikudashi</span>
       </div>
       <div class="cw-tategaki-preview" id="${previewId}">${assignedText ? renderJapaneseRich(assignedText, `cw_kk_${para.id}_${idx}`) : `<span style="color:var(--ink-faint);font-size:13px;">（未紐付・未入力）</span>`}</div>
       ${editorHtml}
@@ -3060,10 +3036,10 @@ function renderOptionalKakikudashiCard(doc, para, idx, sentMeta) {
       ${mapperOpen ? `
         <div class="en-mapper-wrap">
           <div class="en-mapper-head">
-            <span>Highlight passage in full 書き下し to map to Sentence ${idx + 1}:</span>
+            <span>Highlight passage in full 書き下し to map here:</span>
             <span style="display:inline-flex;gap:4px;flex-wrap:wrap;">
               ${isScribe ? `
-                <button type="button" class="btn btn-sm amber" id="assignKkSelBtn" onclick="assignSelectedSpan('kakikudashi', false)" disabled>🔗 Map to Sent ${idx + 1}</button>
+                <button type="button" class="btn btn-sm amber" id="assignKkSelBtn" onclick="assignSelectedSpan('kakikudashi', false)" disabled>🔗 Map Selection</button>
                 <button type="button" class="btn btn-sm" id="appendKkSelBtn" onclick="assignSelectedSpan('kakikudashi', true)" disabled title="Append discontinuous span">+ Span</button>
                 ${ranges.length > 0 ? `<button type="button" class="btn btn-sm" onclick="clearSpanAssignment('${para.id}', ${idx}, 'kakikudashi')">✕ Unlink</button>` : ""}
                 <button type="button" class="btn btn-sm ${showFullKkParaEditor ? 'active' : ''}" onclick="toggleFullKkParaEditor()">✎ Full Para</button>
@@ -3100,7 +3076,7 @@ function renderEnglishProductCard(doc, para, idx, sentMeta) {
     mainEditorHtml = `
       <textarea
         class="layer-textarea en-input"
-        placeholder="Write English translation for Sentence ${idx + 1}..."
+        placeholder="Write English translation for this sentence..."
         oninput="onDirectSpanInput('${para.id}', ${idx}, 'english', this.value, null)"
       >${escapeHtml(assignedText)}</textarea>
     `;
@@ -3111,7 +3087,7 @@ function renderEnglishProductCard(doc, para, idx, sentMeta) {
   return `
     <div class="layer-card is-product-card">
       <div class="layer-card-head">
-        <span>English Translation (Sentence ${idx + 1})</span>
+        <span>English Translation</span>
       </div>
       ${mainEditorHtml}
       <div>
@@ -3122,10 +3098,10 @@ function renderEnglishProductCard(doc, para, idx, sentMeta) {
       ${mapperOpen ? `
         <div class="en-mapper-wrap">
           <div class="en-mapper-head">
-            <span>Highlight words in paragraph to map to Sentence ${idx + 1}:</span>
+            <span>Highlight words in paragraph to map here:</span>
             <span style="display:inline-flex;gap:4px;flex-wrap:wrap;">
               ${isScribe ? `
-                <button type="button" class="btn btn-sm amber" id="assignEnSelBtn" onclick="assignSelectedSpan('english', false)" disabled>🔗 Map to Sent ${idx + 1}</button>
+                <button type="button" class="btn btn-sm amber" id="assignEnSelBtn" onclick="assignSelectedSpan('english', false)" disabled>🔗 Map Selection</button>
                 <button type="button" class="btn btn-sm" id="appendEnSelBtn" onclick="assignSelectedSpan('english', true)" disabled title="Append discontinuous clause">+ Span</button>
                 ${ranges.length > 0 ? `<button type="button" class="btn btn-sm" onclick="clearSpanAssignment('${para.id}', ${idx}, 'english')">✕ Unlink</button>` : ""}
                 <button type="button" class="btn btn-sm ${showFullEnParaEditor ? 'active' : ''}" onclick="toggleFullEnParaEditor()">✎ Full Para</button>
@@ -3286,7 +3262,7 @@ function commitPrimarySliceReplacement(para, idx, replacementText, fullReRender)
       const fnBadges = (fnMap[`${para.id}:${idx}`] || [])
         .map(fn => `<span class="fn-badge" onclick="focusFootnote(event, ${fn.num})" title="Jump to Editorial Note ${fn.num}">${fn.num}</span>`)
         .join("");
-      bgSpan.innerHTML = `<span class="ku-num">${idx + 1}</span>${renderJapaneseRich(newUnits[idx].text, `main_${para.id}_${idx}`)}${fnBadges}`;
+      bgSpan.innerHTML = `${renderJapaneseRich(newUnits[idx].text, `main_${para.id}_${idx}`)}${fnBadges}`;
     }
   }
 }
@@ -3496,19 +3472,15 @@ function renderParagraphSpanMapperBox(para, activeIdx, layerKind) {
     const a = sorted[k], b = sorted[k + 1];
     if (b <= a) continue;
     const owners = [];
-    const startsHere = [];
     units.forEach((_, i) => {
       const rs = (metaArr[i] && metaArr[i][rangesField]) || [];
       if (rs.some(r => r.start <= a && r.end >= b)) owners.push(i);
-      if (rs.some(r => r.start === a)) startsHere.push(i + 1);
     });
     const isActive = owners.includes(activeIdx);
-    const cls = [
-      isActive ? "en-seg-active" : (owners.length ? "en-seg-other" : ""),
-      startsHere.length ? "en-seg-badge" : ""
-    ].filter(Boolean).join(" ");
-    const badgeAttr = startsHere.length ? `data-badge="Sent ${startsHere.join(",")}"` : "";
-    html += `<span class="${cls}" data-char-start="${a}" data-char-end="${b}" ${badgeAttr}>${escapeHtml(full.slice(a, b))}</span>`;
+    const cls = isActive ? "en-seg-active" : (owners.length ? "en-seg-other" : "");
+    const ownerSnips = owners.map(i => getSentenceSnippet(units[i] && units[i].text, 10)).filter(Boolean).join(" / ");
+    const titleAttr = ownerSnips ? `title="${escapeHtml('Mapped to: ' + ownerSnips)}"` : "";
+    html += `<span class="${cls}" data-char-start="${a}" data-char-end="${b}" ${titleAttr}>${escapeHtml(full.slice(a, b))}</span>`;
   }
   return html;
 }
@@ -3718,12 +3690,14 @@ function buildDocumentFootnotes(doc) {
     const maxCount = Math.max(units.length, metaArr.length);
     for (let si = 0; si < maxCount; si++) {
       const notes = (metaArr[si] && metaArr[si].notes) || [];
+      const snippet = getSentenceSnippet(units[si] && units[si].text, 8);
       notes.forEach((n, ni) => {
         list.push({
           num: num++,
           paraId: p.id,
           paraLabel: p.label,
           sentIdx: si,
+          snippet,
           noteIdx: ni,
           note: n
         });
@@ -3775,8 +3749,8 @@ function renderNotesRail() {
     return `
       <div class="fn-card ${isActive ? 'active-fn' : ''}" id="${cardId}">
         <div class="fn-card-top">
-          <span class="fn-num-pill" onclick="jumpToFootnoteSentence('${fn.paraId}', ${fn.sentIdx})" title="Jump to ${escapeHtml(fn.paraLabel)} · Sentence ${fn.sentIdx + 1}">
-            [${fn.num}] ${escapeHtml(fn.paraLabel)} · Sent ${fn.sentIdx + 1}
+          <span class="fn-num-pill" onclick="jumpToFootnoteSentence('${fn.paraId}', ${fn.sentIdx})" title="Jump to ${escapeHtml(fn.paraLabel + (fn.snippet ? ' · ' + fn.snippet : ''))}">
+            [${fn.num}] ${escapeHtml(fn.paraLabel)}${fn.snippet ? ' · ' + escapeHtml(fn.snippet) : ''}
           </span>
           ${isScribe ? `<button class="fn-del-btn" onclick="deleteFootnote('${fn.paraId}', ${fn.sentIdx}, ${fn.noteIdx})" title="Delete note [${fn.num}]">✕</button>` : ""}
         </div>
@@ -4020,10 +3994,6 @@ function toggleKunInline() {
   document.getElementById("kunInlineBtn").classList.toggle("active");
 }
 
-function toggleKuNums() {
-  document.body.classList.toggle("hide-ku-nums");
-  document.getElementById("kuNumBtn").classList.toggle("active");
-}
 
 function adjustFontSize(delta) {
   jpFontSize = Math.min(26, Math.max(14, jpFontSize + delta));
@@ -4089,11 +4059,13 @@ function exportMarkdown() {
       md += `### 書き下し文\n${cleanKk}\n\n`;
     }
     md += `### English Translation\n${p.englishText || ""}\n\n`;
-    const notes = (p.sentMeta || []).flatMap((m, i) => (m.notes || []).map(n => ({ ...n, ku: i + 1 })));
+    const { units: pUnits } = getParaUnitsAndMeta(p);
+    const notes = (p.sentMeta || []).flatMap((m, i) => (m.notes || []).map(n => ({ ...n, snippet: getSentenceSnippet(pUnits[i] && pUnits[i].text, 10) })));
     if (notes.length) {
-      md += `### Editorial Notes\n` + notes.map(n => {
+      md += `### Editorial Notes\n` + notes.map((n, ni) => {
         const ts = formatNoteTimestamp(n.updatedAt || n.createdAt);
-        return `- **[Sentence ${n.ku}]** (${n.author || "Member"}${ts ? " · " + ts : ""}): ${n.text}`;
+        const loc = n.snippet ? `「${n.snippet}」` : `Note ${ni + 1}`;
+        return `- **[${ni + 1}] ${loc}** (${n.author || "Member"}${ts ? " · " + ts : ""}): ${n.text}`;
       }).join("\n") + `\n\n`;
     }
   }
