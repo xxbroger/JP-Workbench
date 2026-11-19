@@ -1214,6 +1214,7 @@
         <span id="roleLabel">✏️ Editing Unlocked</span>
       </div>
       <button class="btn active" id="notesRailToggleBtn" onclick="toggleNotesRail()" title="Show/Hide always-visible Editorial Notes panel">📝 Notes</button>
+      <button class="btn" onclick="exportWordDocx()" title="Export active text (原文, 書き下し, English &amp; footnotes) as a Microsoft Word .docx file">⬇ Word</button>
       <button class="btn" onclick="exportMarkdown()" title="Export active text + notes to Markdown">⬇ MD</button>
       <button class="btn" onclick="exportJsonBackup()" title="Download full corpus + notes JSON backup">⬇ JSON</button>
       <button class="btn" onclick="triggerImportJson()" title="Restore or merge a JSON backup file">⬆ Import</button>
@@ -1290,6 +1291,17 @@
       <button class="cw-btn" onclick="closeNewDocModal()">✕</button>
     </div>
     <div class="modal-body" id="newDocModalBody"></div>
+  </div>
+</div>
+
+<!-- Edit Text Title & Info Modal -->
+<div class="modal-backdrop" id="editDocInfoModal">
+  <div class="modal-card" style="width:min(620px,95vw);">
+    <div class="modal-head">
+      <span id="editDocInfoTitle">✎ Edit Text Title &amp; Info</span>
+      <button class="cw-btn" onclick="closeEditDocInfoModal()">✕</button>
+    </div>
+    <div class="modal-body" id="editDocInfoBody"></div>
   </div>
 </div>
 
@@ -2660,6 +2672,7 @@ function renderBanner() {
         <span class="paratext-meta">${escapeHtml(doc.author)} · ${viewHint}</span>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        ${isScribe ? `<button class="btn btn-sm" onclick="openEditDocInfoModal()" title="Edit this text's title, author, style, and source info">✎ Edit Info</button>` : ""}
         <button class="btn btn-sm active" onclick="openRawTextModal('${stageView === 'kakikudashi' ? 'kakikudashi' : 'primary'}')" title="Paste, edit, or clear raw text">📝 Feed / Edit Raw Text</button>
         <button class="btn btn-sm" onclick="toggleWitnessDrawer()">📜 Source &amp; Witness Info</button>
         ${!cloud.ready ? `<button class="btn btn-sm" onclick="resetDemoData()" title="Restore initial sample state">↺ Reset Demo</button>` : ""}
@@ -3889,6 +3902,7 @@ function jumpToFootnoteSentence(paraId, sentIdx) {
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
     if (document.getElementById("popover").classList.contains("open")) closePopover();
+    else if (document.getElementById("editDocInfoModal").classList.contains("open")) closeEditDocInfoModal();
     else if (document.getElementById("rawTextModal").classList.contains("open")) closeRawTextModal();
     else if (document.getElementById("newDocModal").classList.contains("open")) closeNewDocModal();
     else if (document.getElementById("paraDankuModal").classList.contains("open")) closeParaDankuModal();
@@ -4007,6 +4021,7 @@ function toggleRole() {
   pill.className = "role-pill " + (isScribe ? "is-scribe" : "is-annotator");
   label.textContent = isScribe ? "✏️ Editing Unlocked" : "👁 Read-Only Safety";
   syncTopbarControls();
+  renderBanner();
   if (activeSelection) renderCompanionWindow();
   renderNotesRail();
 }
@@ -4040,6 +4055,314 @@ function resetDemoData() {
   renderSidebar();
   renderBanner();
   renderPrimaryStage();
+}
+
+function resolveJapaneseForExport(raw) {
+  if (!raw) return "";
+  let out = raw.replace(/\{\{([^|}]+)\|[^}]+\}\}/g, "$1");
+  out = out.replace(/\[\[([^\]]+)\]\]/g, (_, inner) => {
+    const sigKey = "kun_" + inner;
+    const defaultOpts = inner.split("|");
+    const saved = state.kunSelections[sigKey];
+    const allOpts = saved && Array.isArray(saved.opts) ? saved.opts : defaultOpts;
+    const chosenIdx = saved && typeof saved.idx === "number" ? saved.idx : 0;
+    return allOpts[chosenIdx] || allOpts[0] || "";
+  });
+  return out;
+}
+
+function xmlEscape(str) {
+  return (str || "")
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+function buildZipBlob(files) {
+  const enc = new TextEncoder();
+  const crcTable = new Uint32Array(256);
+  for (let i = 0; i < 256; i++) {
+    let c = i;
+    for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    crcTable[i] = c >>> 0;
+  }
+  const crc32 = (bytes) => {
+    let crc = 0xFFFFFFFF;
+    for (let i = 0; i < bytes.length; i++) crc = crcTable[(crc ^ bytes[i]) & 0xFF] ^ (crc >>> 8);
+    return (crc ^ 0xFFFFFFFF) >>> 0;
+  };
+
+  const localParts = [];
+  const centralParts = [];
+  let offset = 0;
+
+  files.forEach(({ name, data }) => {
+    const nameBytes = enc.encode(name);
+    const dataBytes = typeof data === "string" ? enc.encode(data) : data;
+    const crc = crc32(dataBytes);
+    const size = dataBytes.length;
+
+    const lh = new Uint8Array(30 + nameBytes.length);
+    const lhv = new DataView(lh.buffer);
+    lhv.setUint32(0, 0x04034b50, true);
+    lhv.setUint16(4, 20, true);
+    lhv.setUint16(6, 0x0800, true);
+    lhv.setUint16(8, 0, true);
+    lhv.setUint32(14, crc, true);
+    lhv.setUint32(18, size, true);
+    lhv.setUint32(22, size, true);
+    lhv.setUint16(26, nameBytes.length, true);
+    lh.set(nameBytes, 30);
+    localParts.push(lh, dataBytes);
+
+    const cd = new Uint8Array(46 + nameBytes.length);
+    const cdv = new DataView(cd.buffer);
+    cdv.setUint32(0, 0x02014b50, true);
+    cdv.setUint16(4, 20, true);
+    cdv.setUint16(6, 20, true);
+    cdv.setUint16(8, 0x0800, true);
+    cdv.setUint16(10, 0, true);
+    cdv.setUint32(16, crc, true);
+    cdv.setUint32(20, size, true);
+    cdv.setUint32(24, size, true);
+    cdv.setUint16(28, nameBytes.length, true);
+    cdv.setUint32(42, offset, true);
+    cd.set(nameBytes, 46);
+    centralParts.push(cd);
+
+    offset += lh.length + dataBytes.length;
+  });
+
+  const centralSize = centralParts.reduce((sum, p) => sum + p.length, 0);
+  const eocd = new Uint8Array(22);
+  const eocdv = new DataView(eocd.buffer);
+  eocdv.setUint32(0, 0x06054b50, true);
+  eocdv.setUint16(8, files.length, true);
+  eocdv.setUint16(10, files.length, true);
+  eocdv.setUint32(12, centralSize, true);
+  eocdv.setUint32(16, offset, true);
+
+  return new Blob([...localParts, ...centralParts, eocd], {
+    type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+  });
+}
+
+function wTextRun(text, opts) {
+  const o = opts || {};
+  let rPr = "";
+  if (o.bold) rPr += "<w:b/>";
+  if (o.italic) rPr += "<w:i/>";
+  if (o.color) rPr += `<w:color w:val="${o.color}"/>`;
+  if (o.size) rPr += `<w:sz w:val="${o.size}"/><w:szCs w:val="${o.size}"/>`;
+  if (o.font) rPr += `<w:rFonts w:ascii="${o.font}" w:hAnsi="${o.font}" w:eastAsia="${o.eaFont || o.font}"/>`;
+  const rPrXml = rPr ? `<w:rPr>${rPr}</w:rPr>` : "";
+  const lines = String(text || "").split("\n");
+  const inner = lines.map((line, i) =>
+    `${i > 0 ? "<w:br/>" : ""}<w:t xml:space="preserve">${xmlEscape(line)}</w:t>`
+  ).join("");
+  return `<w:r>${rPrXml}${inner}</w:r>`;
+}
+
+function wFootnoteRefRun(fnId) {
+  return `<w:r><w:rPr><w:rStyle w:val="FootnoteReference"/></w:rPr><w:footnoteReference w:id="${fnId}"/></w:r>`;
+}
+
+function exportWordDocx() {
+  const doc = getActiveDoc();
+  if (!doc) return;
+  const st = getPrimaryStyleInfo(doc.primaryStyle);
+  const footnotes = buildDocumentFootnotes(doc);
+  const fnMap = buildFootnoteLookupMap(doc);
+
+  const bodyParas = [];
+  const addP = (runsXml, opts) => {
+    const o = opts || {};
+    let pPr = "";
+    if (o.style) pPr += `<w:pStyle w:val="${o.style}"/>`;
+    if (o.spaceBefore !== undefined || o.spaceAfter !== undefined || o.line !== undefined) {
+      const attrs = [];
+      if (o.spaceBefore !== undefined) attrs.push(`w:before="${o.spaceBefore}"`);
+      if (o.spaceAfter !== undefined) attrs.push(`w:after="${o.spaceAfter}"`);
+      if (o.line !== undefined) attrs.push(`w:line="${o.line}" w:lineRule="auto"`);
+      pPr += `<w:spacing ${attrs.join(" ")}/>`;
+    }
+    const pPrXml = pPr ? `<w:pPr>${pPr}</w:pPr>` : "";
+    bodyParas.push(`<w:p>${pPrXml}${runsXml}</w:p>`);
+  };
+
+  // Header: Title, Author, Source & Witness Info
+  addP(wTextRun(doc.title, { bold: true, size: 32, color: "233B5D" }), { spaceAfter: 80 });
+  if ((doc.author || "").trim()) {
+    addP(wTextRun(doc.author, { italic: true, size: 21, color: "635D53" }), { spaceAfter: 120 });
+  }
+  if ((doc.metadata || "").trim()) {
+    addP(wTextRun(doc.metadata, { size: 19, color: "635D53" }), { spaceAfter: 240, line: 280 });
+  }
+
+  for (const p of doc.paragraphs || []) {
+    syncLayerSnapshots(p, "kakikudashi");
+    syncLayerSnapshots(p, "english");
+    const { units, metaArr } = getParaUnitsAndMeta(p);
+    const enText = p.englishText || "";
+    const hasEn = enText.trim().length > 0;
+
+    // Track which footnotes will be placed inside English vs. Original text
+    const enInsertions = [];
+    const placedInEn = new Set();
+    if (hasEn) {
+      units.forEach((_, idx) => {
+        const fns = fnMap[`${p.id}:${idx}`] || [];
+        if (!fns.length) return;
+        const enRanges = (metaArr[idx] && metaArr[idx].enRanges) || [];
+        if (enRanges.length > 0) {
+          const pos = Math.min(enText.length, enRanges[enRanges.length - 1].end);
+          fns.forEach(fn => {
+            enInsertions.push({ pos, num: fn.num });
+            placedInEn.add(fn.num);
+          });
+        }
+      });
+    }
+
+    // Paragraph label
+    addP(wTextRun(p.label, { bold: true, size: 24, color: "233B5D" }), { spaceBefore: 240, spaceAfter: 80 });
+
+    // 1. Original Text
+    if ((p.primaryText || "").trim()) {
+      addP(wTextRun(`原文（${st.short}）`, { bold: true, size: 18, color: "635D53" }), { spaceBefore: 60, spaceAfter: 40 });
+      let primRuns = "";
+      units.forEach((u, idx) => {
+        primRuns += wTextRun(resolveJapaneseForExport(u.text), { size: 22 });
+        const fns = (fnMap[`${p.id}:${idx}`] || []).filter(fn => !placedInEn.has(fn.num));
+        fns.forEach(fn => { primRuns += wFootnoteRefRun(fn.num); });
+      });
+      addP(primRuns, { spaceAfter: 140, line: 340 });
+    }
+
+    // 2. Kakikudashi (if enabled and present)
+    if (doc.hasKakikudashi && (p.kakikudashiText || "").trim()) {
+      addP(wTextRun("書き下し", { bold: true, size: 18, color: "635D53" }), { spaceBefore: 40, spaceAfter: 40 });
+      addP(wTextRun(resolveJapaneseForExport(p.kakikudashiText), { size: 22 }), { spaceAfter: 140, line: 340 });
+    }
+
+    // 3. English Translation (with inline native Word footnotes)
+    if (hasEn) {
+      addP(wTextRun("English Translation", { bold: true, size: 18, color: "635D53" }), { spaceBefore: 40, spaceAfter: 40 });
+      enInsertions.sort((a, b) => (a.pos - b.pos) || (a.num - b.num));
+      let enRuns = "";
+      let cursor = 0;
+      enInsertions.forEach(ins => {
+        if (ins.pos > cursor) {
+          enRuns += wTextRun(enText.slice(cursor, ins.pos), { size: 22 });
+          cursor = ins.pos;
+        }
+        enRuns += wFootnoteRefRun(ins.num);
+      });
+      if (cursor < enText.length) {
+        enRuns += wTextRun(enText.slice(cursor), { size: 22 });
+      }
+      addP(enRuns, { spaceAfter: 180, line: 320 });
+    }
+  }
+
+  const footnotesEntriesXml = footnotes.map(fn => {
+    const n = fn.note || {};
+    const ts = formatNoteTimestamp(n.updatedAt || n.createdAt);
+    const meta = [n.author || "Member", ts].filter(Boolean).join(" · ");
+    const loc = fn.snippet ? `「${fn.snippet}」 ` : "";
+    return `
+    <w:footnote w:id="${fn.num}">
+      <w:p>
+        <w:pPr><w:pStyle w:val="FootnoteText"/></w:pPr>
+        <w:r><w:rPr><w:rStyle w:val="FootnoteReference"/></w:rPr><w:footnoteRef/></w:r>
+        ${wTextRun(" " + loc, { bold: true, size: 19 })}
+        ${wTextRun(n.text || "", { size: 19 })}
+        ${meta ? wTextRun(` (${meta})`, { italic: true, size: 17, color: "635D53" }) : ""}
+      </w:p>
+    </w:footnote>`;
+  }).join("");
+
+  const contentTypesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+  <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
+  <Override PartName="/word/footnotes.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footnotes+xml"/>
+</Types>`;
+
+  const rootRelsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`;
+
+  const docRelsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footnotes" Target="footnotes.xml"/>
+</Relationships>`;
+
+  const stylesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:docDefaults>
+    <w:rPrDefault>
+      <w:rPr>
+        <w:rFonts w:ascii="Georgia" w:hAnsi="Georgia" w:eastAsia="Hiragino Mincho ProN" w:cs="Georgia"/>
+        <w:sz w:val="22"/>
+        <w:szCs w:val="22"/>
+      </w:rPr>
+    </w:rPrDefault>
+  </w:docDefaults>
+  <w:style w:type="paragraph" w:default="1" w:styleId="Normal">
+    <w:name w:val="Normal"/>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="FootnoteText">
+    <w:name w:val="footnote text"/>
+    <w:basedOn w:val="Normal"/>
+    <w:pPr><w:spacing w:after="60" w:line="260" w:lineRule="auto"/></w:pPr>
+    <w:rPr><w:sz w:val="19"/><w:szCs w:val="19"/></w:rPr>
+  </w:style>
+  <w:style w:type="character" w:styleId="FootnoteReference">
+    <w:name w:val="footnote reference"/>
+    <w:rPr><w:vertAlign w:val="superscript"/></w:rPr>
+  </w:style>
+</w:styles>`;
+
+  const footnotesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:footnotes xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:footnote w:type="separator" w:id="-1"><w:p><w:r><w:separator/></w:r></w:p></w:footnote>
+  <w:footnote w:type="continuationSeparator" w:id="0"><w:p><w:r><w:continuationSeparator/></w:r></w:p></w:footnote>${footnotesEntriesXml}
+</w:footnotes>`;
+
+  const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>
+    ${bodyParas.join("\n    ")}
+    <w:sectPr>
+      <w:pgSz w:w="12240" w:h="15840"/>
+      <w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0"/>
+    </w:sectPr>
+  </w:body>
+</w:document>`;
+
+  const blob = buildZipBlob([
+    { name: "[Content_Types].xml", data: contentTypesXml },
+    { name: "_rels/.rels", data: rootRelsXml },
+    { name: "word/_rels/document.xml.rels", data: docRelsXml },
+    { name: "word/styles.xml", data: stylesXml },
+    { name: "word/footnotes.xml", data: footnotesXml },
+    { name: "word/document.xml", data: documentXml }
+  ]);
+
+  const safeId = (doc.id || "text").replace(/[^a-zA-Z0-9._-]+/g, "_");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `${safeId}_setsuwa_export.docx`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
 }
 
 function exportMarkdown() {
@@ -4463,6 +4786,71 @@ function renderNewDocTabs() {
 
 function closeNewDocModal() {
   document.getElementById("newDocModal").classList.remove("open");
+}
+
+function openEditDocInfoModal() {
+  const doc = getActiveDoc();
+  if (!doc) return;
+  document.getElementById("editDocInfoTitle").textContent = `✎ Edit Text Title & Info — ${doc.id}`;
+  document.getElementById("editDocInfoBody").innerHTML = `
+    <div style="display:grid;grid-template-columns:120px 1fr;gap:8px;align-items:center;font-size:12.5px;">
+      <label><strong>ID</strong></label>
+      <div style="font-family:ui-monospace,SFMono-Regular,monospace;color:var(--ink-muted);padding:4px 2px;">${escapeHtml(doc.id)}</div>
+      <label><strong>Title</strong></label>
+      <input id="ed_title" type="text" value="${escapeHtml(doc.title || '')}" style="padding:6px 8px;border:1px solid var(--border-strong);border-radius:6px;">
+      <label><strong>Author / Date</strong></label>
+      <input id="ed_author" type="text" value="${escapeHtml(doc.author || '')}" style="padding:6px 8px;border:1px solid var(--border-strong);border-radius:6px;">
+      <label><strong>Text Style</strong></label>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <select id="ed_style" style="padding:6px 8px;border:1px solid var(--border-strong);border-radius:6px;">
+          <option value="kanbun" ${doc.primaryStyle === 'kanbun' ? 'selected' : ''}>漢文 Kanbun</option>
+          <option value="wakan" ${doc.primaryStyle === 'wakan' ? 'selected' : ''}>和漢混じり文 Wakan-majiribun</option>
+          <option value="wabun" ${doc.primaryStyle === 'wabun' ? 'selected' : ''}>和文 Wabun</option>
+        </select>
+        <label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;">
+          <input type="checkbox" id="ed_has_kk" ${doc.hasKakikudashi ? 'checked' : ''}>
+          Include 書き下し
+        </label>
+      </div>
+      <label style="align-self:start;padding-top:6px;"><strong>Source Info</strong></label>
+      <textarea id="ed_meta" style="min-height:95px;font-family:var(--font-ui);font-size:13px;line-height:1.5;" placeholder="Edition, manuscript witness, or citation...">${escapeHtml(doc.metadata || '')}</textarea>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;">
+      <button class="btn" onclick="closeEditDocInfoModal()">Cancel</button>
+      <button class="btn active" onclick="saveEditDocInfoModal()">Save &amp; Sync</button>
+    </div>
+  `;
+  document.getElementById("editDocInfoModal").classList.add("open");
+}
+
+function closeEditDocInfoModal() {
+  document.getElementById("editDocInfoModal").classList.remove("open");
+}
+
+function saveEditDocInfoModal() {
+  const doc = getActiveDoc();
+  if (!doc) return;
+  const title = (document.getElementById("ed_title").value || "").trim();
+  if (!title) {
+    alert("Title cannot be empty.");
+    return;
+  }
+  doc.title = title;
+  doc.collection = title.split("—")[0].trim();
+  doc.author = (document.getElementById("ed_author").value || "").trim();
+  doc.primaryStyle = document.getElementById("ed_style").value;
+  doc.hasKakikudashi = document.getElementById("ed_has_kk").checked;
+  doc._explicitHasKk = true;
+  doc.metadata = (document.getElementById("ed_meta").value || "").trim();
+  if (!doc.hasKakikudashi && stageView === "kakikudashi") stageView = "primary";
+
+  saveState(doc.id, null);
+  closeEditDocInfoModal();
+  syncTopbarControls();
+  renderSidebar();
+  renderBanner();
+  renderPrimaryStage();
+  if (activeSelection) renderCompanionWindow();
 }
 
 async function createNewDocFromModal() {
