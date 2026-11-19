@@ -464,14 +464,20 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
-    transition: box-shadow 0.15s, border-color 0.15s;
+    transition: box-shadow 0.15s, border-color 0.15s, background 0.15s, transform 0.15s;
   }
   .fn-card.active-fn {
-    box-shadow: 0 0 0 2px rgba(184, 93, 0, 0.35);
-    background: #fffdf7;
+    box-shadow: 0 0 0 2.5px #d47b00, 0 5px 14px rgba(196, 108, 0, 0.22);
+    border-color: #d47b00;
+    background: #fff6de !important;
+    transform: translateX(-3px);
+  }
+  .fn-card.note-card-focused {
+    box-shadow: 0 0 0 2.5px #233b5d, 0 5px 14px rgba(35, 59, 93, 0.24);
+    border-color: #233b5d;
   }
   .fn-card.flash-fn {
-    box-shadow: 0 0 0 3px rgba(38, 74, 120, 0.45);
+    box-shadow: 0 0 0 3px rgba(38, 74, 120, 0.55);
   }
   .fn-card-top {
     display: flex;
@@ -553,13 +559,28 @@
   mark.hl-rose  { background: rgba(242, 148, 165, 0.40); }
   mark.hl-mark:hover { filter: brightness(0.95); }
   mark.hl-mark.flash-hl { box-shadow: 0 0 0 3px rgba(38, 74, 120, 0.55); }
+  mark.hl-mark.note-linked-hl {
+    box-shadow: 0 0 0 2.5px #233b5d, 0 0 12px rgba(35, 59, 93, 0.42);
+    outline: 1px solid #ffffff;
+    filter: brightness(0.95);
+  }
+  .doc-sent.note-linked-sent {
+    background: rgba(255, 206, 92, 0.36) !important;
+    box-shadow: 0 0 0 2px rgba(196, 108, 0, 0.72);
+    border-radius: 3px;
+  }
 
   /* Distinct visual identity by source view in Editorial Notes */
   .fn-card.fn-layer-sentence    { border-left: 4px solid #3c5473; background: var(--bg-card); }
   .fn-card.fn-layer-primary     { border-left: 4px solid #a63228; background: #fffaf9; }
   .fn-card.fn-layer-kakikudashi { border-left: 4px solid #1f7a5a; background: #f7fcf9; }
   .fn-card.fn-layer-english     { border-left: 4px solid #3454b4; background: #f8faff; }
-  .fn-card.active-fn { box-shadow: 0 0 0 2px rgba(184, 93, 0, 0.35); }
+  .fn-card.active-fn {
+    box-shadow: 0 0 0 2.5px #d47b00, 0 5px 14px rgba(196, 108, 0, 0.22);
+    border-color: #d47b00;
+    background: #fff6de !important;
+    transform: translateX(-3px);
+  }
 
   .fn-card-jump {
     display: inline-flex;
@@ -3099,6 +3120,7 @@ function renderPrimaryStage() {
   }
 
   if (!isActivelyTypingInNotesRail()) renderNotesRail();
+  applyFocusedNoteHighlights(false);
 }
 
 function renderKakikudashiParagraphInteractive(doc, para, fnMap, hlFnMap) {
@@ -3148,7 +3170,7 @@ function renderKakikudashiParagraphInteractive(doc, para, fnMap, hlFnMap) {
       .map(fn => `<span class="fn-badge" onclick="focusFootnote(event, ${fn.num})" title="Jump to Editorial Note ${fn.num}">${fn.num}</span>`)
       .join("");
 
-    html += `<span class="doc-sent ${isActive ? 'active-sent' : ''} ${unassignedCls}" data-para="${para.id}" data-raw-start="${a}" data-raw-end="${b}" onclick="onKakikudashiSpanClick(event, '${para.id}', ${targetIdx}, ${isUnmapped ? 'true' : 'false'})" title="${!isUnmapped ? escapeHtml('Mapped to: ' + ownerSnips) : 'Unmapped 書き下し — click to map'}">${renderJapaneseRichWithHighlights(slice, `kkmain_${para.id}_${i}`, para.id, "kakikudashi", a, para.highlights, hlFnMap)}${endFns}</span>`;
+    html += `<span class="doc-sent ${isActive ? 'active-sent' : ''} ${unassignedCls}" data-para="${para.id}" data-owners="${owners.join(',')}" data-raw-start="${a}" data-raw-end="${b}" onclick="onKakikudashiSpanClick(event, '${para.id}', ${targetIdx}, ${isUnmapped ? 'true' : 'false'})" title="${!isUnmapped ? escapeHtml('Mapped to: ' + ownerSnips) : 'Unmapped 書き下し — click to map'}">${renderJapaneseRichWithHighlights(slice, `kkmain_${para.id}_${i}`, para.id, "kakikudashi", a, para.highlights, hlFnMap)}${endFns}</span>`;
   }
   return html;
 }
@@ -3193,7 +3215,7 @@ function renderEnglishParagraphInteractive(doc, para, fnMap, hlFnMap) {
       .map(fn => `<span class="fn-badge" onclick="focusFootnote(event, ${fn.num})" title="Jump to Editorial Note ${fn.num}">${fn.num}</span>`)
       .join("");
 
-    html += `<span class="doc-sent ${isActive ? 'active-sent' : ''} ${unassignedCls}" data-para="${para.id}" data-raw-start="${a}" data-raw-end="${b}" onclick="onPrimarySentClick(event, '${para.id}', ${targetIdx})" title="${owners.length ? escapeHtml('Linked to: ' + ownerSnips) : 'Unlinked passage — click to map'}">${renderEnglishSliceWithHighlights(slice, a, para.id, para.highlights, hlFnMap)}${endFns}</span>`;
+    html += `<span class="doc-sent ${isActive ? 'active-sent' : ''} ${unassignedCls}" data-para="${para.id}" data-owners="${owners.join(',')}" data-raw-start="${a}" data-raw-end="${b}" onclick="onPrimarySentClick(event, '${para.id}', ${targetIdx})" title="${owners.length ? escapeHtml('Linked to: ' + ownerSnips) : 'Unlinked passage — click to map'}">${renderEnglishSliceWithHighlights(slice, a, para.id, para.highlights, hlFnMap)}${endFns}</span>`;
   }
   return html;
 }
@@ -4304,22 +4326,26 @@ function renderNotesRail() {
     const inputCall = isHl
       ? `onInlineHighlightNoteChange('${fn.paraId}', '${fn.hlId}', this.value, '${timeId}')`
       : `onInlineNoteFieldChange('${fn.paraId}', ${fn.sentIdx}, ${fn.noteIdx}, this.value, '${timeId}')`;
+    const linkCall = isHl
+      ? `highlightLinkedTextForNote('highlight', '${fn.paraId}', ${fn.sentIdx}, '${fn.hlId}', '${fn.layer}', ${fn.num}, true)`
+      : `highlightLinkedTextForNote('sentence', '${fn.paraId}', ${fn.sentIdx}, '', '', ${fn.num}, false)`;
+    const isFocused = Boolean(focusedNoteTarget && focusedNoteTarget.num === fn.num);
     return `
-      <div class="fn-card fn-layer-${layerKey} ${isActive ? 'active-fn' : ''}" id="${cardId}">
+      <div class="fn-card fn-layer-${layerKey} ${isActive ? 'active-fn' : ''} ${isFocused ? 'note-card-focused' : ''}" id="${cardId}" onclick="if (!event.target.closest('.fn-del-btn')) { ${linkCall}; }">
         <div class="fn-card-top">
-          <span class="fn-card-jump" onclick="${jumpCall}" title="Jump to ${escapeHtml(layerDisplay)}${fn.snippet ? ': ' + escapeHtml(fn.snippet) : ''}">
+          <span class="fn-card-jump" onclick="event.stopPropagation(); ${jumpCall}" title="Jump to ${escapeHtml(layerDisplay)}${fn.snippet ? ': ' + escapeHtml(fn.snippet) : ''}">
             <span class="fn-num-tag">[${fn.num}]</span>
             <span class="fn-layer-badge layer-${layerKey}">${layerDisplay}</span>
             ${termHtml}
           </span>
-          ${isScribe ? `<button class="fn-del-btn" onclick="${delCall}" title="${isHl ? 'Delete note (keeps color highlight)' : 'Delete note'}">✕</button>` : ""}
+          ${isScribe ? `<button class="fn-del-btn" onclick="event.stopPropagation(); ${delCall}" title="${isHl ? 'Delete note (keeps color highlight)' : 'Delete note'}">✕</button>` : ""}
         </div>
         <div style="font-size:11px;color:var(--ink-muted);display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;">
           <strong>${escapeHtml(n.author || 'Member')}</strong>
           <span id="${timeId}" style="color:var(--ink-faint);">${escapeHtml(ts)}</span>
         </div>
         ${isScribe ? `
-          <textarea id="${taId}" class="fn-textarea" placeholder="Write editorial note..." oninput="${inputCall}">${escapeHtml(n.text || '')}</textarea>
+          <textarea id="${taId}" class="fn-textarea" placeholder="Write editorial note..." onfocus="${linkCall}" oninput="${inputCall}">${escapeHtml(n.text || '')}</textarea>
         ` : `
           <div style="font-size:12.5px;line-height:1.5;white-space:pre-wrap;">${escapeHtml(n.text || '')}</div>
         `}
@@ -4438,8 +4464,82 @@ function focusFootnote(ev, num) {
   }
 }
 
+let focusedNoteTarget = null;
+
+function clearLinkedNoteHighlights() {
+  document.querySelectorAll(".doc-sent.note-linked-sent").forEach(el => el.classList.remove("note-linked-sent"));
+  document.querySelectorAll("mark.hl-mark.note-linked-hl").forEach(el => el.classList.remove("note-linked-hl"));
+  document.querySelectorAll(".fn-card.note-card-focused").forEach(el => el.classList.remove("note-card-focused"));
+}
+
+function applyFocusedNoteHighlights(shouldScroll) {
+  clearLinkedNoteHighlights();
+  if (!focusedNoteTarget) return;
+  const t = focusedNoteTarget;
+  const card = document.getElementById(`fn_card_${t.num}`);
+  if (card) card.classList.add("note-card-focused");
+
+  if (t.kind === "highlight" && t.hlId) {
+    const marks = document.querySelectorAll(`mark[data-hl-id="${t.hlId}"]`);
+    marks.forEach(m => m.classList.add("note-linked-hl"));
+    if (shouldScroll && marks[0]) {
+      marks[0].scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
+    }
+  } else if (t.kind === "sentence") {
+    const idxStr = String(t.sentIdx);
+    const matched = [];
+    document.querySelectorAll(`.doc-sent[data-para="${t.paraId}"]`).forEach(el => {
+      const directIdx = el.getAttribute("data-idx");
+      const ownersAttr = el.getAttribute("data-owners");
+      const owners = ownersAttr ? ownersAttr.split(",") : [];
+      if (directIdx === idxStr || owners.includes(idxStr)) {
+        el.classList.add("note-linked-sent");
+        matched.push(el);
+      }
+    });
+    if (shouldScroll && matched[0]) {
+      matched[0].scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
+    }
+  }
+}
+
+function highlightLinkedTextForNote(kind, paraId, sentIdx, hlId, layer, num, allowSwitchView) {
+  const doc = getActiveDoc();
+  if (!doc) return;
+  focusedNoteTarget = { kind, paraId, sentIdx, hlId, layer, num };
+  let switched = false;
+  if (allowSwitchView && kind === "highlight") {
+    if (layer === "kakikudashi" && doc.hasKakikudashi && stageView !== "kakikudashi") {
+      stageView = "kakikudashi";
+      syncTopbarControls();
+      renderBanner();
+      switched = true;
+    } else if (layer === "primary" && stageView !== "primary") {
+      stageView = "primary";
+      syncTopbarControls();
+      renderBanner();
+      switched = true;
+    } else if (layer === "english" && !showEnglishProductPane) {
+      showEnglishProductPane = true;
+      const btn = document.getElementById("enProductToggleBtn");
+      if (btn) btn.classList.toggle("active", true);
+      switched = true;
+    }
+  }
+  if (switched) renderPrimaryStage();
+  applyFocusedNoteHighlights(true);
+}
+
+document.addEventListener("mousedown", (e) => {
+  if (focusedNoteTarget && !e.target.closest("#notesRail")) {
+    focusedNoteTarget = null;
+    clearLinkedNoteHighlights();
+  }
+});
+
 function jumpToFootnoteSentence(paraId, sentIdx) {
   flushAnyPendingDankuEdits();
+  focusedNoteTarget = { kind: "sentence", paraId, sentIdx, hlId: "", layer: "", num: null };
   activeSelection = { paraId, idx: sentIdx };
   pendingKkSelectionRange = null;
   pendingEnSelectionRange = null;
@@ -4454,6 +4554,9 @@ function jumpToFootnoteSentence(paraId, sentIdx) {
 function jumpToFootnoteHighlight(paraId, hlId, layer) {
   const doc = getActiveDoc();
   if (!doc) return;
+  const fns = buildDocumentFootnotes(doc);
+  const hit = fns.find(f => f.kind === "highlight" && f.hlId === hlId);
+  focusedNoteTarget = { kind: "highlight", paraId, sentIdx: hit ? hit.sentIdx : 0, hlId, layer, num: hit ? hit.num : null };
   if (layer === "kakikudashi" && doc.hasKakikudashi && stageView !== "kakikudashi") {
     stageView = "kakikudashi";
     syncTopbarControls();
