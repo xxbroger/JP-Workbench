@@ -1175,6 +1175,28 @@
   </div>
 </div>
 
+<!-- Raw Text Feed / Bulk Edit Modal (Per Text Form) -->
+<div class="modal-backdrop" id="rawTextModal">
+  <div class="modal-card">
+    <div class="modal-head">
+      <span id="rawModalTitle">📝 Feed / Edit Raw Text</span>
+      <button class="cw-btn" onclick="closeRawTextModal()">✕</button>
+    </div>
+    <div class="modal-body" id="rawModalBody"></div>
+  </div>
+</div>
+
+<!-- Add New Paratext Modal -->
+<div class="modal-backdrop" id="newDocModal">
+  <div class="modal-card" style="width:min(680px,95vw);">
+    <div class="modal-head">
+      <span>+ Add New Text to Workbench</span>
+      <button class="cw-btn" onclick="closeNewDocModal()">✕</button>
+    </div>
+    <div class="modal-body" id="newDocModalBody"></div>
+  </div>
+</div>
+
 <div class="popover" id="popover"></div>
 
 <script>
@@ -1493,32 +1515,32 @@ function buildInitialCorpus() {
       type: "kanbun",
       bookmarkAfterPara: null,
       bookmarkLabel: "",
-      metadata: "校訂・出典注：電子本文による暫定転記（原本画像との独立校合は未了。特に下巻序は伝本間の欠脱に注意）。比較伝本：前田家本、真福寺本日本霊異記（不忍文庫本・鎌倉時代初期写の忠実な模本）。",
+      metadata: "Kanbun source: Izumoji Osamu, ed., Nihon ryōiki 日本霊異記, Shin Nihon koten bungaku taikei 新日本古典文学大系 30 (Tōkyō: Iwanami Shoten, 1996; ISBN 978-4-00-240030-3). 比較伝本：前田家本、真福寺本日本霊異記（不忍文庫本・鎌倉時代初期写の忠実な模本）。",
       paragraphs: [
         createSeededParagraph("l1", "第1段", [
           {
-            kanbun: "夫善惡因果者，著於內經。吉凶得失，載諸外典。今探是賢劫尺迦一代教文，有三時。一，正法五百年。二，像法千年。三，末法萬年。自佛涅槃以來，迄于延曆六年歲次丁卯，而逕一千七百廿二年。過正像二而入末法。然日本從佛法傳適以還，迄于延曆六年而逕二百卅六歲也。",
+            kanbun: "諾楽右京薬師寺沙門景戒録。夫善悪因果者，著於内経。吉凶得失，載諸外典。今探是賢劫釈迦一代教文，有三時。一，正法五百年。二，像法千年。三，末法万年。自仏涅槃以来，迄于延暦六年歳次丁卯，而逕一千七百廿二年。過正像二，而入末法。然日本従仏法伝適以還，迄于延暦六年，而逕二百卅六歳也。",
             kakikudashi: "夫（そ）れ善悪（ぜんあく）の因果は、内経（ないきゃう）に著（あらは）る。吉凶（きっきょう）の得失は、諸（もろもろ）の外典（げてん）に載（の）す。今是（こ）の賢劫（けんごふ）の釈迦（しゃか）一代の教文を探るに、三時有り。一には正法（しゃうぼう）五百年。二には像法（ざうぼう）千年。三には末法（まっぽう）万年なり。仏の涅槃より以来、延暦（えんりゃく）六年歳次丁卯に迄（いた）るまで、一千七百二十二年を逕（へ）たり。正・像の二つを過ぎて末法に入れり。然して日本に仏法伝はりてより以還（このかた）、延暦六年に迄るまで二百三十六歳を逕たり。",
             english: "Good and evil karma are set forth in the Inner Scriptures, while good and ill fortune are recorded in the Outer Classics. Examining Śākyamuni's teachings in this Auspicious Kalpa, there are Three Periods: five hundred years of the True Dharma, one thousand years of the Semblance Dharma, and ten thousand years of the Degenerate Dharma (mappō). From the Buddha's nirvāṇa down to the cyclical year hinoto-u, the sixth year of Enryaku (787), 1,722 years have elapsed—passing through the True and Semblance ages into the Degenerate Dharma—while 236 years have passed since the Dharma first reached Japan."
           }
         ]),
         createSeededParagraph("l2", "第2段", [
           {
-            kanbun: "夫花咲無聲，雞鳴無淚。觀代修善之者，若石峰花。作惡之者，似土山毛。匪磰因果作罪，以比無目之人履叵失之兮虎尾。甘嗜名利殺生，疑託鬼之人抱毒蛇。莫朽之號惡種。叵見之號善根。惡報遄來如水鏡。向之即現。夸力颯被如谷響。喚之必應。現報若之，人不慎乎。此生空過，後悔無益。暫爾身詎伯存之。泛爾命孰常恃之。既入末劫，何弗仂矣。喃汎言惻，那免劫災。唯資施眾僧一搏食，於修善之福而不逢當來飢饉之災。苦賴持一日不殺戒，於行道之力而不值末劫刀兵之怨。",
+            kanbun: "夫花咲無声，鶏鳴無涙。観代，修善之者，若石峯花。作悪之者，似土山毛。匪繕因果作罪，嗜名利殺生，疑善根悪種。以比無目之人履虎尾，叵失之兮。託鬼之人抱毒蛇，莫朽之兮。悪報遄来，如水鏡向之即現。幸力颮被，如谷響喚之必応。現報若之，烏人不慎乎。此生空過，後悔無益。暫爾身，詎眉存之。泛爾命，孰常恃之。既入末劫，何弗仂矣。噫矜言側，那免劫災。唯資施衆僧一搏食，於修善之福，而不逢当来飢饉之災苦。頼持一日不殺戒，於行道之力，而不値末劫刀兵之怨害。",
             kakikudashi: "",
             english: ""
           }
         ]),
         createSeededParagraph("l3", "第3段", [
           {
-            kanbun: "昔有一比丘，住山坐禪。每齋食時，拆飲施烏。烏常啄效，每日來候。比丘齋食訖後，嚼楊枝，嗽口洒手，把礫而翫。烏居籬外。時彼比丘，不瞪居烏，投礫中烏。烏頭破飛即死，死生猪，猪住其山。彼猪至於比丘室上，頹石求食，徑下中比丘而死。猪不思賊，石自來殺。無記作罪，無記報怨。何況乎發惡心殺，無彼怨報歟。",
+            kanbun: "昔有一比丘，住山坐禅。毎斎食時，折飯施烏。々常啄効，毎日来候。比丘斎食訖後，嚼楊枝，嗽口洒手，把礫而翫。烏居籬外。時彼比丘，不瞪居烏，投礫中烏。々頭破飛，即死生猪。々住其山。彼猪至於比丘室上，頽石求食，石径下中比丘而死。猪不思賊，石自来殺。無記作罪，無記報怨。何況乎，発悪心殺，無彼怨報歟。",
             kakikudashi: "",
             english: ""
           }
         ]),
         createSeededParagraph("l4", "第4段", [
           {
-            kanbun: "殖惡之因，怨惡之果，是吾迷心。作於福因而鑒菩提，是我寤懷。羊僧景戒，所學者未得天台智者之問術。所悟者未得神人辯者之答術。是猶以螺酌海因管窺天者矣。匪傳燈之良匠，而強訂睠斯事。剋轍淨剎，奔心覺路。遠愧前非，長祈後善。注寄異事，示言提流。授手欲勸，濡足欲導。庶掃地共生西方極樂。傾巢同住天上寶堂者矣。諾樂右京藥師寺沙門景戒錄",
+            kanbun: "殖悪之因，報怨之果，是吾迷心。作於福因，而鑑菩提，是我寤懐。羊僧景戒，所学者，未得天台智者之問術。所悟者，未得神人弁者之答術。是猶以螺酌海因管窺天者矣。匪伝燈之良匠，而強訂睠斯事。剋轍浄刹，奔心覚路。遠愧前非，長祈後善。注奇異事，爾言提流。授手欲勧，濡足欲導。庶掃地共生西方極楽。傾巣同住天上宝堂者矣。",
             kakikudashi: "",
             english: ""
           }
@@ -2133,7 +2155,7 @@ function renderJapaneseRich(raw, regPrefix) {
 
 function renderSidebar() {
   const el = document.getElementById("corpusList");
-  let html = `<div class="corpus-group-label">Active Paratexts</div>`;
+  let html = `<div class="corpus-group-label" style="display:flex;justify-content:space-between;align-items:center;"><span>Active Paratexts</span><button class="btn btn-sm" style="padding:1px 7px;font-size:10.5px;" onclick="openNewDocModal()" title="Create a new text and paste raw Kanbun/Wabun/English">+ New Text</button></div>`;
   for (const doc of state.corpus) {
     const active = doc.id === activeDocId ? "active" : "";
     const badgeClass = doc.type === "kanbun" ? "kanbun" : "wabun";
@@ -2221,7 +2243,8 @@ function renderBanner() {
         <h2>${escapeHtml(doc.title)}</h2>
         <span class="paratext-meta">${escapeHtml(doc.author)} · Click any 「。」 sentence to open the editing window</span>
       </div>
-      <div style="display:flex;gap:6px;">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="btn btn-sm active" onclick="openRawTextModal()" title="Paste, edit, or clear raw Kanbun, Kakikudashi, or English text for this document">📝 Feed / Edit Raw Text</button>
         <button class="btn btn-sm" onclick="toggleWitnessDrawer()">📜 Source &amp; Witness Info</button>
         ${!cloud.ready ? `<button class="btn btn-sm" onclick="resetDemoData()" title="Restore initial sample state">↺ Reset Demo</button>` : ""}
       </div>
@@ -2260,7 +2283,7 @@ function renderPrimaryStage() {
     for (const p of doc.paragraphs) {
       const isBookmarked = doc.bookmarkAfterPara === p.id;
       const { units, metaArr } = getParaUnitsAndMeta(p, primaryLayer);
-      const sentsHtml = units.map((u, idx) => {
+      const sentsHtml = units.length > 0 ? units.map((u, idx) => {
         const isActive = activeSelection &&
           activeSelection.paraId === p.id &&
           activeSelection.anchorLayer === primaryLayer &&
@@ -2269,7 +2292,7 @@ function renderPrimaryStage() {
         const nCount = (m.notes || []).length;
         const badge = nCount ? `<span class="note-indicator" title="${nCount} note(s)">${nCount}</span>` : "";
         return `<span class="doc-sent ${isActive ? 'active-sent' : ''}" data-para="${p.id}" data-layer="${primaryLayer}" data-idx="${idx}" onclick="onPrimarySentClick(event, '${p.id}', '${primaryLayer}', ${idx})"><span class="ku-num">${idx + 1}</span>${renderJapaneseRich(u.text, `main_${p.id}_${primaryLayer}_${idx}`)}${badge}</span>`;
-      }).join("");
+      }).join("") : `<span class="doc-sent en-unassigned" style="font-size:13px;font-family:var(--font-ui);" onclick="openRawTextModal('${primaryLayer}')">［未入力 — クリックして本文を入力・貼付］</span>`;
 
       parasHtml += `
         <div class="tategaki-para">
@@ -3183,6 +3206,8 @@ function submitNote(paraId, anchorLayer, idx, formId) {
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
     if (document.getElementById("popover").classList.contains("open")) closePopover();
+    else if (document.getElementById("rawTextModal").classList.contains("open")) closeRawTextModal();
+    else if (document.getElementById("newDocModal").classList.contains("open")) closeNewDocModal();
     else if (document.getElementById("paraDankuModal").classList.contains("open")) closeParaDankuModal();
     else if (activeSelection) closeCompanionWindow();
     return;
@@ -3468,6 +3493,265 @@ function handleImportJson(ev) {
     }
   };
   reader.readAsText(file);
+}
+
+// ============================================================================
+// 4. RAW TEXT FEED / BULK EDIT MODAL & NEW TEXT CREATOR
+// ============================================================================
+let rawModalLayer = "kanbun";
+let rawModalDrafts = {};
+
+function getDocRawTextForLayer(doc, layer) {
+  const field = layer === "kanbun" ? "kanbunText" : (layer === "kakikudashi" ? "kakikudashiText" : "englishText");
+  const paras = (doc.paragraphs || []).map(p => (p[field] || "").trim());
+  while (paras.length > 0 && paras[paras.length - 1] === "") paras.pop();
+  return paras.join("\n\n");
+}
+
+function openRawTextModal(explicitLayer) {
+  flushAnyPendingDankuEdits();
+  const doc = getActiveDoc();
+  if (!doc) return;
+  rawModalDrafts = {
+    kanbun: getDocRawTextForLayer(doc, "kanbun"),
+    kakikudashi: getDocRawTextForLayer(doc, "kakikudashi"),
+    english: getDocRawTextForLayer(doc, "english")
+  };
+  rawModalLayer = explicitLayer || primaryLayer;
+  if (doc.type === "wabun" && rawModalLayer === "kanbun") rawModalLayer = "kakikudashi";
+  renderRawTextModal();
+  document.getElementById("rawTextModal").classList.add("open");
+}
+
+function closeRawTextModal() {
+  document.getElementById("rawTextModal").classList.remove("open");
+}
+
+function switchRawTextLayer(layer) {
+  const ta = document.getElementById("rawTextArea");
+  if (ta) rawModalDrafts[rawModalLayer] = ta.value;
+  rawModalLayer = layer;
+  renderRawTextModal();
+}
+
+function splitRawChunks(str) {
+  const trimmed = (str || "").trim();
+  if (!trimmed) return [];
+  return trimmed.split(/\n\s*\n+/).map(s => s.trim()).filter(Boolean);
+}
+
+function computeRawStatsText(layer, val) {
+  const chunks = splitRawChunks(val);
+  if (chunks.length === 0) return "Empty (0 paragraphs)";
+  if (layer === "english") {
+    const words = chunks.join(" ").split(/\s+/).filter(Boolean).length;
+    return `${chunks.length} paragraph${chunks.length === 1 ? "" : "s"} · ${words} words`;
+  }
+  const sents = chunks.reduce((sum, c) => sum + splitByMaru(c).length, 0);
+  return `${chunks.length} paragraph${chunks.length === 1 ? "" : "s"} · ${sents} clickable 「。」 sentence${sents === 1 ? "" : "s"}`;
+}
+
+function updateRawTextStats() {
+  const ta = document.getElementById("rawTextArea");
+  if (!ta) return;
+  rawModalDrafts[rawModalLayer] = ta.value;
+  const el = document.getElementById("rawStatsLabel");
+  if (el) el.textContent = computeRawStatsText(rawModalLayer, ta.value);
+}
+
+function clearRawTextLayer() {
+  const ta = document.getElementById("rawTextArea");
+  if (!ta) return;
+  ta.value = "";
+  rawModalDrafts[rawModalLayer] = "";
+  updateRawTextStats();
+  ta.focus();
+}
+
+function mergeRawLineBreaks() {
+  const ta = document.getElementById("rawTextArea");
+  if (!ta) return;
+  const joiner = rawModalLayer === "english" ? " " : "";
+  const cleaned = ta.value
+    .replace(/\r\n/g, "\n")
+    .split(/\n\s*\n+/)
+    .map(p => p.split("\n").map(l => l.trim()).filter(Boolean).join(joiner))
+    .filter(Boolean)
+    .join("\n\n");
+  ta.value = cleaned;
+  rawModalDrafts[rawModalLayer] = cleaned;
+  updateRawTextStats();
+}
+
+function renderRawTextModal() {
+  const doc = getActiveDoc();
+  if (!doc) return;
+  const isWabun = doc.type === "wabun";
+  const val = rawModalDrafts[rawModalLayer] || "";
+  const placeholderMap = {
+    kanbun: "Paste raw Kanbun here. Leave a blank line between paragraphs (第1段, 第2段…). Every 「。」 automatically becomes a clickable sentence.",
+    kakikudashi: isWabun
+      ? "Paste edited Wabun here. Leave a blank line between paragraphs. Furigana like 漢字（かんじ） renders automatically as ruby."
+      : "Paste Kakikudashi here. Leave a blank line between paragraphs. Furigana like 漢字（かんじ） renders automatically as ruby.",
+    english: "Paste English translation here. Leave a blank line between paragraphs to align with 第1段, 第2段…."
+  };
+
+  document.getElementById("rawModalTitle").textContent = `📝 Feed / Edit Raw Text — ${doc.id} · ${doc.title.split("—")[0].trim()}`;
+
+  document.getElementById("rawModalBody").innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+      <div class="seg-control primary-picker">
+        ${!isWabun ? `<button class="${rawModalLayer === 'kanbun' ? 'active' : ''}" onclick="switchRawTextLayer('kanbun')">漢文 Kanbun</button>` : ""}
+        <button class="${rawModalLayer === 'kakikudashi' ? 'active' : ''}" onclick="switchRawTextLayer('kakikudashi')">${isWabun ? '校訂和文 Wabun' : '書き下し Kakikudashi'}</button>
+        <button class="${rawModalLayer === 'english' ? 'active' : ''}" onclick="switchRawTextLayer('english')">English</button>
+      </div>
+      <span id="rawStatsLabel" style="font-size:12px;font-weight:600;color:var(--accent);">${computeRawStatsText(rawModalLayer, val)}</span>
+    </div>
+    <div style="font-size:12px;color:var(--ink-muted);line-height:1.5;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+      <span>Separate paragraphs with a <strong>blank line</strong>. You can switch tabs above to edit or clear multiple text forms before clicking Apply.</span>
+      <span style="display:inline-flex;gap:5px;">
+        ${isScribe ? `<button type="button" class="btn btn-sm" onclick="mergeRawLineBreaks()" title="Join awkward single line breaks inside paragraphs while keeping blank lines as paragraph breaks">↩ Merge Line Breaks</button>
+        <button type="button" class="btn btn-sm" style="color:var(--scribe);border-color:#daa298;" onclick="clearRawTextLayer()" title="Clear all text in this tab">🧹 Clear This Layer</button>` : ""}
+      </span>
+    </div>
+    <textarea id="rawTextArea" style="min-height:290px;font-family:${rawModalLayer === 'english' ? 'var(--font-en)' : 'var(--font-jp)'};font-size:${rawModalLayer === 'english' ? '15px' : '15.5px'};" placeholder="${escapeHtml(placeholderMap[rawModalLayer])}" oninput="updateRawTextStats()" ${!isScribe ? 'readonly' : ''}>${escapeHtml(val)}</textarea>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+      <span style="font-size:11.5px;color:var(--ink-muted);">Existing philological notes and English assignments on matching sentences are preserved automatically.</span>
+      <span style="display:inline-flex;gap:8px;">
+        <button class="btn" onclick="closeRawTextModal()">Cancel</button>
+        ${isScribe ? `<button class="btn active" onclick="applyRawTextModal()">Apply &amp; Sync All Changes</button>` : ""}
+      </span>
+    </div>
+  `;
+}
+
+async function applyRawTextModal() {
+  const doc = getActiveDoc();
+  if (!doc) return;
+  const ta = document.getElementById("rawTextArea");
+  if (ta) rawModalDrafts[rawModalLayer] = ta.value;
+
+  const kbChunks = doc.type === "wabun" ? [] : splitRawChunks(rawModalDrafts.kanbun);
+  const kkChunks = splitRawChunks(rawModalDrafts.kakikudashi);
+  const enChunks = splitRawChunks(rawModalDrafts.english);
+
+  const maxLen = Math.max(1, kbChunks.length, kkChunks.length, enChunks.length);
+  const oldParas = doc.paragraphs || [];
+  const nextParas = [];
+
+  for (let i = 0; i < maxLen; i++) {
+    const existing = oldParas[i];
+    const pId = existing ? existing.id : `p${i + 1}`;
+    const pLabel = existing ? existing.label : `第${i + 1}段`;
+    const newKb = kbChunks[i] || "";
+    const newKk = kkChunks[i] || "";
+    const newEn = enChunks[i] || "";
+
+    const oldKbUnits = existing ? splitByMaru(existing.kanbunText) : [];
+    const newKbUnits = splitByMaru(newKb);
+    const kbMeta = existing ? reconcileMetaBySimilarity(oldKbUnits, newKbUnits, existing.kbMeta || []) : newKbUnits.map((_, idx) => ({ enRanges: [], pairStart: idx, pairEnd: idx, notes: [] }));
+
+    const oldKkUnits = existing ? splitByMaru(existing.kakikudashiText) : [];
+    const newKkUnits = splitByMaru(newKk);
+    const kkMeta = existing ? reconcileMetaBySimilarity(oldKkUnits, newKkUnits, existing.kkMeta || []) : newKkUnits.map((_, idx) => ({ enRanges: [], pairStart: idx, pairEnd: idx, notes: [] }));
+
+    const pObj = { id: pId, label: pLabel, kanbunText: newKb, kakikudashiText: newKk, englishText: newEn, kbMeta, kkMeta };
+    syncEnglishSnapshots(pObj);
+    nextParas.push(pObj);
+  }
+
+  doc.paragraphs = nextParas;
+  activeSelection = null;
+  saveLocalState();
+  closeRawTextModal();
+  closeCompanionWindow();
+  renderPrimaryStage();
+  if (cloud.ready) {
+    await uploadDocsMergeToCloud([doc]);
+  }
+}
+
+function openNewDocModal() {
+  document.getElementById("newDocModalBody").innerHTML = `
+    <div style="display:grid;grid-template-columns:110px 1fr;gap:8px;align-items:center;font-size:12.5px;">
+      <label><strong>ID</strong></label>
+      <input id="nd_id" type="text" placeholder="e.g. 02.02" style="padding:6px 8px;border:1px solid var(--border-strong);border-radius:6px;">
+      <label><strong>Title</strong></label>
+      <input id="nd_title" type="text" placeholder="e.g. 02.02 上巻序 — Sanbōe, Vol. 1 Preface" style="padding:6px 8px;border:1px solid var(--border-strong);border-radius:6px;">
+      <label><strong>Author / Date</strong></label>
+      <input id="nd_author" type="text" placeholder="e.g. 源為憲 Minamoto no Tamenori (984)" style="padding:6px 8px;border:1px solid var(--border-strong);border-radius:6px;">
+      <label><strong>Text Type</strong></label>
+      <select id="nd_type" style="padding:6px 8px;border:1px solid var(--border-strong);border-radius:6px;">
+        <option value="kanbun">漢文 3-Form (Kanbun + Kakikudashi + English)</option>
+        <option value="wabun">和文 2-Form (Wabun + English)</option>
+      </select>
+      <label><strong>Source Info</strong></label>
+      <input id="nd_meta" type="text" placeholder="Edition, manuscript witness, or citation..." style="padding:6px 8px;border:1px solid var(--border-strong);border-radius:6px;">
+    </div>
+    <div>
+      <div style="font-size:12px;font-weight:700;margin-bottom:4px;">Initial Raw Text (Kanbun for 3-Form, or Wabun for 2-Form — blank line separates paragraphs):</div>
+      <textarea id="nd_text" style="min-height:150px;" placeholder="Paste the primary text here..."></textarea>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;">
+      <button class="btn" onclick="closeNewDocModal()">Cancel</button>
+      <button class="btn active" onclick="createNewDocFromModal()">Create &amp; Sync Text</button>
+    </div>
+  `;
+  document.getElementById("newDocModal").classList.add("open");
+}
+
+function closeNewDocModal() {
+  document.getElementById("newDocModal").classList.remove("open");
+}
+
+async function createNewDocFromModal() {
+  const rawId = (document.getElementById("nd_id").value || "").trim();
+  const title = (document.getElementById("nd_title").value || "").trim();
+  const author = (document.getElementById("nd_author").value || "").trim();
+  const type = document.getElementById("nd_type").value;
+  const metadata = (document.getElementById("nd_meta").value || "").trim();
+  const rawText = document.getElementById("nd_text").value || "";
+  if (!rawId || !title) {
+    alert("Please enter at least an ID (e.g. 02.02) and a Title.");
+    return;
+  }
+  const chunks = splitRawChunks(rawText);
+  const paragraphs = (chunks.length ? chunks : [""]).map((txt, i) => ({
+    id: `p${i + 1}`,
+    label: `第${i + 1}段`,
+    kanbunText: type === "kanbun" ? txt : "",
+    kakikudashiText: type === "wabun" ? txt : "",
+    englishText: "",
+    kbMeta: [],
+    kkMeta: []
+  }));
+  const newDoc = {
+    id: rawId,
+    orderIndex: state.corpus.length + 1,
+    collection: title.split("—")[0].trim(),
+    title,
+    author,
+    type,
+    bookmarkAfterPara: null,
+    bookmarkLabel: "",
+    metadata,
+    paragraphs
+  };
+  const existingIdx = state.corpus.findIndex(d => d.id === rawId);
+  if (existingIdx >= 0) state.corpus[existingIdx] = newDoc;
+  else state.corpus.push(newDoc);
+  activeDocId = rawId;
+  activeSelection = null;
+  saveLocalState();
+  closeNewDocModal();
+  closeCompanionWindow();
+  updatePrimaryPickerButtons();
+  renderSidebar();
+  renderBanner();
+  renderPrimaryStage();
+  if (cloud.ready) {
+    await uploadDocsMergeToCloud([newDoc]);
+  }
 }
 
 updatePrimaryPickerButtons();
