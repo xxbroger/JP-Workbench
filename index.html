@@ -496,6 +496,105 @@
     color: #4d3285;
     border: 1px solid #c9b8eb;
   }
+
+  /* Per-Text Change Log (History Modal) */
+  .history-filters {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  .history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 58vh;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+  .history-entry {
+    background: #fffdfb;
+    border: 1px solid var(--border);
+    border-left: 3.5px solid var(--accent);
+    border-radius: 7px;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    font-size: 12.5px;
+  }
+  .history-entry.cat-primary     { border-left-color: #a63228; }
+  .history-entry.cat-kakikudashi { border-left-color: #1f7a5a; }
+  .history-entry.cat-english     { border-left-color: #3454b4; }
+  .history-entry.cat-note        { border-left-color: #c78500; }
+  .history-entry.cat-comment     { border-left-color: #6747a8; }
+  .history-entry.cat-highlight   { border-left-color: #2d7a47; }
+  .history-entry.cat-undo        { border-left-color: #8c4a12; }
+  .history-entry-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .history-badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: #e8eff8;
+    color: #264366;
+    margin-right: 5px;
+  }
+  .history-badge.cat-primary     { background: #a63228; color: #fff; }
+  .history-badge.cat-kakikudashi { background: #1f7a5a; color: #fff; }
+  .history-badge.cat-english     { background: #3454b4; color: #fff; }
+  .history-badge.cat-note        { background: #fff3d1; color: #7a4c00; border: 1px solid #e6be6a; }
+  .history-badge.cat-comment     { background: #f0eafc; color: #4d3285; border: 1px solid #c9b8eb; }
+  .history-badge.cat-highlight   { background: #e3f5e9; color: #1f5c34; border: 1px solid #9ad1ad; }
+  .history-badge.cat-undo        { background: #fcecd8; color: #7c4000; border: 1px solid #e6be81; }
+  .history-diff summary {
+    cursor: pointer;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--accent);
+    user-select: none;
+    margin-top: 2px;
+  }
+  .history-diff-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 5px;
+    margin-top: 6px;
+  }
+  .history-diff-box {
+    border-radius: 5px;
+    padding: 6px 8px;
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .history-diff-box.is-before {
+    background: #fdf0ef;
+    border: 1px solid #ecc4c0;
+    color: #6b1d17;
+  }
+  .history-diff-box.is-after {
+    background: #eef8f2;
+    border: 1px solid #b8dfc6;
+    color: #164d2c;
+  }
+  .history-diff-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    opacity: 0.8;
+    margin-bottom: 2px;
+  }
   .notes-rail-body {
     flex: 1;
     overflow-y: auto;
@@ -1597,6 +1696,17 @@
   </div>
 </div>
 
+<!-- Per-Text Change Log Modal -->
+<div class="modal-backdrop" id="historyModal">
+  <div class="modal-card" style="width:min(680px,95vw);">
+    <div class="modal-head">
+      <span id="historyModalTitle">🕒 Change Log</span>
+      <button class="cw-btn" onclick="closeHistoryModal()">✕</button>
+    </div>
+    <div class="modal-body" id="historyModalBody"></div>
+  </div>
+</div>
+
 <div class="popover" id="popover"></div>
 <div class="hl-toolbar" id="hlToolbar"></div>
 
@@ -2321,6 +2431,7 @@ function saveLocalState() {
 
 function saveState(changedDocId, changedParaId, saveKun) {
   saveLocalState();
+  if (changedDocId) scheduleChangeLogFlush(changedDocId);
   if (!cloud.ready || !cloud.db || !cloud.user) return;
 
   if (saveKun) {
@@ -2873,6 +2984,7 @@ function pushUndoSnapshot(label, debounceKey) {
   if (!doc) return;
   const hist = getDocHistory(doc.id);
   const now = Date.now();
+  capturePendingChangeLogBefore(doc, label || "Edit", debounceKey || "");
   if (debounceKey && hist.lastKey === debounceKey && (now - hist.lastAt) < 2500) {
     hist.lastAt = now;
     return;
@@ -2964,13 +3076,15 @@ async function confirmPendingHistoryAction() {
   if (!fromStack.length) return;
 
   const entry = fromStack.pop();
-  toStack.push({ label: entry.label, snapshot: JSON.parse(JSON.stringify(doc)) });
+  const beforeRollback = JSON.parse(JSON.stringify(doc));
+  toStack.push({ label: entry.label, snapshot: beforeRollback });
   hist.lastKey = "";
   hist.lastAt = 0;
 
   const restored = normalizeDocSchema(entry.snapshot);
   const idx = state.corpus.findIndex(d => d.id === doc.id);
   if (idx >= 0) state.corpus[idx] = restored;
+  recordImmediateChangeLog(doc.id, `${action === 'undo' ? 'Undo' : 'Redo'}: ${entry.label}`, beforeRollback, restored, "undo");
 
   if (activeSelection && !restored.paragraphs.some(p => p.id === activeSelection.paraId)) {
     activeSelection = null;
@@ -3093,12 +3207,385 @@ function renderBanner() {
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
         ${isScribe ? `<button class="btn btn-sm" onclick="openEditDocInfoModal()" title="Edit this text's title, author, and source info">✎ Edit Info</button>` : ""}
         <button class="btn btn-sm active" onclick="openRawTextModal('${stageView === 'kakikudashi' ? 'kakikudashi' : 'primary'}')" title="Paste, edit, or clear raw text">📝 Feed / Edit Raw Text</button>
+        <button class="btn btn-sm" onclick="openHistoryModal()" title="View edit history and before/after changes for this text">🕒 History</button>
         <button class="btn btn-sm" onclick="toggleWitnessDrawer()">📜 Source &amp; Witness Info</button>
         ${!cloud.ready ? `<button class="btn btn-sm" onclick="resetDemoData()" title="Restore initial sample state">↺ Reset Demo</button>` : ""}
       </div>
     </div>
     <div class="witness-drawer" id="witnessDrawer">${escapeHtml(doc.metadata)}</div>
   `;
+}
+
+// ============================================================================
+// PER-TEXT CHANGE LOG (LAZY-LOADED HISTORY + BEFORE/AFTER SNIPPETS)
+// ============================================================================
+const LOCAL_CHANGELOG_KEY = "setsuwa_workbench_changelog_v1";
+const pendingChangeLogByDoc = {};
+const changeLogTimers = {};
+let historyModalEntries = [];
+let historyModalFilter = "all";
+
+function loadLocalChangeLogs() {
+  try { return JSON.parse(localStorage.getItem(LOCAL_CHANGELOG_KEY) || "{}") || {}; } catch (e) { return {}; }
+}
+
+function saveLocalChangeLogEntry(docId, entry) {
+  const all = loadLocalChangeLogs();
+  const arr = Array.isArray(all[docId]) ? all[docId] : [];
+  const idx = arr.findIndex(x => x.id === entry.id);
+  if (idx >= 0) arr[idx] = entry;
+  else arr.unshift(entry);
+  all[docId] = arr.slice(0, 150);
+  try { localStorage.setItem(LOCAL_CHANGELOG_KEY, JSON.stringify(all)); } catch (e) {}
+}
+
+function trimLogSnippet(str, maxLen) {
+  const s = String(str || "").trim();
+  const limit = maxLen || 280;
+  return s.length > limit ? s.slice(0, limit).trim() + "…" : s;
+}
+
+function capturePendingChangeLogBefore(doc, label, groupKey) {
+  if (!doc) return;
+  const now = Date.now();
+  const cur = pendingChangeLogByDoc[doc.id];
+  const canCoalesce = Boolean(cur && groupKey && cur.groupKey === groupKey && (now - cur.startedAt) < 90000);
+  if (canCoalesce) {
+    cur.label = label || cur.label;
+    cur.updatedAt = now;
+    return;
+  }
+  if (cur && cur.dirty) flushChangeLogForDoc(doc.id);
+  pendingChangeLogByDoc[doc.id] = {
+    id: "chg_" + now + "_" + Math.floor(Math.random() * 100000),
+    groupKey: groupKey || "",
+    label: label || "Edit",
+    beforeDoc: JSON.parse(JSON.stringify(doc)),
+    startedAt: now,
+    updatedAt: now,
+    dirty: false
+  };
+}
+
+function computeChangeLogSummary(beforeDoc, afterDoc, label, forcedCategory) {
+  const lbl = label || "Edit";
+  let category = forcedCategory || "info";
+  let target = "";
+  let beforeText = "";
+  let afterText = "";
+
+  if (!beforeDoc || !afterDoc) {
+    return { category, action: lbl, target, beforeText, afterText };
+  }
+
+  // 1. Check document metadata changes
+  const metaChangesB = [];
+  const metaChangesA = [];
+  if ((beforeDoc.title || "") !== (afterDoc.title || "")) {
+    metaChangesB.push(`Title: ${beforeDoc.title || ""}`);
+    metaChangesA.push(`Title: ${afterDoc.title || ""}`);
+  }
+  if ((beforeDoc.author || "") !== (afterDoc.author || "")) {
+    metaChangesB.push(`Author: ${beforeDoc.author || ""}`);
+    metaChangesA.push(`Author: ${afterDoc.author || ""}`);
+  }
+  if ((beforeDoc.metadata || "") !== (afterDoc.metadata || "")) {
+    metaChangesB.push(`Source: ${beforeDoc.metadata || ""}`);
+    metaChangesA.push(`Source: ${afterDoc.metadata || ""}`);
+  }
+  if (Boolean(beforeDoc.hasKakikudashi) !== Boolean(afterDoc.hasKakikudashi)) {
+    metaChangesB.push(`書き下し: ${beforeDoc.hasKakikudashi ? "On" : "Off"}`);
+    metaChangesA.push(`書き下し: ${afterDoc.hasKakikudashi ? "On" : "Off"}`);
+  }
+  if (metaChangesB.length) {
+    return {
+      category: forcedCategory || "info",
+      action: lbl,
+      target: (afterDoc.title || "").split("—")[0].trim(),
+      beforeText: trimLogSnippet(metaChangesB.join("\n")),
+      afterText: trimLogSnippet(metaChangesA.join("\n"))
+    };
+  }
+
+  const bParas = beforeDoc.paragraphs || [];
+  const aParas = afterDoc.paragraphs || [];
+  const maxP = Math.max(bParas.length, aParas.length);
+
+  for (let pi = 0; pi < maxP; pi++) {
+    const bp = bParas[pi] || { primaryText: "", kakikudashiText: "", englishText: "", sentMeta: [], highlights: [] };
+    const ap = aParas[pi] || { primaryText: "", kakikudashiText: "", englishText: "", sentMeta: [], highlights: [] };
+
+    // 2. Check highlights / highlight notes / comments
+    const bHls = bp.highlights || [];
+    const aHls = ap.highlights || [];
+    const bMap = new Map(bHls.map(h => [h.id, h]));
+    const aMap = new Map(aHls.map(h => [h.id, h]));
+    const allHlIds = new Set([...bMap.keys(), ...aMap.keys()]);
+    for (const hid of allHlIds) {
+      const bh = bMap.get(hid);
+      const ah = aMap.get(hid);
+      if (JSON.stringify(bh || null) === JSON.stringify(ah || null)) continue;
+      const ref = ah || bh;
+      const layerName = ref.layer === "primary" ? "原文" : (ref.layer === "kakikudashi" ? "書き下し" : "English");
+      const snap = ref.snapshot || "";
+      target = `[${layerName}] ${ref.layer === "english" ? '"' + snap + '"' : '「' + snap + '」'}`;
+      const bCm = bh && bh.comment ? (bh.comment.text || "") : null;
+      const aCm = ah && ah.comment ? (ah.comment.text || "") : null;
+      const bNt = bh && bh.note ? (bh.note.text || "") : null;
+      const aNt = ah && ah.note ? (ah.note.text || "") : null;
+      if (bCm !== aCm) {
+        return {
+          category: forcedCategory || "comment",
+          action: lbl,
+          target,
+          beforeText: bCm !== null ? trimLogSnippet(bCm) : "(no comment)",
+          afterText: aCm !== null ? trimLogSnippet(aCm) : "(removed)"
+        };
+      }
+      if (bNt !== aNt) {
+        return {
+          category: forcedCategory || "note",
+          action: lbl,
+          target,
+          beforeText: bNt !== null ? trimLogSnippet(bNt) : "(no note)",
+          afterText: aNt !== null ? trimLogSnippet(aNt) : "(removed)"
+        };
+      }
+      return {
+        category: forcedCategory || "highlight",
+        action: lbl,
+        target,
+        beforeText: bh ? `Highlight (${bh.color || "amber"})` : "(not highlighted)",
+        afterText: ah ? `Highlight (${ah.color || "amber"})` : "(removed)"
+      };
+    }
+
+    // 3. Check sentence-level notes
+    const bMeta = bp.sentMeta || [];
+    const aMeta = ap.sentMeta || [];
+    const maxS = Math.max(bMeta.length, aMeta.length);
+    for (let si = 0; si < maxS; si++) {
+      const bNotes = (bMeta[si] && bMeta[si].notes) || [];
+      const aNotes = (aMeta[si] && aMeta[si].notes) || [];
+      if (JSON.stringify(bNotes) === JSON.stringify(aNotes)) continue;
+      const aUnits = splitByMaru(ap.primaryText || bp.primaryText || "");
+      const snip = getSentenceSnippet(aUnits[si] && aUnits[si].text, 10);
+      target = snip ? `「${snip}」` : `Sentence ${si + 1}`;
+      const bTxt = bNotes.map(n => n.text || "").join("\n---\n");
+      const aTxt = aNotes.map(n => n.text || "").join("\n---\n");
+      return {
+        category: forcedCategory || "note",
+        action: lbl,
+        target,
+        beforeText: trimLogSnippet(bTxt || "(no note)"),
+        afterText: trimLogSnippet(aTxt || "(removed)")
+      };
+    }
+
+    // 4. Check paragraph text layers (primary / kakikudashi / english)
+    const layerChecks = [
+      { field: "primaryText", cat: "primary", isJp: true },
+      { field: "kakikudashiText", cat: "kakikudashi", isJp: true },
+      { field: "englishText", cat: "english", isJp: false }
+    ];
+    for (const lc of layerChecks) {
+      const bt = bp[lc.field] || "";
+      const at = ap[lc.field] || "";
+      if (bt === at) continue;
+      category = forcedCategory || lc.cat;
+      if (lc.field === "primaryText") {
+        const bu = splitByMaru(bt);
+        const au = splitByMaru(at);
+        let diffIdx = 0;
+        while (diffIdx < bu.length && diffIdx < au.length && bu[diffIdx].text === au[diffIdx].text) diffIdx++;
+        const bSent = (bu[diffIdx] && bu[diffIdx].text) || bt;
+        const aSent = (au[diffIdx] && au[diffIdx].text) || at;
+        const snip = getSentenceSnippet(aSent || bSent, 10);
+        target = snip ? `「${snip}」` : "原文";
+        beforeText = trimLogSnippet(bSent);
+        afterText = trimLogSnippet(aSent);
+      } else {
+        let pre = 0;
+        while (pre < bt.length && pre < at.length && bt[pre] === at[pre]) pre++;
+        let suf = 0;
+        while (suf < (bt.length - pre) && suf < (at.length - pre) && bt[bt.length - 1 - suf] === at[at.length - 1 - suf]) suf++;
+        const pad = 28;
+        const bStart = Math.max(0, pre - pad);
+        const bEnd = Math.min(bt.length, bt.length - suf + pad);
+        const aStart = Math.max(0, pre - pad);
+        const aEnd = Math.min(at.length, at.length - suf + pad);
+        beforeText = trimLogSnippet((bStart > 0 ? "…" : "") + bt.slice(bStart, bEnd) + (bEnd < bt.length ? "…" : ""));
+        afterText = trimLogSnippet((aStart > 0 ? "…" : "") + at.slice(aStart, aEnd) + (aEnd < at.length ? "…" : ""));
+        target = lc.cat === "kakikudashi" ? "書き下し" : "English";
+      }
+      return { category, action: lbl, target, beforeText, afterText };
+    }
+  }
+
+  return { category, action: lbl, target, beforeText, afterText };
+}
+
+function writeChangeLogEntryToCloud(docId, entry) {
+  saveLocalChangeLogEntry(docId, entry);
+  if (!cloud.ready || !cloud.db || !cloud.user) return;
+  const { doc, setDoc } = cloud.sdk;
+  setDoc(doc(cloud.db, "docs", docId, "history", entry.id), entry).catch(err => {
+    console.warn("Change log write skipped:", err);
+  });
+}
+
+function recordImmediateChangeLog(docId, label, beforeDoc, afterDoc, forcedCategory) {
+  const summary = computeChangeLogSummary(beforeDoc, afterDoc, label, forcedCategory);
+  const entry = {
+    id: "chg_" + Date.now() + "_" + Math.floor(Math.random() * 100000),
+    author: getCurrentUserName(),
+    timestamp: getServerNowMs(),
+    category: summary.category,
+    action: summary.action,
+    target: summary.target,
+    beforeText: summary.beforeText,
+    afterText: summary.afterText
+  };
+  writeChangeLogEntryToCloud(docId, entry);
+}
+
+function scheduleChangeLogFlush(docId) {
+  const pend = pendingChangeLogByDoc[docId];
+  if (!pend) return;
+  pend.dirty = true;
+  pend.updatedAt = Date.now();
+  if (changeLogTimers[docId]) clearTimeout(changeLogTimers[docId]);
+  changeLogTimers[docId] = setTimeout(() => flushChangeLogForDoc(docId), 1400);
+}
+
+function flushChangeLogForDoc(docId) {
+  if (changeLogTimers[docId]) {
+    clearTimeout(changeLogTimers[docId]);
+    delete changeLogTimers[docId];
+  }
+  const pend = pendingChangeLogByDoc[docId];
+  if (!pend || !pend.dirty) return;
+  const afterDoc = state.corpus.find(d => d.id === docId);
+  if (!afterDoc) return;
+  pend.dirty = false;
+  const summary = computeChangeLogSummary(pend.beforeDoc, afterDoc, pend.label);
+  if (!summary.beforeText && !summary.afterText && !summary.target) return;
+  const entry = {
+    id: pend.id,
+    author: getCurrentUserName(),
+    timestamp: getServerNowMs(),
+    category: summary.category,
+    action: summary.action,
+    target: summary.target,
+    beforeText: summary.beforeText,
+    afterText: summary.afterText
+  };
+  writeChangeLogEntryToCloud(docId, entry);
+}
+
+async function openHistoryModal() {
+  const doc = getActiveDoc();
+  if (!doc) return;
+  flushChangeLogForDoc(doc.id);
+  historyModalFilter = "all";
+  document.getElementById("historyModalTitle").textContent = `🕒 Change Log — ${doc.title.split("—")[0].trim()}`;
+  const body = document.getElementById("historyModalBody");
+  body.innerHTML = `<div style="font-size:13px;color:var(--ink-muted);padding:16px 4px;">Loading change log…</div>`;
+  document.getElementById("historyModal").classList.add("open");
+
+  let entries = [];
+  if (cloud.ready && cloud.db && cloud.user && cloud.sdk && cloud.sdk.getDocs) {
+    try {
+      const { collection, getDocs, query, orderBy, limit } = cloud.sdk;
+      const q = query(collection(cloud.db, "docs", doc.id, "history"), orderBy("timestamp", "desc"), limit(100));
+      const snap = await getDocs(q);
+      snap.forEach(d => entries.push(d.data()));
+    } catch (err) {
+      console.warn("History fetch fallback to local:", err);
+      entries = loadLocalChangeLogs()[doc.id] || [];
+    }
+  } else {
+    entries = loadLocalChangeLogs()[doc.id] || [];
+  }
+  entries.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+  historyModalEntries = entries;
+  renderHistoryModalBody();
+}
+
+function closeHistoryModal() {
+  document.getElementById("historyModal").classList.remove("open");
+}
+
+function setHistoryFilter(filterKey) {
+  historyModalFilter = filterKey || "all";
+  renderHistoryModalBody();
+}
+
+function renderHistoryModalBody() {
+  const body = document.getElementById("historyModalBody");
+  if (!body) return;
+  const catLabels = {
+    primary: "原文",
+    kakikudashi: "書き下し",
+    english: "English",
+    note: "Note",
+    comment: "Comment",
+    highlight: "Highlight",
+    info: "Info",
+    undo: "Undo / Redo"
+  };
+  const filtered = historyModalEntries.filter(e => {
+    if (historyModalFilter === "all") return true;
+    if (historyModalFilter === "text") return e.category === "primary" || e.category === "kakikudashi" || e.category === "english";
+    if (historyModalFilter === "notes") return e.category === "note" || e.category === "comment";
+    if (historyModalFilter === "other") return e.category === "highlight" || e.category === "info" || e.category === "undo";
+    return true;
+  });
+
+  const filtersHtml = `
+    <div class="history-filters">
+      <button class="btn btn-sm ${historyModalFilter === 'all' ? 'active' : ''}" onclick="setHistoryFilter('all')">All (${historyModalEntries.length})</button>
+      <button class="btn btn-sm ${historyModalFilter === 'text' ? 'active' : ''}" onclick="setHistoryFilter('text')">Text Edits</button>
+      <button class="btn btn-sm ${historyModalFilter === 'notes' ? 'active' : ''}" onclick="setHistoryFilter('notes')">Notes &amp; Comments</button>
+      <button class="btn btn-sm ${historyModalFilter === 'other' ? 'active' : ''}" onclick="setHistoryFilter('other')">Highlights &amp; Info</button>
+      <span style="margin-left:auto;font-size:11px;color:var(--ink-faint);">Not included in exports</span>
+    </div>
+  `;
+
+  if (!filtered.length) {
+    body.innerHTML = filtersHtml + `<div style="font-size:13px;color:var(--ink-faint);padding:20px 6px;text-align:center;">No edits recorded in this view yet. Future edits to this text will appear here automatically with author, timestamp, and before/after previews.</div>`;
+    return;
+  }
+
+  const itemsHtml = filtered.map(e => {
+    const cat = e.category || "info";
+    const badge = catLabels[cat] || "Edit";
+    const ts = formatNoteTimestamp(e.timestamp);
+    const hasDiff = Boolean((e.beforeText || "") !== (e.afterText || "") && (e.beforeText || e.afterText));
+    return `
+      <div class="history-entry cat-${cat}">
+        <div class="history-entry-top">
+          <div>
+            <span class="history-badge cat-${cat}">${escapeHtml(badge)}</span>
+            <strong>${escapeHtml(e.author || "Member")}</strong>
+            <span style="color:var(--ink-muted);">· ${escapeHtml(e.action || "Edit")}${e.target ? " — " + escapeHtml(e.target) : ""}</span>
+          </div>
+          <span style="font-size:11px;color:var(--ink-faint);">${escapeHtml(ts)}</span>
+        </div>
+        ${hasDiff ? `
+          <details class="history-diff">
+            <summary>Show before / after</summary>
+            <div class="history-diff-grid">
+              <div class="history-diff-box is-before"><div class="history-diff-label">Before</div>${escapeHtml(e.beforeText || "(empty)")}</div>
+              <div class="history-diff-box is-after"><div class="history-diff-label">After</div>${escapeHtml(e.afterText || "(empty)")}</div>
+            </div>
+          </details>
+        ` : ""}
+      </div>
+    `;
+  }).join("");
+
+  body.innerHTML = filtersHtml + `<div class="history-list">${itemsHtml}</div>`;
 }
 
 const HL_COLORS = [
@@ -5285,6 +5772,7 @@ document.addEventListener("keydown", (e) => {
     if (document.getElementById("exportDropdownMenu").classList.contains("open")) closeExportMenu();
     else if (document.getElementById("popover").classList.contains("open")) closePopover();
     else if (document.getElementById("hlToolbar").classList.contains("open")) hideHlToolbar();
+    else if (document.getElementById("historyModal").classList.contains("open")) closeHistoryModal();
     else if (document.getElementById("undoConfirmModal").classList.contains("open")) closeUndoConfirmModal();
     else if (document.getElementById("editDocInfoModal").classList.contains("open")) closeEditDocInfoModal();
     else if (document.getElementById("rawTextModal").classList.contains("open")) closeRawTextModal();
