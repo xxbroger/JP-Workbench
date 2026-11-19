@@ -233,6 +233,7 @@
     white-space: nowrap;
   }
   .badge-lang.kanbun { background: #dce7f4; color: #23446b; }
+  .badge-lang.wakan { background: #e8e2f4; color: #4b367c; }
   .badge-lang.wabun { background: #e3eee4; color: #28562d; }
   .corpus-item-sub {
     font-size: 11px;
@@ -297,6 +298,17 @@
     font-size: 11px;
     padding: 3px 8px;
   }
+  .style-select {
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid #b7cde8;
+    background: #eef4fb;
+    color: #23446b;
+    cursor: pointer;
+  }
   .seg-control {
     display: inline-flex;
     background: var(--bg-sidebar);
@@ -333,10 +345,6 @@
   .seg-control.primary-picker button.active {
     background: var(--accent);
     color: #fff;
-  }
-  .seg-control button:disabled {
-    opacity: 0.38;
-    cursor: not-allowed;
   }
   .control-label {
     font-size: 11px;
@@ -407,9 +415,9 @@
 
   /* Persistent Right-Hand Editorial Notes Rail (Always Horizontal) */
   aside.notes-rail {
-    width: 340px;
-    min-width: 290px;
-    max-width: 390px;
+    width: 330px;
+    min-width: 280px;
+    max-width: 380px;
     background: var(--bg-card);
     border-left: 1px solid var(--border-strong);
     display: flex;
@@ -458,9 +466,6 @@
     gap: 6px;
     transition: box-shadow 0.15s, border-color 0.15s;
   }
-  .fn-card.cat-variant { border-left-color: var(--var-line); }
-  .fn-card.cat-locus { border-left-color: #7a5195; }
-  .fn-card.cat-suggestion { border-left-color: var(--scribe); }
   .fn-card.active-fn {
     box-shadow: 0 0 0 2px rgba(184, 93, 0, 0.35);
     background: #fffdf7;
@@ -489,20 +494,6 @@
     cursor: pointer;
   }
   .fn-num-pill:hover { background: #d4e4f7; }
-  .fn-edit-row {
-    display: flex;
-    gap: 5px;
-    flex-wrap: wrap;
-  }
-  .fn-edit-row select, .fn-edit-row input {
-    font-family: var(--font-ui);
-    font-size: 11.5px;
-    padding: 3px 6px;
-    border: 1px solid var(--border-strong);
-    border-radius: 5px;
-    background: #fff;
-    color: var(--ink);
-  }
   .fn-textarea {
     width: 100%;
     font-family: var(--font-ui);
@@ -588,13 +579,22 @@
   }
   .witness-drawer.open { display: block; }
 
-  /* Primary Reading Canvas: Vertical Tategaki Mode */
+  /* Reading Stage Split: Vertical Primary Text + Optional English Final Product Pane */
+  .reading-canvas-row {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+  }
   .tategaki-primary-wrap {
     flex: 1;
     display: flex;
     flex-direction: column;
     min-height: 0;
-    padding: 14px 18px;
+    min-width: 0;
+    padding: 14px 16px;
   }
   .tategaki-paper {
     flex: 1;
@@ -665,33 +665,45 @@
   }
   body.hide-ku-nums .ku-num { display: none; }
 
-  /* Primary Reading Canvas: Horizontal English Mode */
-  .english-primary-wrap {
+  /* Side-by-Side English Product Preview Column */
+  .english-product-pane {
+    width: 40%;
+    min-width: 310px;
+    max-width: 520px;
+    border-left: 1px solid var(--border);
+    background: var(--bg-card);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .english-product-head {
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-subtle);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .english-product-body {
     flex: 1;
     overflow-y: auto;
-    padding: 22px 28px 80px;
-  }
-  .english-paper {
-    max-width: 850px;
-    margin: 0 auto;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 32px 42px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+    padding: 18px 22px 60px;
     font-family: var(--font-en);
-    font-size: 17.5px;
-    line-height: 1.84;
+    font-size: 16px;
+    line-height: 1.78;
   }
   .en-para-block {
-    margin-bottom: 24px;
+    margin-bottom: 20px;
   }
   .en-para-head {
     font-family: var(--font-ui);
     font-size: 11px;
     font-weight: 700;
     color: var(--ink-muted);
-    margin-bottom: 6px;
+    margin-bottom: 4px;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -711,20 +723,6 @@
   .doc-sent.en-unassigned {
     color: var(--ink-muted);
     border-bottom: 1px dotted var(--border-strong);
-  }
-  .note-indicator {
-    writing-mode: horizontal-tb;
-    display: inline-block;
-    font-family: var(--font-ui);
-    font-size: 9.5px;
-    font-weight: 700;
-    background: var(--accent);
-    color: #fff;
-    border-radius: 99px;
-    padding: 0 5px;
-    line-height: 15px;
-    margin: 2px;
-    vertical-align: middle;
   }
 
   /* Ruby Furigana Modes */
@@ -769,7 +767,7 @@
   }
   .var-span:hover { background: var(--var-bg); }
 
-  /* Companion Window */
+  /* Sentence Editor Window (Clean 1-Directional Pipeline: Primary -> [Kakikudashi] -> English) */
   .companion-window {
     display: none;
     background: var(--bg-card);
@@ -783,8 +781,8 @@
 
   .companion-window.mode-float {
     position: fixed;
-    width: min(1080px, 95vw);
-    max-height: 68vh;
+    width: min(1020px, 94vw);
+    max-height: 66vh;
     bottom: 18px;
     left: 280px;
     border-radius: 12px;
@@ -793,8 +791,8 @@
   .companion-window.mode-bottom {
     position: relative;
     width: 100%;
-    height: 50%;
-    min-height: 310px;
+    height: 48%;
+    min-height: 290px;
     border-left: none;
     border-right: none;
     border-bottom: none;
@@ -804,7 +802,7 @@
   .companion-window.mode-left {
     position: relative;
     width: 50%;
-    min-width: 440px;
+    min-width: 420px;
     height: 100%;
     border-top: none;
     border-bottom: none;
@@ -816,7 +814,7 @@
   .cw-header {
     background: #233b5d;
     color: #fff;
-    padding: 8px 14px;
+    padding: 7px 14px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -832,7 +830,7 @@
     font-weight: 600;
     display: flex;
     align-items: center;
-    gap: 7px;
+    gap: 8px;
     flex-wrap: wrap;
   }
   .cw-controls {
@@ -857,16 +855,16 @@
   .cw-body {
     flex: 1;
     overflow-y: auto;
-    padding: 13px 15px;
+    padding: 12px 14px;
     display: flex;
     flex-direction: column;
-    gap: 13px;
+    gap: 10px;
     background: var(--bg-subtle);
   }
 
   .cw-layers-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(275px, 1fr));
     gap: 12px;
     align-items: start;
   }
@@ -881,7 +879,10 @@
   }
   .layer-card.is-primary-card {
     background: #fcfaf5;
-    border-style: dashed;
+  }
+  .layer-card.is-product-card {
+    border-color: #c2d4ea;
+    background: #fdfefe;
   }
   .layer-card-head {
     display: flex;
@@ -890,7 +891,7 @@
     font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.04em;
     color: var(--ink-muted);
     gap: 6px;
     flex-wrap: wrap;
@@ -902,9 +903,16 @@
     border-radius: 4px;
     font-size: 10px;
   }
-  .layer-badge-companion {
-    background: var(--accent-soft);
-    color: var(--accent);
+  .layer-badge-optional {
+    background: #f0ebe0;
+    color: #6b6255;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+  }
+  .layer-badge-product {
+    background: var(--ok-bg);
+    color: var(--ok-green);
     padding: 1px 6px;
     border-radius: 4px;
     font-size: 10px;
@@ -918,9 +926,9 @@
     text-orientation: upright;
     font-family: var(--font-jp);
     font-size: 16.5px;
-    line-height: 2.25;
+    line-height: 2.22;
     letter-spacing: 0.04em;
-    height: 165px;
+    height: 142px;
     width: 100%;
     overflow-x: auto;
     overflow-y: hidden;
@@ -930,21 +938,27 @@
     font-family: var(--font-en);
     font-size: 15px;
     line-height: 1.62;
-    padding: 6px 8px;
+    padding: 7px 9px;
     background: #fffcf5;
     border: 1px solid #eadcb8;
     border-radius: 6px;
     color: var(--ink);
   }
-  .cw-en-empty {
-    font-size: 12.5px;
-    font-style: italic;
-    color: var(--ink-faint);
-    padding: 6px 4px;
-  }
 
-  .layer-editor-wrap { display: flex; flex-direction: column; gap: 5px; }
-  .markup-toolbar { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+  .layer-editor-wrap { display: flex; flex-direction: column; gap: 6px; }
+  .markup-toolbar {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .markup-group {
+    display: inline-flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
   .markup-btn {
     font-size: 10.5px;
     padding: 2px 6px;
@@ -972,16 +986,33 @@
     font-size: 13.5px;
     line-height: 1.55;
     padding: 7px 9px;
-    border: 1px solid #d5a69d;
+    border: 1px solid var(--border-strong);
     border-radius: 6px;
     background: #fffdfb;
     color: var(--ink);
     resize: vertical;
-    min-height: 62px;
+    min-height: 68px;
+  }
+  .layer-textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: #fff;
   }
   .layer-textarea.jp-input { font-family: var(--font-jp); font-size: 14px; }
-  .layer-textarea.en-input { font-family: var(--font-en); font-size: 14.5px; }
+  .layer-textarea.en-input { font-family: var(--font-en); font-size: 14.5px; min-height: 112px; }
 
+  .en-mapper-toggle {
+    font-size: 11px;
+    color: var(--accent);
+    cursor: pointer;
+    user-select: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 600;
+    padding-top: 2px;
+  }
+  .en-mapper-toggle:hover { text-decoration: underline; }
   .en-mapper-wrap {
     border-top: 1px dashed var(--border);
     padding-top: 8px;
@@ -1002,13 +1033,13 @@
     background: var(--bg-subtle);
     border: 1px solid var(--border-strong);
     border-radius: 6px;
-    padding: 10px 12px;
+    padding: 9px 11px;
     font-family: var(--font-en);
-    font-size: 14px;
-    line-height: 1.72;
+    font-size: 13.5px;
+    line-height: 1.68;
     color: var(--ink);
     cursor: text;
-    max-height: 165px;
+    max-height: 145px;
     overflow-y: auto;
   }
   .en-mapper-box::selection, .en-mapper-box *::selection {
@@ -1035,19 +1066,6 @@
     vertical-align: text-top;
   }
   .en-seg-active.en-seg-badge::before { background: #b87a00; color: #fff; }
-
-  .pair-range-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 6px;
-    background: var(--bg-subtle);
-    border: 1px solid var(--border);
-    border-radius: 5px;
-    padding: 4px 8px;
-    font-size: 11px;
-    color: var(--ink-muted);
-  }
 
   .modal-backdrop {
     position: fixed;
@@ -1096,75 +1114,6 @@
     padding: 10px;
     border: 1px solid var(--border-strong);
     border-radius: 7px;
-  }
-
-  .cw-notes-box {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 9px;
-    padding: 11px 13px;
-  }
-  .note-card {
-    background: var(--bg-subtle);
-    border: 1px solid var(--border);
-    border-left: 3px solid var(--accent);
-    border-radius: 6px;
-    padding: 7px 10px;
-    font-size: 12.5px;
-    line-height: 1.5;
-    margin-bottom: 6px;
-  }
-  .note-card.cat-variant { border-left-color: var(--var-line); }
-  .note-card.cat-locus { border-left-color: #7a5195; }
-  .note-card.cat-suggestion { border-left-color: var(--scribe); }
-  .note-meta {
-    display: flex;
-    justify-content: space-between;
-    font-size: 11px;
-    color: var(--ink-muted);
-    margin-bottom: 3px;
-  }
-  .note-tag {
-    font-weight: 700;
-    font-size: 10px;
-    padding: 1px 5px;
-    border-radius: 4px;
-    background: rgba(0,0,0,0.06);
-  }
-  .note-lemma {
-    font-family: var(--font-jp);
-    font-weight: 700;
-    margin-right: 4px;
-  }
-
-  .add-note-form {
-    display: none;
-    background: var(--bg-subtle);
-    padding: 8px;
-    border-radius: 6px;
-    border: 1px solid var(--border-strong);
-    margin-top: 6px;
-  }
-  .add-note-form.open { display: block; }
-  .add-note-row {
-    display: flex;
-    gap: 6px;
-    margin-bottom: 6px;
-    flex-wrap: wrap;
-  }
-  .add-note-row input, .add-note-row select, .add-note-form textarea {
-    font-family: var(--font-ui);
-    font-size: 12px;
-    padding: 5px 7px;
-    border: 1px solid var(--border-strong);
-    border-radius: 5px;
-    background: #fff;
-  }
-  .add-note-form textarea {
-    width: 100%;
-    min-height: 52px;
-    resize: vertical;
-    margin-bottom: 6px;
   }
 
   .popover {
@@ -1250,12 +1199,13 @@
   <header class="topbar">
     <div class="topbar-left">
       <button class="btn" onclick="toggleSidebar()" title="Show/Hide Corpus Sidebar">☰ Corpus</button>
-      <span class="control-label">Primary Text:</span>
-      <div class="seg-control primary-picker" id="primaryPicker">
-        <button id="pick_kanbun" onclick="setPrimaryLayer('kanbun')">漢文 Kanbun</button>
-        <button id="pick_kakikudashi" onclick="setPrimaryLayer('kakikudashi')">書き下し Kakikudashi</button>
-        <button id="pick_english" onclick="setPrimaryLayer('english')">English</button>
-      </div>
+      <span class="control-label">Primary Style:</span>
+      <select class="style-select" id="primaryStyleSelect" onchange="onChangePrimaryStyle(this.value)" title="Register of this document's primary source text">
+        <option value="kanbun">漢文 Kanbun</option>
+        <option value="wakan">和漢混じり文 Wakan</option>
+        <option value="wabun">和文 Wabun</option>
+      </select>
+      <button class="btn" id="enProductToggleBtn" onclick="toggleEnglishProductPane()" title="Show/Hide assembled English Translation product alongside the primary text">📖 English Product</button>
 
       <span class="control-label" style="margin-left:4px;">Ruby:</span>
       <div class="seg-control" id="rubyControl">
@@ -1264,7 +1214,7 @@
         <button onclick="setRubyMode('hidden', this)">Off</button>
       </div>
       <button class="btn" id="kunInlineBtn" onclick="toggleKunInline()" title="Show alternate kun-readings inline alongside vertical columns">左傍注 Alt Kun</button>
-      <button class="btn" id="kuNumBtn" onclick="toggleKuNums()" title="Optional: show/hide sentence numbers">Sent #</button>
+      <button class="btn" id="kuNumBtn" onclick="toggleKuNums()" title="Show/hide sentence numbers">Sent #</button>
       <div class="seg-control" title="Adjust Text Size">
         <button onclick="adjustFontSize(-1.5)">A−</button>
         <button onclick="adjustFontSize(1.5)">A+</button>
@@ -1290,20 +1240,17 @@
     <div class="stage-body" id="stageBody">
       <div class="primary-stage">
         <div class="paratext-banner" id="paratextBanner"></div>
-        <div id="primaryCanvasHost" style="flex:1;display:flex;flex-direction:column;min-height:0;"></div>
+        <div id="primaryCanvasHost" class="reading-canvas-row"></div>
       </div>
 
       <section class="companion-window mode-float" id="companionWindow">
         <div class="cw-header" id="cwHeader">
           <div class="cw-title">
-            <span id="cwTitleText">Sentence Inspector</span>
-            <button class="cw-btn" onclick="stepSentence(-1)" title="Previous sentence (↑ / →)">← Prev Sentence</button>
-            <button class="cw-btn" onclick="stepSentence(1)" title="Next sentence (↓ / ←)">Next Sentence →</button>
-            <button class="cw-btn" onclick="openParaDankuModal()" title="Edit 。 sentence punctuation across this entire paragraph">✂ Paragraph Punctuation</button>
-            <button class="cw-btn active" onclick="addFootnoteForActiveSentence()" title="Add a numbered footnote linked to this sentence across all text forms">+ Add Note</button>
+            <span id="cwTitleText">Sentence Editor</span>
+            <button class="cw-btn" id="cwKakikudashiBtn" onclick="toggleDocKakikudashiLayer()" title="Add or hide the optional 書き下し (Kakikudashi) layer">+ 書き下し Layer</button>
+            <button class="cw-btn active" onclick="addFootnoteForActiveSentence()" title="Add a numbered footnote to the Editorial Notes panel">+ Add Note</button>
           </div>
           <div class="cw-controls">
-            <button class="cw-btn active" id="editPrimaryToggleBtn" onclick="toggleShowPrimaryInWindow()" title="Show or hide editor for the primary layer inside this window">✓ Primary Included</button>
             <button class="cw-btn active" id="winMode_float" onclick="setWindowMode('float')" title="Floating draggable window">⧉ Float</button>
             <button class="cw-btn" id="winMode_bottom" onclick="setWindowMode('bottom')" title="Dock at bottom">⬓ Bottom</button>
             <button class="cw-btn" id="winMode_left" onclick="setWindowMode('left')" title="Dock on left">◫ Left</button>
@@ -1319,7 +1266,7 @@
       <div class="notes-rail-head">
         <div>
           <h3>Editorial Notes <span id="notesRailCount">(0)</span></h3>
-          <div class="notes-rail-sub">Linked across Kanbun, Kakikudashi &amp; English</div>
+          <div class="notes-rail-sub">Footnotes linked to sentences</div>
         </div>
         <button class="btn btn-sm" onclick="toggleNotesRail()" title="Hide Editorial Notes panel">✕</button>
       </div>
@@ -1339,7 +1286,7 @@
   </div>
 </div>
 
-<!-- Raw Text Feed / Bulk Edit Modal (Per Text Form) -->
+<!-- Raw Text Feed / Bulk Edit Modal -->
 <div class="modal-backdrop" id="rawTextModal">
   <div class="modal-card">
     <div class="modal-head">
@@ -1365,8 +1312,19 @@
 
 <script>
 // ============================================================================
-// 1. ASIAN SENTENCE MARKER ("。") CLICKABLE-UNIT TOKENIZER & DANKU ENGINE
+// 1. SENTENCE TOKENIZER ("。") & ONE-DIRECTIONAL SCHEMA MIGRATION
+//    Pipeline: Primary Text (漢文 / 和漢混じり文 / 和文) -> [Optional 書き下し] -> English Product
 // ============================================================================
+const PRIMARY_STYLE_LABELS = {
+  kanbun: { short: "漢文", full: "漢文 Kanbun", badgeCls: "kanbun" },
+  wakan:  { short: "和漢混じり文", full: "和漢混じり文 Wakan-majiribun", badgeCls: "wakan" },
+  wabun:  { short: "和文", full: "和文 Wabun", badgeCls: "wabun" }
+};
+
+function getPrimaryStyleInfo(style) {
+  return PRIMARY_STYLE_LABELS[style] || PRIMARY_STYLE_LABELS.kanbun;
+}
+
 function splitByMaru(rawText) {
   const str = rawText || "";
   const units = [];
@@ -1412,75 +1370,242 @@ function splitByMaru(rawText) {
   return units;
 }
 
-function createSeededParagraph(id, label, clauses) {
-  const kbParts = [];
-  const kkParts = [];
-  const enParts = [];
+function mapKakikudashiUnitsToPrimary(primaryCount, kkText, legacyKbMeta) {
+  const out = new Array(Math.max(1, primaryCount)).fill("");
+  const trimmed = (kkText || "").trim();
+  if (!trimmed) return out;
+  if (primaryCount <= 1) {
+    out[0] = trimmed;
+    return out;
+  }
+  const kkUnits = splitByMaru(trimmed);
+  if (kkUnits.length === 0) return out;
+  if (kkUnits.length === primaryCount) {
+    for (let i = 0; i < primaryCount; i++) out[i] = kkUnits[i].text;
+    return out;
+  }
 
+  // If legacy pairStart..pairEnd ranges exist, partition each shared group proportionally
+  if (Array.isArray(legacyKbMeta) && legacyKbMeta.length > 0) {
+    const claimed = new Set();
+    let i = 0;
+    while (i < primaryCount) {
+      const m = legacyKbMeta[i] || {};
+      const ps = Math.max(0, Math.min(kkUnits.length - 1, m.pairStart ?? Math.min(i, kkUnits.length - 1)));
+      const pe = Math.max(ps, Math.min(kkUnits.length - 1, m.pairEnd ?? ps));
+      let j = i + 1;
+      while (j < primaryCount) {
+        const mj = legacyKbMeta[j] || {};
+        if ((mj.pairStart ?? -1) === (m.pairStart ?? -2) && (mj.pairEnd ?? -1) === (m.pairEnd ?? -2)) j++;
+        else break;
+      }
+      const groupLen = j - i;
+      const avail = [];
+      for (let k = ps; k <= pe; k++) {
+        if (!claimed.has(k)) { avail.push(k); claimed.add(k); }
+      }
+      if (avail.length > 0) {
+        for (let g = 0; g < groupLen; g++) {
+          const a = Math.floor((g * avail.length) / groupLen);
+          const b = Math.floor(((g + 1) * avail.length) / groupLen);
+          out[i + g] = avail.slice(a, b).map(idx => kkUnits[idx].text).join("");
+        }
+      }
+      i = j;
+    }
+    const leftover = [];
+    for (let k = 0; k < kkUnits.length; k++) {
+      if (!claimed.has(k)) leftover.push(kkUnits[k].text);
+    }
+    if (leftover.length > 0) {
+      out[primaryCount - 1] = (out[primaryCount - 1] ? out[primaryCount - 1] : "") + leftover.join("");
+    }
+    return out;
+  }
+
+  // Proportional fallback when bulk-pasting mismatched sentence counts
+  for (let i = 0; i < primaryCount; i++) {
+    const a = Math.floor((i * kkUnits.length) / primaryCount);
+    const b = Math.floor(((i + 1) * kkUnits.length) / primaryCount);
+    out[i] = kkUnits.slice(a, b).map(u => u.text).join("");
+  }
+  return out;
+}
+
+function normalizeParagraphSchema(rawPara, docStyle) {
+  if (!rawPara) {
+    return { id: "p1", label: "第1段", primaryText: "", englishText: "", sentMeta: [] };
+  }
+
+  if (typeof rawPara.primaryText === "string" && Array.isArray(rawPara.sentMeta)) {
+    const pUnits = splitByMaru(rawPara.primaryText);
+    const sentMeta = rawPara.sentMeta.map(m => ({
+      kakikudashi: (m && m.kakikudashi) || "",
+      enRanges: Array.isArray(m && m.enRanges) ? m.enRanges : [],
+      notes: Array.isArray(m && m.notes) ? m.notes : []
+    }));
+    while (sentMeta.length < pUnits.length) {
+      sentMeta.push({ kakikudashi: "", enRanges: [], notes: [] });
+    }
+    return {
+      id: rawPara.id || "p1",
+      label: rawPara.label || "第1段",
+      primaryText: rawPara.primaryText,
+      englishText: rawPara.englishText || "",
+      sentMeta
+    };
+  }
+
+  // Migrate legacy schema (kanbunText / kakikudashiText / kbMeta / kkMeta)
+  const isLegacyWabun = docStyle === "wabun" && !(rawPara.kanbunText || "").trim();
+  const primaryText = isLegacyWabun ? (rawPara.kakikudashiText || "") : (rawPara.kanbunText || "");
+  const legacyMeta = isLegacyWabun ? (rawPara.kkMeta || []) : (rawPara.kbMeta || []);
+  const legacyKkText = isLegacyWabun ? "" : (rawPara.kakikudashiText || "");
+
+  const pUnits = splitByMaru(primaryText);
+  const slotCount = Math.max(pUnits.length, legacyMeta.length, legacyKkText.trim() ? 1 : 0);
+  const mappedKk = mapKakikudashiUnitsToPrimary(slotCount, legacyKkText, legacyMeta);
+
+  const sentMeta = [];
+  for (let i = 0; i < slotCount; i++) {
+    const lm = legacyMeta[i] || {};
+    sentMeta.push({
+      kakikudashi: mappedKk[i] || "",
+      enRanges: Array.isArray(lm.enRanges) ? JSON.parse(JSON.stringify(lm.enRanges)) : [],
+      notes: Array.isArray(lm.notes) ? JSON.parse(JSON.stringify(lm.notes)) : []
+    });
+  }
+
+  return {
+    id: rawPara.id || "p1",
+    label: rawPara.label || "第1段",
+    primaryText,
+    englishText: rawPara.englishText || "",
+    sentMeta
+  };
+}
+
+function normalizeDocSchema(rawDoc) {
+  if (!rawDoc) return null;
+  const primaryStyle = PRIMARY_STYLE_LABELS[rawDoc.primaryStyle]
+    ? rawDoc.primaryStyle
+    : (rawDoc.type === "wabun" ? "wabun" : "kanbun");
+  const paragraphs = (rawDoc.paragraphs || []).map(p => normalizeParagraphSchema(p, primaryStyle));
+  const anyKk = paragraphs.some(p => (p.sentMeta || []).some(m => (m.kakikudashi || "").trim().length > 0));
+  const explicitKk = typeof rawDoc.hasKakikudashi === "boolean";
+  const hasKakikudashi = explicitKk
+    ? rawDoc.hasKakikudashi
+    : (primaryStyle === "kanbun" && anyKk);
+
+  return {
+    id: rawDoc.id,
+    orderIndex: rawDoc.orderIndex || 99,
+    collection: rawDoc.collection || "",
+    title: rawDoc.title || rawDoc.id,
+    author: rawDoc.author || "",
+    primaryStyle,
+    hasKakikudashi,
+    _explicitHasKk: explicitKk,
+    bookmarkAfterPara: rawDoc.bookmarkAfterPara || null,
+    bookmarkLabel: rawDoc.bookmarkLabel || "",
+    metadata: rawDoc.metadata || "",
+    paraOrder: rawDoc.paraOrder || paragraphs.map(p => p.id),
+    paragraphs
+  };
+}
+
+function serializeDocMetaForCloud(dObj, fallbackOrder) {
+  return {
+    id: dObj.id,
+    orderIndex: dObj.orderIndex || fallbackOrder || 99,
+    collection: dObj.collection || "",
+    title: dObj.title || dObj.id,
+    author: dObj.author || "",
+    primaryStyle: dObj.primaryStyle || "kanbun",
+    hasKakikudashi: Boolean(dObj.hasKakikudashi),
+    type: dObj.primaryStyle === "wabun" ? "wabun" : "kanbun",
+    bookmarkAfterPara: dObj.bookmarkAfterPara || null,
+    bookmarkLabel: dObj.bookmarkLabel || "",
+    metadata: dObj.metadata || "",
+    paraOrder: (dObj.paragraphs || []).map(p => p.id),
+    updatedBy: getCurrentUserName(),
+    updatedAt: Date.now()
+  };
+}
+
+function serializeParaForCloud(pObj, dObj) {
+  const isWabun = dObj.primaryStyle === "wabun";
+  const sentMeta = (pObj.sentMeta || []).map(m => ({
+    kakikudashi: m.kakikudashi || "",
+    enRanges: m.enRanges || [],
+    notes: m.notes || []
+  }));
+  const joinedKk = sentMeta.map(m => m.kakikudashi || "").filter(Boolean).join("");
+  const legacyMeta = sentMeta.map((m, idx) => ({
+    enRanges: m.enRanges || [],
+    pairStart: idx,
+    pairEnd: idx,
+    notes: m.notes || []
+  }));
+  return {
+    id: pObj.id,
+    label: pObj.label,
+    primaryText: pObj.primaryText || "",
+    englishText: pObj.englishText || "",
+    sentMeta,
+    // Backward-compatible mirror fields
+    kanbunText: isWabun ? "" : (pObj.primaryText || ""),
+    kakikudashiText: isWabun ? (pObj.primaryText || "") : joinedKk,
+    kbMeta: isWabun ? [] : legacyMeta,
+    kkMeta: isWabun ? legacyMeta : [],
+    updatedBy: getCurrentUserName(),
+    updatedByUid: cloud.user ? cloud.user.uid : "",
+    updatedAt: Date.now()
+  };
+}
+
+function createSeededParagraph(id, label, clauses) {
+  const pParts = [];
+  const enParts = [];
   let enCursor = 0;
-  const clauseEnRanges = [];
+  const sentMeta = [];
+
   clauses.forEach((c) => {
-    if (c.kanbun) kbParts.push(c.kanbun.trim());
-    if (c.kakikudashi) kkParts.push(c.kakikudashi.trim());
+    const pStr = (c.primary !== undefined ? c.primary : (c.kanbun || c.kakikudashi || "")).trim();
+    const kkStr = (c.primary !== undefined ? (c.kakikudashi || "") : (c.kanbun ? (c.kakikudashi || "") : "")).trim();
     const enStr = (c.english || "").trim();
+
+    let er = null;
     if (enStr) {
       if (enParts.length > 0) enCursor += 1;
       const s = enCursor;
       const e = enCursor + enStr.length;
       enParts.push(enStr);
       enCursor = e;
-      clauseEnRanges.push({ start: s, end: e, snapshot: enStr, notes: c.notes || [] });
-    } else {
-      clauseEnRanges.push({ start: null, end: null, snapshot: "", notes: c.notes || [] });
+      er = { start: s, end: e, snapshot: enStr };
+    }
+
+    if (pStr) {
+      pParts.push(pStr);
+      const cUnits = splitByMaru(pStr);
+      const kkMapped = mapKakikudashiUnitsToPrimary(cUnits.length, kkStr, null);
+      for (let i = 0; i < cUnits.length; i++) {
+        sentMeta.push({
+          kakikudashi: kkMapped[i] || "",
+          enRanges: er ? [{ ...er }] : [],
+          notes: i === 0 && c.notes ? JSON.parse(JSON.stringify(c.notes)) : []
+        });
+      }
     }
   });
 
-  const kanbunText = kbParts.join("");
-  const kakikudashiText = kkParts.join("");
-  const englishText = enParts.join(" ");
-
-  const kbUnits = splitByMaru(kanbunText);
-  const kkUnits = splitByMaru(kakikudashiText);
-
-  const kbMeta = [];
-  const kkMeta = [];
-  let kbPtr = 0;
-  let kkPtr = 0;
-
-  clauses.forEach((c, cIdx) => {
-    const cKbCount = c.kanbun ? splitByMaru(c.kanbun).length : 0;
-    const cKkCount = c.kakikudashi ? splitByMaru(c.kakikudashi).length : 0;
-    const er = clauseEnRanges[cIdx];
-
-    const kbStart = kbPtr;
-    const kbEnd = Math.max(kbStart, kbPtr + cKbCount - 1);
-    const kkStart = kkPtr;
-    const kkEnd = Math.max(kkStart, kkPtr + cKkCount - 1);
-
-    for (let i = 0; i < cKbCount; i++) {
-      kbMeta.push({
-        enRanges: er.start !== null ? [{ start: er.start, end: er.end, snapshot: er.snapshot }] : [],
-        pairStart: cKkCount > 0 ? (cKbCount === cKkCount ? kkStart + i : kkStart) : 0,
-        pairEnd: cKkCount > 0 ? (cKbCount === cKkCount ? kkStart + i : kkEnd) : 0,
-        notes: i === 0 ? JSON.parse(JSON.stringify(er.notes)) : []
-      });
-    }
-    for (let j = 0; j < cKkCount; j++) {
-      kkMeta.push({
-        enRanges: er.start !== null ? [{ start: er.start, end: er.end, snapshot: er.snapshot }] : [],
-        pairStart: cKbCount > 0 ? (cKbCount === cKkCount ? kbStart + j : kbStart) : 0,
-        pairEnd: cKbCount > 0 ? (cKbCount === cKkCount ? kbStart + j : kbEnd) : 0,
-        notes: (cKbCount === 0 && j === 0) ? JSON.parse(JSON.stringify(er.notes)) : []
-      });
-    }
-    kbPtr += cKbCount;
-    kkPtr += cKkCount;
-  });
-
-  while (kbMeta.length < kbUnits.length) kbMeta.push({ enRanges: [], pairStart: 0, pairEnd: 0, notes: [] });
-  while (kkMeta.length < kkUnits.length) kkMeta.push({ enRanges: [], pairStart: 0, pairEnd: 0, notes: [] });
-
-  return { id, label, kanbunText, kakikudashiText, englishText, kbMeta, kkMeta };
+  return {
+    id,
+    label,
+    primaryText: pParts.join(""),
+    englishText: enParts.join(" "),
+    sentMeta
+  };
 }
 
 function buildInitialCorpus() {
@@ -1491,10 +1616,11 @@ function buildInitialCorpus() {
       collection: "01 日本霊異記",
       title: "01.01 上巻序 — Nihon ryōiki, Vol. 1 Preface",
       author: "景戒 Kyōkai (early 9th c., Kōnin era)",
-      type: "kanbun",
+      primaryStyle: "kanbun",
+      hasKakikudashi: true,
       bookmarkAfterPara: "p5",
       bookmarkLabel: "Workshopped through 09/17/2026",
-      metadata: "転記出典：久遠の絆電子本文／やたがらすナビ書き下し文（中川聡 CC BY-SA 4.0）。比較伝本：興福寺本（国宝・上巻のみ）、東海大学桃園文庫蔵本（高野山金剛三昧院本系）。各「。」までのまとまりが1文としてクリック可能になり、「。」の追加・変更・削除で自動的に文が分割・結合されます。",
+      metadata: "転記出典：久遠の絆電子本文／やたがらすナビ書き下し文（中川聡 CC BY-SA 4.0）。比較伝本：興福寺本（国宝・上巻のみ）、東海大学桃園文庫蔵本（高野山金剛三昧院本系）。",
       paragraphs: [
         createSeededParagraph("p1", "第1段", [
           {
@@ -1527,7 +1653,7 @@ function buildInitialCorpus() {
             kakikudashi: "愚痴（ぐち）の類（ともがら）は、迷執（めいしふ）を懐（うだ）き（て）、罪福を信（まこと）なりとせず。",
             english: "The ignorant cling to deluded attachments and did not believe in karmic retributions and rewards.",
             notes: [
-              { author: "Member A", cat: "grammar", tag: "試訳 Alt", lemma: "懷於迷執", text: "Alternative English rendering discussed in group: 'hold fast to deluded attachments'." }
+              { author: "Member A", text: "Alternative English rendering discussed in group: 'hold fast to deluded attachments'." }
             ]
           },
           {
@@ -1613,7 +1739,7 @@ function buildInitialCorpus() {
             kakikudashi: "坎井（かんせい）の識、久しき太方に迷ふ。",
             english: "With the understanding of one who looks up from the bottom of a well, I have long remained confused about the Great Principle.",
             notes: [
-              { author: "Xiao", cat: "locus", tag: "典拠 Locus", lemma: "坎井之識", text: "Zhuangzi 莊子 (Qiushui 秋水): 坎井之蛙 ('frog in a caved-in well') vs. 大方之家." }
+              { author: "Xiao", text: "Zhuangzi 莊子 (Qiushui 秋水): 坎井之蛙 ('frog in a caved-in well') vs. 大方之家." }
             ]
           },
           {
@@ -1626,8 +1752,8 @@ function buildInitialCorpus() {
             kakikudashi: "恐り寒心（かんしん）すらくは、患（うれひ）を手を傷（そこな）ふに貽（いた）らむ。此れも亦昆山（こんざん）の一つの磔（たびいし）なり。",
             english: "Fearfully and with a trembling heart, I worry that I may bring upon myself the misfortune of injuring my hand—yet this too is a single pebble from Mount Kunlun.",
             notes: [
-              { author: "Workshop", cat: "locus", tag: "典拠 Locus", lemma: "傷手 / 寒心", text: "《抱朴子·暢玄》：「舍繩墨而助傷手之工」(cf. Laozi 74 代大匠斲希有不傷其手矣). For 寒心: 《梁書·武帝紀下》：「聯寒心消志，爲日久矣」." },
-              { author: "Xiao", cat: "variant", tag: "校異 Variant", lemma: "恐寒心貽患於傷手", text: "Try replacing ， with 。 (or clicking ✂ Insert 。) to test live sentence splitting! Hypotheses: (1) 恐寒心貽患於傷手; (2) 心胎 ('core substrate'); (3) Paleographic 蹇 vs. Kongō Sanmai-in 塞." }
+              { author: "Workshop", text: "《抱朴子·暢玄》：「舍繩墨而助傷手之工」(cf. Laozi 74 代大匠斲希有不傷其手矣). For 寒心: 《梁書·武帝紀下》：「聯寒心消志，爲日久矣」." },
+              { author: "Xiao", text: "Hypotheses on 恐寒心貽患於傷手: (1) 恐寒心，貽患於傷手; (2) 心胎 ('core substrate'); (3) Paleographic 蹇 vs. Kongō Sanmai-in 塞." }
             ]
           },
           {
@@ -1644,7 +1770,8 @@ function buildInitialCorpus() {
       collection: "01 日本霊異記",
       title: "01.02 中巻序 — Nihon ryōiki, Vol. 2 Preface",
       author: "景戒 Kyōkai (early 9th c.)",
-      type: "kanbun",
+      primaryStyle: "kanbun",
+      hasKakikudashi: true,
       bookmarkAfterPara: "m2",
       bookmarkLabel: "Translated",
       metadata: "比較伝本：来迎院本（約38字の破損欠落あり）、真福寺本模本（不忍文庫本、「情惷憨心」より残存）、狩谷棭斎『考証日本霊異記』。",
@@ -1676,35 +1803,36 @@ function buildInitialCorpus() {
       collection: "01 日本霊異記",
       title: "01.03 下巻序 — Nihon ryōiki, Vol. 3 Preface",
       author: "景戒 Kyōkai (early 9th c.)",
-      type: "kanbun",
+      primaryStyle: "kanbun",
+      hasKakikudashi: false,
       bookmarkAfterPara: null,
       bookmarkLabel: "",
       metadata: "Kanbun source: Izumoji Osamu, ed., Nihon ryōiki 日本霊異記, Shin Nihon koten bungaku taikei 新日本古典文学大系 30 (Tōkyō: Iwanami Shoten, 1996; ISBN 978-4-00-240030-3). 比較伝本：前田家本、真福寺本日本霊異記（不忍文庫本・鎌倉時代初期写の忠実な模本）。",
       paragraphs: [
         createSeededParagraph("l1", "第1段", [
           {
-            kanbun: "諾楽右京薬師寺沙門景戒録。夫善悪因果者，著於内経。吉凶得失，載諸外典。今探是賢劫釈迦一代教文，有三時。一，正法五百年。二，像法千年。三，末法万年。自仏涅槃以来，迄于延暦六年歳次丁卯，而逕一千七百廿二年。過正像二，而入末法。然日本従仏法伝適以還，迄于延暦六年，而逕二百卅六歳也。",
-            kakikudashi: "夫（そ）れ善悪（ぜんあく）の因果は、内経（ないきゃう）に著（あらは）る。吉凶（きっきょう）の得失は、諸（もろもろ）の外典（げてん）に載（の）す。今是（こ）の賢劫（けんごふ）の釈迦（しゃか）一代の教文を探るに、三時有り。一には正法（しゃうぼう）五百年。二には像法（ざうぼう）千年。三には末法（まっぽう）万年なり。仏の涅槃より以来、延暦（えんりゃく）六年歳次丁卯に迄（いた）るまで、一千七百二十二年を逕（へ）たり。正・像の二つを過ぎて末法に入れり。然して日本に仏法伝はりてより以還（このかた）、延暦六年に迄るまで二百三十六歳を逕たり。",
-            english: "Good and evil karma are set forth in the Inner Scriptures, while good and ill fortune are recorded in the Outer Classics. Examining Śākyamuni's teachings in this Auspicious Kalpa, there are Three Periods: five hundred years of the True Dharma, one thousand years of the Semblance Dharma, and ten thousand years of the Degenerate Dharma (mappō). From the Buddha's nirvāṇa down to the cyclical year hinoto-u, the sixth year of Enryaku (787), 1,722 years have elapsed—passing through the True and Semblance ages into the Degenerate Dharma—while 236 years have passed since the Dharma first reached Japan."
+            primary: "諾楽右京薬師寺沙門景戒録。夫善悪因果者，著於内経。吉凶得失，載諸外典。今探是賢劫釈迦一代教文，有三時。一，正法五百年。二，像法千年。三，末法万年。自仏涅槃以来，迄于延暦六年歳次丁卯，而逕一千七百廿二年。過正像二，而入末法。然日本従仏法伝適以還，迄于延暦六年，而逕二百卅六歳也。",
+            kakikudashi: "",
+            english: ""
           }
         ]),
         createSeededParagraph("l2", "第2段", [
           {
-            kanbun: "夫花咲無声，鶏鳴無涙。観代，修善之者，若石峯花。作悪之者，似土山毛。匪繕因果作罪，嗜名利殺生，疑善根悪種。以比無目之人履虎尾，叵失之兮。託鬼之人抱毒蛇，莫朽之兮。悪報遄来，如水鏡向之即現。幸力颮被，如谷響喚之必応。現報若之，烏人不慎乎。此生空過，後悔無益。暫爾身，詎眉存之。泛爾命，孰常恃之。既入末劫，何弗仂矣。噫矜言側，那免劫災。唯資施衆僧一搏食，於修善之福，而不逢当来飢饉之災苦。頼持一日不殺戒，於行道之力，而不値末劫刀兵之怨害。",
+            primary: "夫花咲無声，鶏鳴無涙。観代，修善之者，若石峯花。作悪之者，似土山毛。匪繕因果作罪，嗜名利殺生，疑善根悪種。以比無目之人履虎尾，叵失之兮。託鬼之人抱毒蛇，莫朽之兮。悪報遄来，如水鏡向之即現。幸力颮被，如谷響喚之必応。現報若之，烏人不慎乎。此生空過，後悔無益。暫爾身，詎眉存之。泛爾命，孰常恃之。既入末劫，何弗仂矣。噫矜言側，那免劫災。唯資施衆僧一搏食，於修善之福，而不逢当来飢饉之災苦。頼持一日不殺戒，於行道之力，而不値末劫刀兵之怨害。",
             kakikudashi: "",
             english: ""
           }
         ]),
         createSeededParagraph("l3", "第3段", [
           {
-            kanbun: "昔有一比丘，住山坐禅。毎斎食時，折飯施烏。々常啄効，毎日来候。比丘斎食訖後，嚼楊枝，嗽口洒手，把礫而翫。烏居籬外。時彼比丘，不瞪居烏，投礫中烏。々頭破飛，即死生猪。々住其山。彼猪至於比丘室上，頽石求食，石径下中比丘而死。猪不思賊，石自来殺。無記作罪，無記報怨。何況乎，発悪心殺，無彼怨報歟。",
+            primary: "昔有一比丘，住山坐禅。毎斎食時，折飯施烏。々常啄効，毎日来候。比丘斎食訖後，嚼楊枝，嗽口洒手，把礫而翫。烏居籬外。時彼比丘，不瞪居烏，投礫中烏。々頭破飛，即死生猪。々住其山。彼猪至於比丘室上，頽石求食，石径下中比丘而死。猪不思賊，石自来殺。無記作罪，無記報怨。何況乎，発悪心殺，無彼怨報歟。",
             kakikudashi: "",
             english: ""
           }
         ]),
         createSeededParagraph("l4", "第4段", [
           {
-            kanbun: "殖悪之因，報怨之果，是吾迷心。作於福因，而鑑菩提，是我寤懐。羊僧景戒，所学者，未得天台智者之問術。所悟者，未得神人弁者之答術。是猶以螺酌海因管窺天者矣。匪伝燈之良匠，而強訂睠斯事。剋轍浄刹，奔心覚路。遠愧前非，長祈後善。注奇異事，爾言提流。授手欲勧，濡足欲導。庶掃地共生西方極楽。傾巣同住天上宝堂者矣。",
+            primary: "殖悪之因，報怨之果，是吾迷心。作於福因，而鑑菩提，是我寤懐。羊僧景戒，所学者，未得天台智者之問術。所悟者，未得神人弁者之答術。是猶以螺酌海因管窺天者矣。匪伝燈之良匠，而強訂睠斯事。剋轍浄刹，奔心覚路。遠愧前非，長祈後善。注奇異事，爾言提流。授手欲勧，濡足欲導。庶掃地共生西方極楽。傾巣同住天上宝堂者矣。",
             kakikudashi: "",
             english: ""
           }
@@ -1717,20 +1845,19 @@ function buildInitialCorpus() {
       collection: "02 三宝絵",
       title: "02.01 総序 (抜粋) — Sanbōe, General Preface (Wabun Demo)",
       author: "源為憲 Minamoto no Tamenori (984)",
-      type: "wabun",
+      primaryStyle: "wabun",
+      hasKakikudashi: false,
       bookmarkAfterPara: null,
       bookmarkLabel: "",
-      metadata: "底本：東寺観智院本（電子校訂：中川聡 CC BY-SA 4.0）。和文でも「。」ごとにクリック単位が区切られ、引用内の「。」（「…離れたる草。」など）も結合・分割や英訳紐付けが自在に行えます。",
+      metadata: "底本：東寺観智院本（電子校訂：中川聡 CC BY-SA 4.0）。",
       paragraphs: [
         createSeededParagraph("sb1", "冒頭段", [
           {
-            kanbun: "",
-            kakikudashi: "古（いにしへ）の人の云へることあり。「身を観ずれば岸の額に根を離れたる草。命を論ずれば江の辺（ほとり）に繋がざる船」と。また、「世の中を何に譬（たと）へむ朝まだき漕ぎ行く船の跡の白浪」と云へり。",
+            primary: "古（いにしへ）の人の云へることあり。「身を観ずれば岸の額に根を離れたる草。命を論ずれば江の辺（ほとり）に繋がざる船」と。また、「世の中を何に譬（たと）へむ朝まだき漕ぎ行く船の跡の白浪」と云へり。",
             english: "People of antiquity had a saying: 'When we contemplate the body, it is like grass uprooted upon the brow of a cliff; when we consider life, it is like an untethered boat beside an inlet.' And again: 'To what shall I liken this world? White waves in the wake of a boat rowing out at break of day.'"
           },
           {
-            kanbun: "",
-            kakikudashi: "また物語と云ひて、女の御心をやる物なり。おほあらきのもりの草よりも繁く、{{荒磯海（ありそみ）|底本「アリソミ」に「有ソ海」と傍書}}の浜の真砂（まさご）よりも多かれど、木・草・山・川・鳥・獣・魚・虫など名付けたるは、もの言はぬ物にものを言はせ、情けなき物に情けを付けたるは、ただ海（あま）の浮木（うきぎ）の浮かべたることをのみいひながし、沢の{{真菰（まこも）|底本「末己毛」に「間薦」と傍書}}の誠（まこと）となる詞（ことば）をば結び置かず。",
+            primary: "また物語と云ひて、女の御心をやる物なり。おほあらきのもりの草よりも繁く、{{荒磯海（ありそみ）|底本「アリソミ」に「有ソ海」と傍書}}の浜の真砂（まさご）よりも多かれど、木・草・山・川・鳥・獣・魚・虫など名付けたるは、もの言はぬ物にものを言はせ、情けなき物に情けを付けたるは、ただ海（あま）の浮木（うきぎ）の浮かべたることをのみいひながし、沢の{{真菰（まこも）|底本「末己毛」に「間薦」と傍書}}の誠（まこと）となる詞（ことば）をば結び置かず。",
             english: "Then too there are the so-called tales (monogatari), which divert women's hearts. Though thicker than the grasses of Ōaraki Forest and more numerous than grains of sand along a rocky shore, they assign speech to mute trees, plants, mountains, rivers, birds, beasts, fish, and insects, and endow insentient things with feeling—pouring forth floating words like driftwood on the sea without binding together phrases of genuine truth."
           }
         ])
@@ -1740,37 +1867,37 @@ function buildInitialCorpus() {
 }
 
 const STUB_COLLECTIONS = [
-  { title: "03 日本往生極楽記 (985)", type: "kanbun", sub: "慶滋保胤 — 1 paratext" },
-  { title: "04 本朝法華験記 (1040–44)", type: "kanbun", sub: "鎮源 — 1 paratext" },
-  { title: "05–09 往生伝群 (12th c.)", type: "kanbun", sub: "匡房・為康・蓮禅・宗友 — 5 paratexts" },
-  { title: "10 宝物集 (late 12th c.)", type: "wabun", sub: "平康頼 — 7-fascicle postscript" },
-  { title: "13 発心集 (early 13th c.)", type: "wabun", sub: "鴨長明 — Preface & Postscript" },
-  { title: "14 宇治拾遺物語 (early 13th c.)", type: "wabun", sub: "Anon. — Preface" },
-  { title: "16 閑居友 (1222)", type: "wabun", sub: "慶政 — 2 postscripts" },
-  { title: "17 十訓抄 (1252)", type: "wabun", sub: "Anon. — 12 prefaces & postscript" },
-  { title: "18 古今著聞集 (1254)", type: "kanbun", sub: "橘成季 — 31 paratexts" },
-  { title: "21 沙石集 (1279–83)", type: "wabun", sub: "無住 — 13 paratexts & colophons" },
-  { title: "23 長谷寺霊験記 (Kamakura)", type: "wabun", sub: "Anon. — Preface & 1435 colophon" },
-  { title: "24 元亨釈書 (1322)", type: "kanbun", sub: "虎関師錬 — 6 memorials & essays" }
+  { title: "03 日本往生極楽記 (985)", style: "kanbun", sub: "慶滋保胤 — 1 paratext" },
+  { title: "04 本朝法華験記 (1040–44)", style: "kanbun", sub: "鎮源 — 1 paratext" },
+  { title: "05–09 往生伝群 (12th c.)", style: "kanbun", sub: "匡房・為康・蓮禅・宗友 — 5 paratexts" },
+  { title: "10 宝物集 (late 12th c.)", style: "wakan", sub: "平康頼 — 7-fascicle postscript" },
+  { title: "13 発心集 (early 13th c.)", style: "wakan", sub: "鴨長明 — Preface & Postscript" },
+  { title: "14 宇治拾遺物語 (early 13th c.)", style: "wabun", sub: "Anon. — Preface" },
+  { title: "16 閑居友 (1222)", style: "wakan", sub: "慶政 — 2 postscripts" },
+  { title: "17 十訓抄 (1252)", style: "wakan", sub: "Anon. — 12 prefaces & postscript" },
+  { title: "18 古今著聞集 (1254)", style: "wakan", sub: "橘成季 — 31 paratexts" },
+  { title: "21 沙石集 (1279–83)", style: "wakan", sub: "無住 — 13 paratexts & colophons" },
+  { title: "23 長谷寺霊験記 (Kamakura)", style: "wakan", sub: "Anon. — Preface & 1435 colophon" },
+  { title: "24 元亨釈書 (1322)", style: "kanbun", sub: "虎関師錬 — 6 memorials & essays" }
 ];
 
 // ============================================================================
 // 2. STATE & CLOUD SYNC ENGINE (FIREBASE SPARK + LOCAL FALLBACK)
 // ============================================================================
-const STORAGE_KEY = "setsuwa_workbench_v5_cloud";
+const STORAGE_KEY = "setsuwa_workbench_v6_cloud";
+const LEGACY_STORAGE_KEY = "setsuwa_workbench_v5_cloud";
 let state = loadLocalState();
 let activeDocId = state.corpus[0].id;
-let primaryLayer = "kanbun";
-let activeSelection = null;
-let showPrimaryInWindow = true;
+let activeSelection = null; // { paraId, idx }
+let showEnglishProductPane = false;
+let showEnSpanMapper = false;
 let showFullEnParaEditor = false;
 let windowMode = "float";
-let isScribe = true; // Unlocked by default for all invited collaborators
+let isScribe = true;
 let jpFontSize = 19;
 let pendingSelectionRange = null;
 let POPOVER_REGISTRY = {};
 
-// Firebase runtime state
 const cloud = {
   configured: false,
   ready: false,
@@ -1782,7 +1909,8 @@ const cloud = {
   paraUnsubs: {},
   onlinePeers: {},
   saveTimers: {},
-  presenceTimer: null
+  presenceTimer: null,
+  serverTimeOffsetMs: 0
 };
 
 const AVATAR_COLORS = ["#8c3727", "#264a78", "#2d6a4f", "#7a5195", "#a85814", "#236768"];
@@ -1824,10 +1952,18 @@ function hideCloudBanner() {
 
 function loadLocalState() {
   try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) return JSON.parse(saved);
+    const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && Array.isArray(parsed.corpus) && parsed.corpus.length > 0) {
+        return {
+          corpus: parsed.corpus.map(normalizeDocSchema),
+          kunSelections: parsed.kunSelections || {}
+        };
+      }
+    }
   } catch (e) {}
-  return { corpus: buildInitialCorpus(), kunSelections: {} };
+  return { corpus: buildInitialCorpus().map(normalizeDocSchema), kunSelections: {} };
 }
 
 function saveLocalState() {
@@ -1852,21 +1988,10 @@ function saveState(changedDocId, changedParaId, saveKun) {
   if (changedDocId && changedParaId) {
     const dObj = state.corpus.find(d => d.id === changedDocId);
     const pObj = dObj && dObj.paragraphs.find(p => p.id === changedParaId);
-    if (pObj) {
+    if (dObj && pObj) {
       scheduleCloudWrite(`para_${changedDocId}_${changedParaId}`, async () => {
         const { doc, setDoc } = cloud.sdk;
-        await setDoc(doc(cloud.db, "docs", changedDocId, "paragraphs", changedParaId), {
-          id: pObj.id,
-          label: pObj.label,
-          kanbunText: pObj.kanbunText,
-          kakikudashiText: pObj.kakikudashiText,
-          englishText: pObj.englishText,
-          kbMeta: pObj.kbMeta || [],
-          kkMeta: pObj.kkMeta || [],
-          updatedBy: getCurrentUserName(),
-          updatedByUid: cloud.user.uid,
-          updatedAt: Date.now()
-        });
+        await setDoc(doc(cloud.db, "docs", changedDocId, "paragraphs", changedParaId), serializeParaForCloud(pObj, dObj));
       });
     }
   } else if (changedDocId) {
@@ -1874,20 +1999,7 @@ function saveState(changedDocId, changedParaId, saveKun) {
     if (dObj) {
       scheduleCloudWrite(`doc_${changedDocId}`, async () => {
         const { doc, setDoc } = cloud.sdk;
-        await setDoc(doc(cloud.db, "docs", changedDocId), {
-          id: dObj.id,
-          orderIndex: dObj.orderIndex || 99,
-          collection: dObj.collection,
-          title: dObj.title,
-          author: dObj.author,
-          type: dObj.type,
-          bookmarkAfterPara: dObj.bookmarkAfterPara || null,
-          bookmarkLabel: dObj.bookmarkLabel || "",
-          metadata: dObj.metadata || "",
-          paraOrder: dObj.paragraphs.map(p => p.id),
-          updatedBy: getCurrentUserName(),
-          updatedAt: Date.now()
-        }, { merge: true });
+        await setDoc(doc(cloud.db, "docs", changedDocId), serializeDocMetaForCloud(dObj), { merge: true });
       });
     }
   }
@@ -1966,8 +2078,7 @@ function showAuthError(msg) {
 }
 
 function clearAuthError() {
-  const box = document.getElementById("authErrorBox");
-  box.classList.remove("open");
+  document.getElementById("authErrorBox").classList.remove("open");
 }
 
 async function signInWithGoogle() {
@@ -2019,19 +2130,12 @@ function startFirestoreSync() {
     snap.forEach(dSnap => {
       const data = dSnap.data();
       const existing = state.corpus.find(c => c.id === dSnap.id);
-      remoteDocs.push({
+      const normalized = normalizeDocSchema({
+        ...data,
         id: dSnap.id,
-        orderIndex: data.orderIndex || 99,
-        collection: data.collection || "",
-        title: data.title || dSnap.id,
-        author: data.author || "",
-        type: data.type || "kanbun",
-        bookmarkAfterPara: data.bookmarkAfterPara || null,
-        bookmarkLabel: data.bookmarkLabel || "",
-        metadata: data.metadata || "",
-        paraOrder: data.paraOrder || [],
         paragraphs: existing ? existing.paragraphs : []
       });
+      remoteDocs.push(normalized);
     });
 
     remoteDocs.sort((a, b) => (a.orderIndex - b.orderIndex) || a.id.localeCompare(b.id));
@@ -2041,10 +2145,11 @@ function startFirestoreSync() {
     }
 
     remoteDocs.forEach(dObj => subscribeToDocParagraphs(dObj.id));
-    updatePrimaryPickerButtons();
+    syncTopbarPrimaryStyle();
     renderSidebar();
     renderBanner();
     renderPrimaryStage();
+    if (activeSelection && !isActivelyTypingInCompanion()) renderCompanionWindow();
     setSyncStatus("synced", "🟢 Live Synced");
   }, (err) => {
     console.error("Firestore docs listener error:", err);
@@ -2078,6 +2183,12 @@ function startFirestoreSync() {
     const peers = {};
     snap.forEach(pSnap => {
       const p = pSnap.data();
+      if (p && cloud.user && pSnap.id === cloud.user.uid && p.serverTime && typeof p.serverTime.toMillis === "function") {
+        const srvMs = p.serverTime.toMillis();
+        if (typeof p.clientSentAt === "number") {
+          cloud.serverTimeOffsetMs = srvMs - p.clientSentAt;
+        }
+      }
       if (p && now - (p.lastSeen || 0) < 120000) {
         peers[pSnap.id] = p;
       }
@@ -2092,6 +2203,25 @@ function startFirestoreSync() {
   cloud.presenceTimer = setInterval(publishPresence, 30000);
 }
 
+function getServerNowMs() {
+  return Date.now() + (cloud.serverTimeOffsetMs || 0);
+}
+
+function formatNoteTimestamp(ms) {
+  if (!ms) return "";
+  try {
+    return new Date(ms).toLocaleString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit"
+    });
+  } catch (e) {
+    return "";
+  }
+}
+
 function subscribeToDocParagraphs(docId) {
   if (cloud.paraUnsubs[docId]) return;
   const { collection, onSnapshot } = cloud.sdk;
@@ -2099,9 +2229,17 @@ function subscribeToDocParagraphs(docId) {
     const dObj = state.corpus.find(d => d.id === docId);
     if (!dObj) return;
     const byId = {};
-    snap.forEach(pSnap => { byId[pSnap.id] = pSnap.data(); });
+    snap.forEach(pSnap => {
+      byId[pSnap.id] = normalizeParagraphSchema({ ...pSnap.data(), id: pSnap.id }, dObj.primaryStyle);
+    });
     const order = (dObj.paraOrder && dObj.paraOrder.length) ? dObj.paraOrder : Object.keys(byId).sort();
     dObj.paragraphs = order.filter(id => byId[id]).map(id => byId[id]);
+
+    if (!dObj._explicitHasKk) {
+      dObj.hasKakikudashi = dObj.primaryStyle === "kanbun" &&
+        dObj.paragraphs.some(p => (p.sentMeta || []).some(m => (m.kakikudashi || "").trim().length > 0));
+    }
+
     saveLocalState();
 
     if (docId === activeDocId) {
@@ -2133,7 +2271,8 @@ function isActivelyTypingInNotesRail() {
 async function publishPresence() {
   if (!cloud.ready || !cloud.db || !cloud.user) return;
   try {
-    const { doc, setDoc } = cloud.sdk;
+    const { doc, setDoc, serverTimestamp } = cloud.sdk;
+    const clientNow = Date.now();
     await setDoc(doc(cloud.db, "presence", cloud.user.uid), {
       uid: cloud.user.uid,
       name: getCurrentUserName(),
@@ -2142,7 +2281,9 @@ async function publishPresence() {
       docId: activeDocId,
       paraId: activeSelection ? activeSelection.paraId : null,
       sentenceIdx: activeSelection ? activeSelection.idx : null,
-      lastSeen: Date.now()
+      lastSeen: clientNow,
+      clientSentAt: clientNow,
+      serverTime: serverTimestamp()
     });
   } catch (e) {}
 }
@@ -2191,42 +2332,19 @@ async function seedStarterCorpusToCloud(customState) {
   setSyncStatus("saving", "🟡 Uploading Corpus…");
   try {
     const { doc, writeBatch } = cloud.sdk;
-    const payload = customState || { corpus: buildInitialCorpus(), kunSelections: state.kunSelections || {} };
+    const rawPayload = customState || { corpus: buildInitialCorpus(), kunSelections: state.kunSelections || {} };
+    const normalizedDocs = rawPayload.corpus.map(normalizeDocSchema);
     const batch = writeBatch(cloud.db);
 
-    payload.corpus.forEach((dObj, idx) => {
-      batch.set(doc(cloud.db, "docs", dObj.id), {
-        id: dObj.id,
-        orderIndex: dObj.orderIndex || (idx + 1),
-        collection: dObj.collection || "",
-        title: dObj.title || dObj.id,
-        author: dObj.author || "",
-        type: dObj.type || "kanbun",
-        bookmarkAfterPara: dObj.bookmarkAfterPara || null,
-        bookmarkLabel: dObj.bookmarkLabel || "",
-        metadata: dObj.metadata || "",
-        paraOrder: (dObj.paragraphs || []).map(p => p.id),
-        updatedBy: getCurrentUserName(),
-        updatedAt: Date.now()
-      });
+    normalizedDocs.forEach((dObj, idx) => {
+      batch.set(doc(cloud.db, "docs", dObj.id), serializeDocMetaForCloud(dObj, idx + 1));
       (dObj.paragraphs || []).forEach(pObj => {
-        batch.set(doc(cloud.db, "docs", dObj.id, "paragraphs", pObj.id), {
-          id: pObj.id,
-          label: pObj.label,
-          kanbunText: pObj.kanbunText || "",
-          kakikudashiText: pObj.kakikudashiText || "",
-          englishText: pObj.englishText || "",
-          kbMeta: pObj.kbMeta || [],
-          kkMeta: pObj.kkMeta || [],
-          updatedBy: getCurrentUserName(),
-          updatedByUid: cloud.user.uid,
-          updatedAt: Date.now()
-        });
+        batch.set(doc(cloud.db, "docs", dObj.id, "paragraphs", pObj.id), serializeParaForCloud(pObj, dObj));
       });
     });
 
     batch.set(doc(cloud.db, "settings", "kunSelections"), {
-      selections: payload.kunSelections || {},
+      selections: rawPayload.kunSelections || {},
       updatedBy: getCurrentUserName(),
       updatedAt: Date.now()
     });
@@ -2241,46 +2359,42 @@ async function seedStarterCorpusToCloud(customState) {
 }
 
 // ============================================================================
-// 3. CORE WORKBENCH RENDERING & EDITING LOGIC
+// 3. CORE WORKBENCH RENDERING & ONE-DIRECTIONAL EDITING LOGIC
 // ============================================================================
 function getActiveDoc() {
   return state.corpus.find(d => d.id === activeDocId) || state.corpus[0];
 }
 
-function getParaUnitsAndMeta(para, layer) {
-  const isKb = layer === "kanbun";
-  const raw = isKb ? para.kanbunText : para.kakikudashiText;
-  const units = splitByMaru(raw);
-  const metaArr = isKb ? para.kbMeta : para.kkMeta;
-  while (metaArr.length < units.length) {
-    metaArr.push({ enRanges: [], pairStart: 0, pairEnd: 0, notes: [] });
+function getParaUnitsAndMeta(para) {
+  const units = splitByMaru(para.primaryText || "");
+  para.sentMeta = para.sentMeta || [];
+  while (para.sentMeta.length < units.length) {
+    para.sentMeta.push({ kakikudashi: "", enRanges: [], notes: [] });
   }
-  return { units, metaArr };
+  return { units, metaArr: para.sentMeta };
 }
 
 function syncEnglishSnapshots(para) {
   const en = para.englishText || "";
-  [para.kbMeta, para.kkMeta].forEach(metaList => {
-    (metaList || []).forEach(m => {
-      (m.enRanges || []).forEach(r => {
-        if (r.start === null || r.end === null) return;
-        const currentSlice = en.slice(r.start, r.end);
-        if (r.snapshot && currentSlice !== r.snapshot) {
-          const found = en.indexOf(r.snapshot);
-          if (found >= 0) {
-            r.start = found;
-            r.end = found + r.snapshot.length;
-          } else {
-            r.start = Math.min(r.start, en.length);
-            r.end = Math.min(r.end, en.length);
-            r.snapshot = en.slice(r.start, r.end);
-          }
+  (para.sentMeta || []).forEach(m => {
+    (m.enRanges || []).forEach(r => {
+      if (r.start === null || r.end === null) return;
+      const currentSlice = en.slice(r.start, r.end);
+      if (r.snapshot && currentSlice !== r.snapshot) {
+        const found = en.indexOf(r.snapshot);
+        if (found >= 0) {
+          r.start = found;
+          r.end = found + r.snapshot.length;
         } else {
-          r.snapshot = currentSlice;
+          r.start = Math.min(r.start, en.length);
+          r.end = Math.min(r.end, en.length);
+          r.snapshot = en.slice(r.start, r.end);
         }
-      });
-      m.enRanges = (m.enRanges || []).filter(r => r.end > r.start);
+      } else {
+        r.snapshot = currentSlice;
+      }
     });
+    m.enRanges = (m.enRanges || []).filter(r => r.end > r.start);
   });
 }
 
@@ -2327,30 +2441,68 @@ function renderJapaneseRich(raw, regPrefix) {
   return html;
 }
 
+function syncTopbarPrimaryStyle() {
+  const doc = getActiveDoc();
+  const sel = document.getElementById("primaryStyleSelect");
+  if (!doc || !sel) return;
+  sel.value = doc.primaryStyle || "kanbun";
+  sel.disabled = !isScribe;
+}
+
+function onChangePrimaryStyle(newStyle) {
+  const doc = getActiveDoc();
+  if (!doc || !PRIMARY_STYLE_LABELS[newStyle]) return;
+  doc.primaryStyle = newStyle;
+  if (newStyle === "wabun" && !doc.paragraphs.some(p => (p.sentMeta || []).some(m => (m.kakikudashi || "").trim()))) {
+    doc.hasKakikudashi = false;
+    doc._explicitHasKk = true;
+  }
+  saveState(doc.id, null);
+  renderSidebar();
+  renderBanner();
+  renderPrimaryStage();
+  if (activeSelection) renderCompanionWindow();
+}
+
+function toggleEnglishProductPane() {
+  showEnglishProductPane = !showEnglishProductPane;
+  const btn = document.getElementById("enProductToggleBtn");
+  if (btn) btn.classList.toggle("active", showEnglishProductPane);
+  renderPrimaryStage();
+}
+
+function toggleDocKakikudashiLayer() {
+  const doc = getActiveDoc();
+  if (!doc) return;
+  doc.hasKakikudashi = !doc.hasKakikudashi;
+  doc._explicitHasKk = true;
+  saveState(doc.id, null);
+  renderCompanionWindow();
+}
+
 function renderSidebar() {
   const el = document.getElementById("corpusList");
-  let html = `<div class="corpus-group-label" style="display:flex;justify-content:space-between;align-items:center;"><span>Active Paratexts</span><button class="btn btn-sm" style="padding:1px 7px;font-size:10.5px;" onclick="openNewDocModal()" title="Create a new text and paste raw Kanbun/Wabun/English">+ New Text</button></div>`;
+  let html = `<div class="corpus-group-label" style="display:flex;justify-content:space-between;align-items:center;"><span>Active Paratexts</span><button class="btn btn-sm" style="padding:1px 7px;font-size:10.5px;" onclick="openNewDocModal()" title="Create a new text">+ New Text</button></div>`;
   for (const doc of state.corpus) {
     const active = doc.id === activeDocId ? "active" : "";
-    const badgeClass = doc.type === "kanbun" ? "kanbun" : "wabun";
-    const badgeLabel = doc.type === "kanbun" ? "漢文 3-Form" : "和文 2-Form";
+    const st = getPrimaryStyleInfo(doc.primaryStyle);
     html += `
       <div class="corpus-item ${active}" onclick="selectDoc('${doc.id}')">
         <div class="corpus-item-top">
           <span>${escapeHtml(doc.title.split("—")[0])}</span>
-          <span class="badge-lang ${badgeClass}">${badgeLabel}</span>
+          <span class="badge-lang ${st.badgeCls}">${st.short}</span>
         </div>
         <div class="corpus-item-sub">${escapeHtml(doc.author)}</div>
       </div>`;
   }
   html += `<div class="corpus-group-label" style="margin-top:10px">Sourcebook Census (25 Collections)</div>`;
   for (const s of STUB_COLLECTIONS) {
-    const badgeClass = s.type === "kanbun" ? "kanbun" : "wabun";
+    const st = getPrimaryStyleInfo(s.style);
     html += `
       <div class="corpus-item stub">
         <div class="corpus-item-top">
           <span>${escapeHtml(s.title)}</span>
-          <span class="badge-lang ${badgeClass}">${s.type === "kanbun" ? "漢文" : "和文"}</span>
+          <span class="badge-lang ${st.badgeCls}">${st.short}</span>
         </div>
         <div class="corpus-item-sub">${escapeHtml(s.sub)}</div>
       </div>`;
@@ -2358,49 +2510,12 @@ function renderSidebar() {
   el.innerHTML = html;
 }
 
-function updatePrimaryPickerButtons() {
-  const doc = getActiveDoc();
-  if (!doc) return;
-  const isWabun = doc.type === "wabun";
-  if (isWabun && primaryLayer === "kanbun") primaryLayer = "kakikudashi";
-
-  const btnKanbun = document.getElementById("pick_kanbun");
-  const btnKaki = document.getElementById("pick_kakikudashi");
-  const btnEn = document.getElementById("pick_english");
-
-  btnKanbun.disabled = isWabun;
-  btnKaki.textContent = isWabun ? "校訂和文 Wabun" : "書き下し Kakikudashi";
-
-  [btnKanbun, btnKaki, btnEn].forEach(b => b.classList.remove("active"));
-  document.getElementById("pick_" + primaryLayer).classList.add("active");
-}
-
-function setPrimaryLayer(layer) {
-  const doc = getActiveDoc();
-  if (!doc || (doc.type === "wabun" && layer === "kanbun")) return;
-
-  if (activeSelection && (layer === "kanbun" || layer === "kakikudashi") && activeSelection.anchorLayer !== layer) {
-    const para = doc.paragraphs.find(p => p.id === activeSelection.paraId);
-    if (para) {
-      const { metaArr } = getParaUnitsAndMeta(para, activeSelection.anchorLayer);
-      const m = metaArr[activeSelection.idx];
-      const mappedIdx = m && typeof m.pairStart === "number" ? m.pairStart : 0;
-      activeSelection = { paraId: para.id, anchorLayer: layer, idx: mappedIdx };
-    }
-  }
-
-  primaryLayer = layer;
-  updatePrimaryPickerButtons();
-  renderPrimaryStage();
-  if (activeSelection) renderCompanionWindow();
-}
-
 function selectDoc(id) {
   activeDocId = id;
   activeSelection = null;
   closePopover();
   closeCompanionWindow();
-  updatePrimaryPickerButtons();
+  syncTopbarPrimaryStyle();
   renderSidebar();
   renderBanner();
   renderPrimaryStage();
@@ -2410,15 +2525,16 @@ function selectDoc(id) {
 function renderBanner() {
   const doc = getActiveDoc();
   if (!doc) return;
+  const st = getPrimaryStyleInfo(doc.primaryStyle);
   const banner = document.getElementById("paratextBanner");
   banner.innerHTML = `
     <div class="paratext-title-row">
       <div style="display:flex;align-items:baseline;flex-wrap:wrap;gap:6px;">
         <h2>${escapeHtml(doc.title)}</h2>
-        <span class="paratext-meta">${escapeHtml(doc.author)} · Click any 「。」 sentence to open the editing window</span>
+        <span class="paratext-meta">${escapeHtml(doc.author)} · Primary: <strong>${st.short}</strong> · Click any sentence to edit</span>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        <button class="btn btn-sm active" onclick="openRawTextModal()" title="Paste, edit, or clear raw Kanbun, Kakikudashi, or English text for this document">📝 Feed / Edit Raw Text</button>
+        <button class="btn btn-sm active" onclick="openRawTextModal()" title="Paste, edit, or clear raw Primary, Kakikudashi, or English text">📝 Feed / Edit Raw Text</button>
         <button class="btn btn-sm" onclick="toggleWitnessDrawer()">📜 Source &amp; Witness Info</button>
         ${!cloud.ready ? `<button class="btn btn-sm" onclick="resetDemoData()" title="Restore initial sample state">↺ Reset Demo</button>` : ""}
       </div>
@@ -2431,76 +2547,83 @@ function renderPrimaryStage() {
   POPOVER_REGISTRY = {};
   const doc = getActiveDoc();
   const host = document.getElementById("primaryCanvasHost");
-  if (!doc) return;
+  if (!doc || !host) return;
 
-  if (primaryLayer === "english") {
-    const anchorLayer = doc.type === "wabun" ? "kakikudashi" : "kanbun";
-    let parasHtml = "";
-    for (const p of doc.paragraphs) {
-      syncEnglishSnapshots(p);
-      const isBookmarked = doc.bookmarkAfterPara === p.id;
-      const enHtml = renderEnglishParagraphInteractive(p, anchorLayer);
-      parasHtml += `
-        <div class="en-para-block">
-          <div class="en-para-head">
-            <span style="cursor:pointer;" onclick="setBookmark('${p.id}')" title="Click to toggle session bookmark">${escapeHtml(p.label)}</span>
-            <button class="btn btn-sm" style="padding:1px 6px;font-size:10px;" onclick="openParaDankuModal('${p.id}')">✂ Edit Punctuation</button>
-            ${isBookmarked ? `<span class="bookmark-vert">🔖 ${escapeHtml(doc.bookmarkLabel)}</span>` : ""}
-          </div>
-          <div>${enHtml}</div>
-        </div>
-      `;
-    }
-    host.innerHTML = `<div class="english-primary-wrap"><div class="english-paper">${parasHtml}</div></div>`;
-  } else {
-    let parasHtml = "";
-    for (const p of doc.paragraphs) {
-      const isBookmarked = doc.bookmarkAfterPara === p.id;
-      const { units, metaArr } = getParaUnitsAndMeta(p, primaryLayer);
-      const fnMap = buildFootnoteLookupMap(doc);
-      const sentsHtml = units.length > 0 ? units.map((u, idx) => {
-        const isActive = activeSelection &&
-          activeSelection.paraId === p.id &&
-          activeSelection.anchorLayer === primaryLayer &&
-          activeSelection.idx === idx;
-        const canonIndices = getCanonicalAnchorIndices(doc, p, primaryLayer, idx);
-        const fnBadges = canonIndices.flatMap(ci => fnMap[`${p.id}:${ci}`] || [])
-          .map(fn => `<span class="fn-badge" onclick="focusFootnote(event, ${fn.num})" title="Jump to Editorial Note ${fn.num}">${fn.num}</span>`)
-          .join("");
-        return `<span class="doc-sent ${isActive ? 'active-sent' : ''}" data-para="${p.id}" data-layer="${primaryLayer}" data-idx="${idx}" onclick="onPrimarySentClick(event, '${p.id}', '${primaryLayer}', ${idx})"><span class="ku-num">${idx + 1}</span>${renderJapaneseRich(u.text, `main_${p.id}_${primaryLayer}_${idx}`)}${fnBadges}</span>`;
-      }).join("") : `<span class="doc-sent en-unassigned" style="font-size:13px;font-family:var(--font-ui);" onclick="openRawTextModal('${primaryLayer}')">［未入力 — クリックして本文を入力・貼付］</span>`;
+  const fnMap = buildFootnoteLookupMap(doc);
+  let parasHtml = "";
+  for (const p of doc.paragraphs) {
+    syncEnglishSnapshots(p);
+    const isBookmarked = doc.bookmarkAfterPara === p.id;
+    const { units } = getParaUnitsAndMeta(p);
+    const sentsHtml = units.length > 0 ? units.map((u, idx) => {
+      const isActive = activeSelection &&
+        activeSelection.paraId === p.id &&
+        activeSelection.idx === idx;
+      const fnBadges = (fnMap[`${p.id}:${idx}`] || [])
+        .map(fn => `<span class="fn-badge" onclick="focusFootnote(event, ${fn.num})" title="Jump to Editorial Note ${fn.num}">${fn.num}</span>`)
+        .join("");
+      return `<span class="doc-sent ${isActive ? 'active-sent' : ''}" data-para="${p.id}" data-idx="${idx}" onclick="onPrimarySentClick(event, '${p.id}', ${idx})"><span class="ku-num">${idx + 1}</span>${renderJapaneseRich(u.text, `main_${p.id}_${idx}`)}${fnBadges}</span>`;
+    }).join("") : `<span class="doc-sent en-unassigned" style="font-size:13px;font-family:var(--font-ui);" onclick="openRawTextModal('primary')">［未入力 — クリックして原文を入力・貼付］</span>`;
 
-      parasHtml += `
-        <div class="tategaki-para">
-          <span class="para-pill-vert" onclick="openParaDankuModal('${p.id}')" title="Click to edit paragraph 。 punctuation or bookmark">${escapeHtml(p.label)}</span>
-          ${isBookmarked ? `<span class="bookmark-vert" onclick="setBookmark('${p.id}')">🔖</span>` : ""}
-          ${sentsHtml}
-        </div>
-      `;
-    }
-
-    host.innerHTML = `<div class="tategaki-primary-wrap"><div class="tategaki-paper" id="tategakiPaper">${parasHtml}</div></div>`;
-
-    const paper = document.getElementById("tategakiPaper");
-    if (paper) {
-      paper.addEventListener("wheel", (e) => {
-        if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-          paper.scrollLeft -= e.deltaY;
-          e.preventDefault();
-        }
-      }, { passive: false });
-    }
+    parasHtml += `
+      <div class="tategaki-para">
+        <span class="para-pill-vert" onclick="openParaDankuModal('${p.id}')" title="Click to edit paragraph 。 punctuation or toggle bookmark">${escapeHtml(p.label)}</span>
+        ${isBookmarked ? `<span class="bookmark-vert" onclick="setBookmark('${p.id}')">🔖</span>` : ""}
+        ${sentsHtml}
+      </div>
+    `;
   }
+
+  let enPaneHtml = "";
+  if (showEnglishProductPane) {
+    const enBlocks = doc.paragraphs.map(p => `
+      <div class="en-para-block">
+        <div class="en-para-head">
+          <span>${escapeHtml(p.label)}</span>
+          ${doc.bookmarkAfterPara === p.id ? `<span class="bookmark-vert">🔖 ${escapeHtml(doc.bookmarkLabel)}</span>` : ""}
+        </div>
+        <div id="en_prod_para_${p.id}">${renderEnglishParagraphInteractive(doc, p, fnMap)}</div>
+      </div>
+    `).join("");
+
+    enPaneHtml = `
+      <div class="english-product-pane" id="englishProductPane">
+        <div class="english-product-head">
+          <span>📖 English Translation (Final Product)</span>
+          <button class="btn btn-sm" onclick="toggleEnglishProductPane()" title="Hide English Product pane">✕</button>
+        </div>
+        <div class="english-product-body">${enBlocks}</div>
+      </div>
+    `;
+  }
+
+  host.innerHTML = `
+    <div class="tategaki-primary-wrap">
+      <div class="tategaki-paper" id="tategakiPaper">${parasHtml}</div>
+    </div>
+    ${enPaneHtml}
+  `;
+
+  const paper = document.getElementById("tategakiPaper");
+  if (paper) {
+    paper.addEventListener("wheel", (e) => {
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        paper.scrollLeft -= e.deltaY;
+        e.preventDefault();
+      }
+    }, { passive: false });
+  }
+
   if (!isActivelyTypingInNotesRail()) renderNotesRail();
 }
 
-function renderEnglishParagraphInteractive(para, anchorLayer) {
+function renderEnglishParagraphInteractive(doc, para, fnMap) {
   const en = para.englishText || "";
-  if (!en) return `<span class="en-unassigned" onclick="onPrimarySentClick(event, '${para.id}', '${anchorLayer}', 0)">[No English translation yet — click to open sentence editor]</span>`;
+  if (!en.trim()) {
+    return `<span class="doc-sent en-unassigned" style="font-size:13.5px;" onclick="onPrimarySentClick(event, '${para.id}', 0)">[No English translation yet — click any sentence to translate]</span>`;
+  }
 
-  const doc = getActiveDoc();
-  const fnMap = buildFootnoteLookupMap(doc);
-  const { units, metaArr } = getParaUnitsAndMeta(para, anchorLayer);
+  const { units, metaArr } = getParaUnitsAndMeta(para);
   const bounds = new Set([0, en.length]);
   units.forEach((_, idx) => {
     const m = metaArr[idx];
@@ -2525,7 +2648,7 @@ function renderEnglishParagraphInteractive(para, anchorLayer) {
     });
     const targetIdx = owners.length > 0 ? owners[0] : 0;
     const isActive = activeSelection && activeSelection.paraId === para.id && owners.includes(activeSelection.idx);
-    const unassignedCls = owners.length === 0 ? "en-unassigned" : "";
+    const unassignedCls = owners.length === 0 && slice.trim() ? "en-unassigned" : "";
     const kuTag = owners.length > 0 && owners.some(idx => {
       const rs = metaArr[idx].enRanges || [];
       return rs.some(r => r.start === a);
@@ -2533,11 +2656,11 @@ function renderEnglishParagraphInteractive(para, anchorLayer) {
     const endFns = owners.filter(idx => {
       const rs = metaArr[idx].enRanges || [];
       return rs.length > 0 && rs[rs.length - 1].end === b;
-    }).flatMap(idx => fnMap[`${para.id}:${idx}`] || [])
+    }).flatMap(idx => (fnMap && fnMap[`${para.id}:${idx}`]) || [])
       .map(fn => `<span class="fn-badge" onclick="focusFootnote(event, ${fn.num})" title="Jump to Editorial Note ${fn.num}">${fn.num}</span>`)
       .join("");
 
-    html += `<span class="doc-sent ${isActive ? 'active-sent' : ''} ${unassignedCls}" onclick="onPrimarySentClick(event, '${para.id}', '${anchorLayer}', ${targetIdx})" title="${owners.length ? 'Assigned to Sentence ' + owners.map(x => x + 1).join(', ') : 'Unassigned English — click to assign'}">${kuTag}${escapeHtml(slice)}${endFns}</span>`;
+    html += `<span class="doc-sent ${isActive ? 'active-sent' : ''} ${unassignedCls}" onclick="onPrimarySentClick(event, '${para.id}', ${targetIdx})" title="${owners.length ? 'Sentence ' + owners.map(x => x + 1).join(', ') : 'Unlinked passage — click to assign'}">${kuTag}${escapeHtml(slice)}${endFns}</span>`;
   }
   return html;
 }
@@ -2545,22 +2668,20 @@ function renderEnglishParagraphInteractive(para, anchorLayer) {
 function flushAnyPendingDankuEdits() {
   document.querySelectorAll("textarea[data-dirty-danku='1']").forEach(ta => {
     const paraId = ta.getAttribute("data-para-id");
-    const cardLayer = ta.getAttribute("data-card-layer");
     const sIdx = Number(ta.getAttribute("data-start-idx"));
-    const eIdx = Number(ta.getAttribute("data-end-idx"));
     const doc = getActiveDoc();
     const para = doc && doc.paragraphs.find(p => p.id === paraId);
     if (para) {
       ta.dataset.dirtyDanku = "0";
-      commitJpSliceReplacement(para, cardLayer, sIdx, eIdx, ta.value, false);
+      commitPrimarySliceReplacement(para, sIdx, ta.value, false);
     }
   });
 }
 
-function onPrimarySentClick(ev, paraId, anchorLayer, idx) {
-  if (ev.target.closest("[data-pop]")) return;
+function onPrimarySentClick(ev, paraId, idx) {
+  if (ev && ev.target && ev.target.closest("[data-pop]")) return;
   flushAnyPendingDankuEdits();
-  activeSelection = { paraId, anchorLayer, idx };
+  activeSelection = { paraId, idx };
   pendingSelectionRange = null;
   renderPrimaryStage();
   document.getElementById("companionWindow").classList.add("open");
@@ -2575,37 +2696,6 @@ function closeCompanionWindow() {
   document.getElementById("companionWindow").classList.remove("open");
   renderPrimaryStage();
   publishPresence();
-}
-
-function getFlatNavigatorList(doc, anchorLayer) {
-  const list = [];
-  doc.paragraphs.forEach(p => {
-    const { units } = getParaUnitsAndMeta(p, anchorLayer);
-    units.forEach((_, idx) => list.push({ paraId: p.id, anchorLayer, idx }));
-  });
-  return list;
-}
-
-function stepSentence(delta) {
-  if (!activeSelection) return;
-  flushAnyPendingDankuEdits();
-  const doc = getActiveDoc();
-  const list = getFlatNavigatorList(doc, activeSelection.anchorLayer);
-  const pos = list.findIndex(x => x.paraId === activeSelection.paraId && x.idx === activeSelection.idx);
-  if (pos < 0) return;
-  const next = list[Math.min(list.length - 1, Math.max(0, pos + delta))];
-  activeSelection = next;
-  pendingSelectionRange = null;
-  renderPrimaryStage();
-  const activeEl = document.querySelector(".doc-sent.active-sent");
-  if (activeEl) activeEl.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
-  renderCompanionWindow();
-  publishPresence();
-}
-
-function toggleShowPrimaryInWindow() {
-  showPrimaryInWindow = !showPrimaryInWindow;
-  renderCompanionWindow();
 }
 
 function setWindowMode(mode) {
@@ -2630,47 +2720,28 @@ function renderCompanionWindow() {
   if (!para) return;
   syncEnglishSnapshots(para);
 
-  const anchorLayer = activeSelection.anchorLayer;
-  const { units: anchorUnits, metaArr: anchorMetaArr } = getParaUnitsAndMeta(para, anchorLayer);
-  if (anchorUnits.length === 0) return;
-  if (activeSelection.idx >= anchorUnits.length) activeSelection.idx = anchorUnits.length - 1;
+  const { units, metaArr } = getParaUnitsAndMeta(para);
+  if (units.length === 0) return;
+  if (activeSelection.idx >= units.length) activeSelection.idx = units.length - 1;
 
   const idx = activeSelection.idx;
-  const anchorMeta = anchorMetaArr[idx];
+  const sentMeta = metaArr[idx];
 
   document.getElementById("cwTitleText").textContent =
-    `${doc.id} · ${para.label} · Sentence ${idx + 1} of ${anchorUnits.length}`;
+    `${doc.id} · ${para.label} · Sentence ${idx + 1} of ${units.length}`;
 
-  const primaryNameMap = {
-    kanbun: "漢文",
-    kakikudashi: doc.type === "wabun" ? "校訂和文" : "書き下し",
-    english: "English"
-  };
-  const editBtn = document.getElementById("editPrimaryToggleBtn");
-  editBtn.textContent = showPrimaryInWindow
-    ? `✓ Primary (${primaryNameMap[primaryLayer]}) Shown`
-    : `✎ Show Primary (${primaryNameMap[primaryLayer]})`;
-  editBtn.classList.toggle("active", showPrimaryInWindow);
+  const kkBtn = document.getElementById("cwKakikudashiBtn");
+  if (kkBtn) {
+    kkBtn.textContent = doc.hasKakikudashi ? "✓ 書き下し Layer" : "+ 書き下し Layer";
+    kkBtn.classList.toggle("active", Boolean(doc.hasKakikudashi));
+  }
 
   const cards = [];
-  const isWabun = doc.type === "wabun";
-
-  if (!isWabun) {
-    if (primaryLayer !== "kanbun" || showPrimaryInWindow) {
-      cards.push(renderJpSentenceCard(doc, para, "kanbun", primaryLayer === "kanbun"));
-    }
-    if (primaryLayer !== "kakikudashi" || showPrimaryInWindow) {
-      cards.push(renderJpSentenceCard(doc, para, "kakikudashi", primaryLayer === "kakikudashi"));
-    }
-  } else {
-    if (primaryLayer !== "kakikudashi" || showPrimaryInWindow) {
-      cards.push(renderJpSentenceCard(doc, para, "kakikudashi", primaryLayer === "kakikudashi"));
-    }
+  cards.push(renderPrimarySentenceCard(doc, para, units, idx));
+  if (doc.hasKakikudashi) {
+    cards.push(renderOptionalKakikudashiCard(doc, para, idx, sentMeta));
   }
-
-  if (primaryLayer !== "english" || showPrimaryInWindow) {
-    cards.push(renderEnglishAssignmentCard(doc, para, anchorLayer, idx, anchorMeta, primaryLayer === "english"));
-  }
+  cards.push(renderEnglishProductCard(doc, para, idx, sentMeta));
 
   document.getElementById("cwBody").innerHTML = `
     <div id="cwPeerNoticeSlot"></div>
@@ -2681,110 +2752,209 @@ function renderCompanionWindow() {
   attachEnglishMapperSelectionListener();
 }
 
-function renderJpSentenceCard(doc, para, cardLayer, isPrimaryCard) {
-  const anchorLayer = activeSelection.anchorLayer;
-  const anchorIdx = activeSelection.idx;
-  const { units: anchorUnits, metaArr: anchorMetaArr } = getParaUnitsAndMeta(para, anchorLayer);
-  const { units: targetUnits } = getParaUnitsAndMeta(para, cardLayer);
-
-  const label = cardLayer === "kanbun" ? "漢文 Kanbun" : (doc.type === "wabun" ? "校訂和文 Edited Wabun" : "書き下し文 Kakikudashi");
-
-  let startIdx = anchorIdx, endIdx = anchorIdx;
-  if (cardLayer !== anchorLayer) {
-    const m = anchorMetaArr[anchorIdx] || {};
-    if (targetUnits.length === anchorUnits.length) {
-      startIdx = anchorIdx;
-      endIdx = anchorIdx;
-    } else {
-      startIdx = Math.min(targetUnits.length - 1, Math.max(0, m.pairStart ?? Math.min(anchorIdx, targetUnits.length - 1)));
-      endIdx = Math.min(targetUnits.length - 1, Math.max(startIdx, m.pairEnd ?? startIdx));
-    }
-  }
-
-  const combinedSliceText = targetUnits.slice(startIdx, endIdx + 1).map(u => u.text).join("");
-  const previewId = `cw_prev_${para.id}_${cardLayer}`;
-  const taId = `cw_ta_${para.id}_${cardLayer}`;
-  const applyBtnId = `cw_danku_btn_${para.id}_${cardLayer}`;
-
-  let pairBarHtml = "";
-  if (cardLayer !== anchorLayer && targetUnits.length > 0 && targetUnits.length !== anchorUnits.length) {
-    pairBarHtml = `
-      <div class="pair-range-bar">
-        <span>⇄ Linked ${cardLayer === "kanbun" ? "漢文" : "書き下し"}: <strong>Sentence ${startIdx + 1}${endIdx > startIdx ? "–" + (endIdx + 1) : ""}</strong> (of ${targetUnits.length})</span>
-        ${isScribe ? `
-          <span style="display:inline-flex;gap:3px;">
-            <button class="markup-btn" onclick="adjustPairRange('${para.id}', -1, 0)" title="Shift start earlier">◀Start</button>
-            <button class="markup-btn" onclick="adjustPairRange('${para.id}', 1, 0)" title="Shift start later">Start▶</button>
-            <button class="markup-btn" onclick="adjustPairRange('${para.id}', 0, -1)" title="Shrink end">−End</button>
-            <button class="markup-btn" onclick="adjustPairRange('${para.id}', 0, 1)" title="Include next sentence">+End</button>
-          </span>
-        ` : ""}
-      </div>
-    `;
-  }
+function renderPrimarySentenceCard(doc, para, units, idx) {
+  const st = getPrimaryStyleInfo(doc.primaryStyle);
+  const sentText = units[idx] ? units[idx].text : "";
+  const previewId = `cw_prev_prim_${para.id}`;
+  const taId = `cw_ta_prim_${para.id}`;
+  const applyBtnId = `cw_danku_btn_${para.id}`;
+  const canMergeNext = idx < units.length - 1;
 
   let editorHtml = "";
   if (isScribe) {
-    const canMergeNext = endIdx < targetUnits.length - 1;
     editorHtml = `
       <div class="layer-editor-wrap">
         <div class="markup-toolbar">
-          <button type="button" class="markup-btn danku-action" onclick="insertMaruAtCursor('${taId}', '${para.id}', '${cardLayer}', ${startIdx}, ${endIdx})" title="Insert 。 at cursor to split into two clickable sentences">✂ Insert 。 (Split Sentence)</button>
-          ${canMergeNext ? `<button type="button" class="markup-btn danku-action" onclick="mergeWithNextSentence('${para.id}', '${cardLayer}', ${startIdx}, ${endIdx})" title="Remove final 。 to merge with Sentence ${endIdx + 2}">🔗 Merge w/ Sentence ${endIdx + 2}</button>` : ""}
-          <button type="button" class="markup-btn danku-pending" id="${applyBtnId}" style="display:none;" onclick="applyJpSentenceEdit('${taId}', '${para.id}', '${cardLayer}', ${startIdx}, ${endIdx})">⚡ Apply Sentence Split</button>
-        </div>
-        <div class="markup-toolbar">
-          <span style="font-size:10px;color:var(--ink-muted);">Markup:</span>
-          <button type="button" class="markup-btn" onclick="wrapJpMarkup('${taId}', '${para.id}', '${cardLayer}', ${startIdx}, ${endIdx}, 'ruby')">+振仮名</button>
-          <button type="button" class="markup-btn" onclick="wrapJpMarkup('${taId}', '${para.id}', '${cardLayer}', ${startIdx}, ${endIdx}, 'kun')">+訓読 [[A|B]]</button>
-          <button type="button" class="markup-btn" onclick="wrapJpMarkup('${taId}', '${para.id}', '${cardLayer}', ${startIdx}, ${endIdx}, 'var')">+校異 {{字|注}}</button>
+          <span class="markup-group">
+            <button type="button" class="markup-btn" onclick="wrapPrimaryMarkup('${taId}', '${para.id}', ${idx}, 'ruby')">+振仮名</button>
+            <button type="button" class="markup-btn" onclick="wrapPrimaryMarkup('${taId}', '${para.id}', ${idx}, 'kun')">+訓読</button>
+            <button type="button" class="markup-btn" onclick="wrapPrimaryMarkup('${taId}', '${para.id}', ${idx}, 'var')">+校異</button>
+          </span>
+          <span class="markup-group">
+            <button type="button" class="markup-btn danku-action" onclick="insertMaruAtCursor('${taId}', '${para.id}', ${idx})" title="Insert 。 at cursor to split into two sentences">✂ Split 。</button>
+            ${canMergeNext ? `<button type="button" class="markup-btn danku-action" onclick="mergeWithNextSentence('${para.id}', ${idx})" title="Merge with Sentence ${idx + 2}">🔗 Merge Next</button>` : ""}
+            <button type="button" class="markup-btn danku-pending" id="${applyBtnId}" style="display:none;" onclick="applyPrimarySentenceEdit('${taId}', '${para.id}', ${idx})">⚡ Apply</button>
+          </span>
         </div>
         <textarea
           id="${taId}"
           class="layer-textarea jp-input"
           data-para-id="${para.id}"
-          data-card-layer="${cardLayer}"
-          data-start-idx="${startIdx}"
-          data-end-idx="${endIdx}"
+          data-start-idx="${idx}"
           data-dirty-danku="0"
-          oninput="onJpSentenceInput('${taId}', '${previewId}', '${applyBtnId}', '${para.id}', '${cardLayer}', ${startIdx}, ${endIdx})"
-          onchange="if(this.dataset.dirtyDanku==='1'){applyJpSentenceEdit('${taId}','${para.id}','${cardLayer}',${startIdx},${endIdx});}"
-          onkeydown="if((event.metaKey||event.ctrlKey)&&event.key==='Enter'){event.preventDefault();applyJpSentenceEdit('${taId}','${para.id}','${cardLayer}',${startIdx},${endIdx});}"
-        >${escapeHtml(combinedSliceText)}</textarea>
+          oninput="onPrimarySentenceInput('${taId}', '${previewId}', '${applyBtnId}', '${para.id}', ${idx})"
+          onchange="if(this.dataset.dirtyDanku==='1'){applyPrimarySentenceEdit('${taId}','${para.id}',${idx});}"
+          onkeydown="if((event.metaKey||event.ctrlKey)&&event.key==='Enter'){event.preventDefault();applyPrimarySentenceEdit('${taId}','${para.id}',${idx});}"
+        >${escapeHtml(sentText)}</textarea>
       </div>
     `;
   }
 
   return `
-    <div class="layer-card ${isPrimaryCard ? 'is-primary-card' : ''}">
+    <div class="layer-card is-primary-card">
       <div class="layer-card-head">
-        <span>${label} (${endIdx > startIdx ? "Sentences " + (startIdx + 1) + "–" + (endIdx + 1) : "Sentence " + (startIdx + 1)})</span>
-        <span class="${isPrimaryCard ? 'layer-badge-primary' : 'layer-badge-companion'}">
-          ${isPrimaryCard ? "Primary Layer" : "Companion Layer"}
-        </span>
+        <span>1. Primary · ${st.short} (Sentence ${idx + 1})</span>
+        <span class="layer-badge-primary">Primary Text</span>
       </div>
-      ${pairBarHtml}
-      <div class="cw-tategaki-preview" id="${previewId}">${renderJapaneseRich(combinedSliceText, `cw_${para.id}_${cardLayer}_${startIdx}`)}</div>
+      <div class="cw-tategaki-preview" id="${previewId}">${renderJapaneseRich(sentText, `cw_prim_${para.id}_${idx}`)}</div>
       ${editorHtml}
     </div>
   `;
 }
 
-function onJpSentenceInput(taId, previewId, applyBtnId, paraId, cardLayer, startIdx, endIdx) {
+function renderOptionalKakikudashiCard(doc, para, idx, sentMeta) {
+  const kkText = (sentMeta && sentMeta.kakikudashi) || "";
+  const previewId = `cw_prev_kk_${para.id}`;
+  const taId = `cw_ta_kk_${para.id}`;
+
+  let editorHtml = "";
+  if (isScribe) {
+    editorHtml = `
+      <div class="layer-editor-wrap">
+        <div class="markup-toolbar">
+          <span class="markup-group">
+            <button type="button" class="markup-btn" onclick="wrapKakikudashiMarkup('${taId}', '${previewId}', '${para.id}', ${idx}, 'ruby')">+振仮名</button>
+            <button type="button" class="markup-btn" onclick="wrapKakikudashiMarkup('${taId}', '${previewId}', '${para.id}', ${idx}, 'kun')">+訓読</button>
+            <button type="button" class="markup-btn" onclick="wrapKakikudashiMarkup('${taId}', '${previewId}', '${para.id}', ${idx}, 'var')">+校異</button>
+          </span>
+        </div>
+        <textarea
+          id="${taId}"
+          class="layer-textarea jp-input"
+          placeholder="Write 書き下し for Sentence ${idx + 1} (e.g. 漢字（よみ）)..."
+          oninput="onKakikudashiInput('${para.id}', ${idx}, '${previewId}', this.value)"
+        >${escapeHtml(kkText)}</textarea>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="layer-card">
+      <div class="layer-card-head">
+        <span>2. 書き下し Kakikudashi</span>
+        <span class="layer-badge-optional">Optional Layer</span>
+      </div>
+      <div class="cw-tategaki-preview" id="${previewId}">${kkText ? renderJapaneseRich(kkText, `cw_kk_${para.id}_${idx}`) : `<span style="color:var(--ink-faint);font-size:13px;">（書き下し未入力）</span>`}</div>
+      ${editorHtml}
+    </div>
+  `;
+}
+
+function renderEnglishProductCard(doc, para, idx, sentMeta) {
+  const stepNum = doc.hasKakikudashi ? "3" : "2";
+  const en = para.englishText || "";
+  const ranges = (sentMeta && sentMeta.enRanges) || [];
+  const assignedText = ranges.map(r => en.slice(r.start, r.end)).join(" … ");
+
+  // Auto-open the paragraph span linker only when the paragraph already has unlinked bulk-pasted English
+  const hasUnlinkedBulkEn = ranges.length === 0 && en.trim().length > 0 &&
+    !(para.sentMeta || []).some(m => (m.enRanges || []).length > 0);
+  const mapperOpen = showEnSpanMapper || hasUnlinkedBulkEn || ranges.length > 1;
+
+  let mainEditorHtml = "";
+  if (!isScribe) {
+    mainEditorHtml = assignedText
+      ? `<div class="cw-en-preview">${escapeHtml(assignedText)}</div>`
+      : `<div style="font-size:12.5px;color:var(--ink-faint);font-style:italic;">No English translation yet.</div>`;
+  } else if (ranges.length <= 1) {
+    mainEditorHtml = `
+      <textarea
+        class="layer-textarea en-input"
+        placeholder="Write English translation for Sentence ${idx + 1}..."
+        oninput="onDirectSentenceEnglishInput('${para.id}', ${idx}, this.value)"
+      >${escapeHtml(assignedText)}</textarea>
+    `;
+  } else {
+    mainEditorHtml = `<div class="cw-en-preview" title="Multiple discontinuous spans assigned — adjust below">${escapeHtml(assignedText)}</div>`;
+  }
+
+  return `
+    <div class="layer-card is-product-card">
+      <div class="layer-card-head">
+        <span>${stepNum}. English Translation (Sentence ${idx + 1})</span>
+        <span class="layer-badge-product">Final Product</span>
+      </div>
+      ${mainEditorHtml}
+      <div>
+        <span class="en-mapper-toggle" onclick="toggleEnSpanMapper()">
+          ${mapperOpen ? "▾ Hide paragraph span mapping" : "▸ Link or adjust span in full paragraph"}
+        </span>
+      </div>
+      ${mapperOpen ? `
+        <div class="en-mapper-wrap">
+          <div class="en-mapper-head">
+            <span>Highlight words in paragraph to link to Sentence ${idx + 1}:</span>
+            <span style="display:inline-flex;gap:4px;flex-wrap:wrap;">
+              ${isScribe ? `
+                <button type="button" class="btn btn-sm amber" id="assignSelBtn" onclick="assignSelectedEnglish(false)" disabled>🔗 Assign</button>
+                <button type="button" class="btn btn-sm" id="appendSelBtn" onclick="assignSelectedEnglish(true)" disabled title="Append discontinuous clause">+ Span</button>
+                ${ranges.length > 0 ? `<button type="button" class="btn btn-sm" onclick="clearEnglishAssignment('${para.id}', ${idx})">✕ Unlink</button>` : ""}
+                <button type="button" class="btn btn-sm ${showFullEnParaEditor ? 'active' : ''}" onclick="toggleFullEnParaEditor()">✎ Full Para</button>
+              ` : ""}
+            </span>
+          </div>
+          <div class="en-mapper-box" id="enMapperBox" data-total-len="${en.length}">${renderParagraphEnglishMapperBox(para, idx)}</div>
+          ${showFullEnParaEditor && isScribe ? `
+            <div>
+              <div style="font-size:11px;color:var(--ink-muted);margin-bottom:3px;">Full Paragraph English Product:</div>
+              <textarea class="layer-textarea en-input" style="min-height:85px;" oninput="onFullParaEnglishInput('${para.id}', this.value)">${escapeHtml(en)}</textarea>
+            </div>
+          ` : ""}
+        </div>
+      ` : ""}
+    </div>
+  `;
+}
+
+function toggleEnSpanMapper() {
+  showEnSpanMapper = !showEnSpanMapper;
+  renderCompanionWindow();
+}
+
+function onKakikudashiInput(paraId, idx, previewId, val) {
+  const doc = getActiveDoc();
+  const para = doc && doc.paragraphs.find(p => p.id === paraId);
+  if (!para) return;
+  const { metaArr } = getParaUnitsAndMeta(para);
+  if (!metaArr[idx]) return;
+  metaArr[idx].kakikudashi = val;
+  const prev = document.getElementById(previewId);
+  if (prev) {
+    prev.innerHTML = val
+      ? renderJapaneseRich(val, `cw_kk_${para.id}_${idx}`)
+      : `<span style="color:var(--ink-faint);font-size:13px;">（書き下し未入力）</span>`;
+  }
+  saveState(activeDocId, para.id);
+}
+
+function wrapKakikudashiMarkup(taId, previewId, paraId, idx, kind) {
+  const ta = document.getElementById(taId);
+  if (!ta) return;
+  const s = ta.selectionStart, e = ta.selectionEnd;
+  const sel = ta.value.substring(s, e) || "字";
+  let rep = sel;
+  if (kind === "ruby") rep = `${sel}（よみ）`;
+  if (kind === "kun") rep = `[[${sel}|別訓]]`;
+  if (kind === "var") rep = `{{${sel}|校異注}}`;
+  ta.value = ta.value.substring(0, s) + rep + ta.value.substring(e);
+  ta.focus();
+  onKakikudashiInput(paraId, idx, previewId, ta.value);
+}
+
+function onPrimarySentenceInput(taId, previewId, applyBtnId, paraId, idx) {
   const ta = document.getElementById(taId);
   if (!ta) return;
   const val = ta.value;
   const prev = document.getElementById(previewId);
-  if (prev) prev.innerHTML = renderJapaneseRich(val, `cw_${paraId}_${cardLayer}_${startIdx}`);
+  if (prev) prev.innerHTML = renderJapaneseRich(val, `cw_prim_${paraId}_${idx}`);
 
-  const expectedCount = endIdx - startIdx + 1;
   const newUnits = splitByMaru(val);
   const doc = getActiveDoc();
   const para = doc.paragraphs.find(p => p.id === paraId);
-  const { units: currentAllUnits } = getParaUnitsAndMeta(para, cardLayer);
-  const hasFollowing = endIdx < currentAllUnits.length - 1;
+  const { units: currentAllUnits } = getParaUnitsAndMeta(para);
+  const hasFollowing = idx < currentAllUnits.length - 1;
   const endsWithMaru = /。[」』]*\s*$/.test(val);
-  const willChangeSegmentation = (newUnits.length !== expectedCount) || (hasFollowing && !endsWithMaru);
+  const willChangeSegmentation = (newUnits.length !== 1) || (hasFollowing && !endsWithMaru);
 
   ta.dataset.dirtyDanku = willChangeSegmentation ? "1" : "0";
 
@@ -2793,74 +2963,73 @@ function onJpSentenceInput(taId, previewId, applyBtnId, paraId, cardLayer, start
     applyBtn.style.display = willChangeSegmentation ? "inline-block" : "none";
     if (willChangeSegmentation) {
       applyBtn.textContent = !endsWithMaru && hasFollowing
-        ? `⚡ Apply Merge w/ Next Sentence`
-        : `⚡ Apply Split (${expectedCount} → ${newUnits.length} sentences)`;
+        ? `⚡ Apply Merge`
+        : `⚡ Apply (${newUnits.length} sents)`;
     }
   }
 
   if (!willChangeSegmentation) {
-    commitJpSliceReplacement(para, cardLayer, startIdx, endIdx, val, false);
+    commitPrimarySliceReplacement(para, idx, val, false);
   }
 }
 
-function applyJpSentenceEdit(taId, paraId, cardLayer, startIdx, endIdx) {
+function applyPrimarySentenceEdit(taId, paraId, idx) {
   const ta = document.getElementById(taId);
   if (!ta) return;
   ta.dataset.dirtyDanku = "0";
   const doc = getActiveDoc();
   const para = doc.paragraphs.find(p => p.id === paraId);
   if (!para) return;
-  commitJpSliceReplacement(para, cardLayer, startIdx, endIdx, ta.value, true);
+  commitPrimarySliceReplacement(para, idx, ta.value, true);
 }
 
-function commitJpSliceReplacement(para, cardLayer, startIdx, endIdx, replacementText, fullReRender) {
-  const isKb = cardLayer === "kanbun";
-  const rawField = isKb ? "kanbunText" : "kakikudashiText";
-  const { units, metaArr } = getParaUnitsAndMeta(para, cardLayer);
+function commitPrimarySliceReplacement(para, idx, replacementText, fullReRender) {
+  const { units, metaArr } = getParaUnitsAndMeta(para);
   if (units.length === 0) {
-    para[rawField] = replacementText;
+    para.primaryText = replacementText;
     saveState(activeDocId, para.id);
     if (fullReRender) { renderPrimaryStage(); renderCompanionWindow(); }
     return;
   }
 
-  const charStart = units[startIdx].start;
-  const charEnd = units[endIdx].end;
-  const oldRaw = para[rawField];
+  const charStart = units[idx].start;
+  const charEnd = units[idx].end;
+  const oldRaw = para.primaryText || "";
   const nextRaw = oldRaw.slice(0, charStart) + replacementText + oldRaw.slice(charEnd);
 
   const oldCount = units.length;
   const newUnits = splitByMaru(nextRaw);
   const delta = newUnits.length - oldCount;
 
-  para[rawField] = nextRaw;
+  para.primaryText = nextRaw;
 
   if (delta > 0) {
-    const baseMeta = metaArr[startIdx] || { enRanges: [], pairStart: startIdx, pairEnd: startIdx, notes: [] };
+    const baseMeta = metaArr[idx] || { kakikudashi: "", enRanges: [], notes: [] };
+    const splitPieceCount = delta + 1;
+    const kkSplit = mapKakikudashiUnitsToPrimary(splitPieceCount, baseMeta.kakikudashi || "", null);
+    baseMeta.kakikudashi = kkSplit[0] || "";
     const extras = [];
-    for (let k = 0; k < delta; k++) {
+    for (let k = 1; k < splitPieceCount; k++) {
       extras.push({
+        kakikudashi: kkSplit[k] || "",
         enRanges: JSON.parse(JSON.stringify(baseMeta.enRanges || [])),
-        pairStart: baseMeta.pairStart,
-        pairEnd: baseMeta.pairEnd,
         notes: []
       });
     }
-    metaArr.splice(startIdx + 1, 0, ...extras);
+    metaArr.splice(idx + 1, 0, ...extras);
   } else if (delta < 0) {
     const removeCount = Math.abs(delta);
-    const mergedSlots = metaArr.slice(startIdx, startIdx + removeCount + 1);
+    const mergedSlots = metaArr.slice(idx, idx + removeCount + 1);
+    const combinedKk = mergedSlots.map(s => s.kakikudashi || "").filter(Boolean).join("");
     const combinedRanges = [];
     const combinedNotes = [];
     mergedSlots.forEach(s => {
       (s.enRanges || []).forEach(r => combinedRanges.push(r));
       (s.notes || []).forEach(n => combinedNotes.push(n));
     });
-    const mergedEnRanges = mergeEnRanges(para.englishText, combinedRanges);
-    metaArr.splice(startIdx, removeCount + 1, {
-      enRanges: mergedEnRanges,
-      pairStart: mergedSlots[0] ? mergedSlots[0].pairStart : 0,
-      pairEnd: mergedSlots[mergedSlots.length - 1] ? mergedSlots[mergedSlots.length - 1].pairEnd : 0,
+    metaArr.splice(idx, removeCount + 1, {
+      kakikudashi: combinedKk,
+      enRanges: mergeEnRanges(para.englishText || "", combinedRanges),
       notes: combinedNotes
     });
   }
@@ -2868,26 +3037,25 @@ function commitJpSliceReplacement(para, cardLayer, startIdx, endIdx, replacement
   saveState(activeDocId, para.id);
 
   if (fullReRender) {
-    if (activeSelection && activeSelection.paraId === para.id && activeSelection.anchorLayer === cardLayer) {
-      activeSelection.idx = Math.min(newUnits.length - 1, startIdx);
+    if (activeSelection && activeSelection.paraId === para.id) {
+      activeSelection.idx = Math.min(Math.max(0, newUnits.length - 1), idx);
     }
     renderPrimaryStage();
     renderCompanionWindow();
-  } else if (primaryLayer === cardLayer) {
-    const bgSpan = document.querySelector(`.doc-sent[data-para="${para.id}"][data-layer="${cardLayer}"][data-idx="${startIdx}"]`);
-    if (bgSpan && newUnits[startIdx]) {
+  } else {
+    const bgSpan = document.querySelector(`.doc-sent[data-para="${para.id}"][data-idx="${idx}"]`);
+    if (bgSpan && newUnits[idx]) {
       const doc = getActiveDoc();
       const fnMap = buildFootnoteLookupMap(doc);
-      const canonIndices = getCanonicalAnchorIndices(doc, para, cardLayer, startIdx);
-      const fnBadges = canonIndices.flatMap(ci => fnMap[`${para.id}:${ci}`] || [])
+      const fnBadges = (fnMap[`${para.id}:${idx}`] || [])
         .map(fn => `<span class="fn-badge" onclick="focusFootnote(event, ${fn.num})" title="Jump to Editorial Note ${fn.num}">${fn.num}</span>`)
         .join("");
-      bgSpan.innerHTML = `<span class="ku-num">${startIdx + 1}</span>${renderJapaneseRich(newUnits[startIdx].text, `main_${para.id}_${cardLayer}_${startIdx}`)}${fnBadges}`;
+      bgSpan.innerHTML = `<span class="ku-num">${idx + 1}</span>${renderJapaneseRich(newUnits[idx].text, `main_${para.id}_${idx}`)}${fnBadges}`;
     }
   }
 }
 
-function insertMaruAtCursor(taId, paraId, cardLayer, startIdx, endIdx) {
+function insertMaruAtCursor(taId, paraId, idx) {
   const ta = document.getElementById(taId);
   if (!ta) return;
   let pos = ta.selectionStart;
@@ -2900,22 +3068,22 @@ function insertMaruAtCursor(taId, paraId, cardLayer, startIdx, endIdx) {
     val = val.slice(0, pos) + "。" + val.slice(pos);
   }
   ta.value = val;
-  applyJpSentenceEdit(taId, paraId, cardLayer, startIdx, endIdx);
+  applyPrimarySentenceEdit(taId, paraId, idx);
 }
 
-function mergeWithNextSentence(paraId, cardLayer, startIdx, endIdx) {
+function mergeWithNextSentence(paraId, idx) {
   const doc = getActiveDoc();
   const para = doc.paragraphs.find(p => p.id === paraId);
   if (!para) return;
-  const { units } = getParaUnitsAndMeta(para, cardLayer);
-  if (endIdx >= units.length - 1) return;
-  const comma = cardLayer === "kanbun" ? "，" : "、";
-  const currentSlice = units.slice(startIdx, endIdx + 1).map(u => u.text).join("");
+  const { units } = getParaUnitsAndMeta(para);
+  if (idx >= units.length - 1) return;
+  const comma = doc.primaryStyle === "kanbun" ? "，" : "、";
+  const currentSlice = units[idx].text;
   const withoutFinalMaru = currentSlice.replace(/。([」』]*)\s*$/, `$1${comma}`);
-  commitJpSliceReplacement(para, cardLayer, startIdx, endIdx, withoutFinalMaru, true);
+  commitPrimarySliceReplacement(para, idx, withoutFinalMaru, true);
 }
 
-function wrapJpMarkup(taId, paraId, cardLayer, startIdx, endIdx, kind) {
+function wrapPrimaryMarkup(taId, paraId, idx, kind) {
   const ta = document.getElementById(taId);
   if (!ta) return;
   const s = ta.selectionStart, e = ta.selectionEnd;
@@ -2926,26 +3094,7 @@ function wrapJpMarkup(taId, paraId, cardLayer, startIdx, endIdx, kind) {
   if (kind === "var") rep = `{{${sel}|校異注}}`;
   ta.value = ta.value.substring(0, s) + rep + ta.value.substring(e);
   ta.focus();
-  onJpSentenceInput(taId, `cw_prev_${paraId}_${cardLayer}`, `cw_danku_btn_${paraId}_${cardLayer}`, paraId, cardLayer, startIdx, endIdx);
-}
-
-function adjustPairRange(paraId, dStart, dEnd) {
-  const doc = getActiveDoc();
-  const para = doc.paragraphs.find(p => p.id === paraId);
-  if (!para || !activeSelection) return;
-  const anchorLayer = activeSelection.anchorLayer;
-  const otherLayer = anchorLayer === "kanbun" ? "kakikudashi" : "kanbun";
-  const { metaArr } = getParaUnitsAndMeta(para, anchorLayer);
-  const { units: otherUnits } = getParaUnitsAndMeta(para, otherLayer);
-  const m = metaArr[activeSelection.idx];
-  if (!m || otherUnits.length === 0) return;
-
-  let ps = Math.max(0, Math.min(otherUnits.length - 1, (m.pairStart ?? 0) + dStart));
-  let pe = Math.max(ps, Math.min(otherUnits.length - 1, (m.pairEnd ?? ps) + dEnd));
-  m.pairStart = ps;
-  m.pairEnd = pe;
-  saveState(activeDocId, para.id);
-  renderCompanionWindow();
+  onPrimarySentenceInput(taId, `cw_prev_prim_${paraId}`, `cw_danku_btn_${paraId}`, paraId, idx);
 }
 
 function mergeEnRanges(enText, ranges) {
@@ -2968,59 +3117,133 @@ function mergeEnRanges(enText, ranges) {
   return out;
 }
 
-function renderEnglishAssignmentCard(doc, para, anchorLayer, idx, anchorMeta, isPrimaryCard) {
-  const en = para.englishText || "";
-  const ranges = anchorMeta.enRanges || [];
-  const assignedText = ranges.map(r => en.slice(r.start, r.end)).join(" … ");
-  const mapperHtml = renderParagraphEnglishMapperBox(para, anchorLayer, idx);
+function onDirectSentenceEnglishInput(paraId, idx, newVal) {
+  const doc = getActiveDoc();
+  const para = doc && doc.paragraphs.find(p => p.id === paraId);
+  if (!para) return;
+  const { metaArr } = getParaUnitsAndMeta(para);
+  const m = metaArr[idx];
+  if (!m) return;
 
-  return `
-    <div class="layer-card ${isPrimaryCard ? 'is-primary-card' : ''}">
-      <div class="layer-card-head">
-        <span>English Translation · Assigned to Sentence ${idx + 1}</span>
-        <span class="${isPrimaryCard ? 'layer-badge-primary' : 'layer-badge-companion'}">
-          ${isPrimaryCard ? "Primary Layer" : "Companion Layer"}
-        </span>
-      </div>
+  para.englishText = para.englishText || "";
+  const ranges = m.enRanges || [];
 
-      ${ranges.length > 0
-        ? (isScribe && ranges.length === 1
-            ? `<textarea class="layer-textarea en-input" oninput="onAssignedEnglishEdit('${para.id}', '${anchorLayer}', ${idx}, this.value)" title="Editing this assigned English passage updates the paragraph translation directly">${escapeHtml(assignedText)}</textarea>`
-            : `<div class="cw-en-preview">${escapeHtml(assignedText)}</div>`)
-        : `<div class="cw-en-empty">No English passage assigned to Sentence ${idx + 1} yet — highlight words in the paragraph below and click Assign.</div>`
+  if (ranges.length === 1) {
+    const r = ranges[0];
+    const oldStart = r.start;
+    const oldEnd = r.end;
+
+    if (newVal === "") {
+      // Check if any other sentence shares this exact span
+      const sharedElsewhere = metaArr.some((other, oi) =>
+        oi !== idx && (other.enRanges || []).some(sp => sp.start === oldStart && sp.end === oldEnd)
+      );
+      if (sharedElsewhere) {
+        m.enRanges = [];
+      } else {
+        let rmStart = oldStart;
+        let rmEnd = oldEnd;
+        if (rmStart > 0 && para.englishText[rmStart - 1] === " " && (rmEnd === para.englishText.length || para.englishText[rmEnd] === " ")) {
+          rmStart -= 1;
+        } else if (rmStart === 0 && rmEnd < para.englishText.length && para.englishText[rmEnd] === " ") {
+          rmEnd += 1;
+        }
+        const removedLen = rmEnd - rmStart;
+        para.englishText = para.englishText.slice(0, rmStart) + para.englishText.slice(rmEnd);
+        m.enRanges = [];
+        metaArr.forEach((item, oi) => {
+          if (oi === idx) return;
+          (item.enRanges || []).forEach(sp => {
+            if (sp.start >= rmEnd) {
+              sp.start -= removedLen;
+              sp.end -= removedLen;
+              sp.snapshot = para.englishText.slice(sp.start, sp.end);
+            }
+          });
+        });
       }
+    } else {
+      const delta = newVal.length - (oldEnd - oldStart);
+      para.englishText = para.englishText.slice(0, oldStart) + newVal + para.englishText.slice(oldEnd);
+      metaArr.forEach(item => {
+        (item.enRanges || []).forEach(span => {
+          if (span === r || (span.start === oldStart && span.end === oldEnd)) {
+            span.end = oldStart + newVal.length;
+            span.snapshot = newVal;
+          } else if (span.start >= oldEnd) {
+            span.start += delta;
+            span.end += delta;
+            span.snapshot = para.englishText.slice(span.start, span.end);
+          }
+        });
+      });
+    }
+  } else if (ranges.length === 0 && newVal.length > 0) {
+    // Auto-insert at natural sentence order position inside para.englishText
+    let insertPos = para.englishText.length;
+    let foundPrev = false;
+    for (let p = idx - 1; p >= 0; p--) {
+      const prs = (metaArr[p] && metaArr[p].enRanges) || [];
+      if (prs.length > 0) {
+        insertPos = prs[prs.length - 1].end;
+        foundPrev = true;
+        break;
+      }
+    }
+    if (!foundPrev) {
+      for (let f = idx + 1; f < metaArr.length; f++) {
+        const frs = (metaArr[f] && metaArr[f].enRanges) || [];
+        if (frs.length > 0) {
+          insertPos = frs[0].start;
+          break;
+        }
+      }
+    }
 
-      <div class="en-mapper-wrap">
-        <div class="en-mapper-head">
-          <span><strong>Assign English Passage</strong> (drag-select any passage below for Sentence ${idx + 1}):</span>
-          <span style="display:inline-flex;gap:4px;flex-wrap:wrap;">
-            ${isScribe ? `
-              <button type="button" class="btn btn-sm amber" id="assignSelBtn" onclick="assignSelectedEnglish(false)" disabled>🔗 Assign Highlighted to Sentence ${idx + 1}</button>
-              <button type="button" class="btn btn-sm" id="appendSelBtn" onclick="assignSelectedEnglish(true)" disabled title="Add discontinuous clause to Sentence ${idx + 1}">+ Append Span</button>
-              ${ranges.length > 0 ? `<button type="button" class="btn btn-sm" onclick="clearEnglishAssignment('${para.id}', '${anchorLayer}', ${idx})">✕ Unassign</button>` : ""}
-              <button type="button" class="btn btn-sm ${showFullEnParaEditor ? 'active' : ''}" onclick="toggleFullEnParaEditor()">✎ Full Para</button>
-            ` : ""}
-          </span>
-        </div>
+    const needLead = insertPos > 0 && !/\s/.test(para.englishText[insertPos - 1]);
+    const needTrail = insertPos < para.englishText.length && !/\s/.test(para.englishText[insertPos]);
+    const prefix = needLead ? " " : "";
+    const suffix = needTrail ? " " : "";
+    const inserted = prefix + newVal + suffix;
 
-        <div class="en-mapper-box" id="enMapperBox" data-total-len="${en.length}">${mapperHtml}</div>
+    para.englishText = para.englishText.slice(0, insertPos) + inserted + para.englishText.slice(insertPos);
+    metaArr.forEach((item, oi) => {
+      if (oi === idx) return;
+      (item.enRanges || []).forEach(sp => {
+        if (sp.start >= insertPos) {
+          sp.start += inserted.length;
+          sp.end += inserted.length;
+          sp.snapshot = para.englishText.slice(sp.start, sp.end);
+        }
+      });
+    });
 
-        ${showFullEnParaEditor && isScribe ? `
-          <div>
-            <div style="font-size:11px;color:var(--ink-muted);margin-bottom:3px;">Full Paragraph English Editor:</div>
-            <textarea class="layer-textarea en-input" style="min-height:90px;" oninput="onFullParaEnglishInput('${para.id}', this.value)">${escapeHtml(en)}</textarea>
-          </div>
-        ` : ""}
-      </div>
-    </div>
-  `;
+    const spanStart = insertPos + prefix.length;
+    m.enRanges = [{
+      start: spanStart,
+      end: spanStart + newVal.length,
+      snapshot: newVal
+    }];
+  }
+
+  saveState(activeDocId, para.id);
+
+  const mapperBox = document.getElementById("enMapperBox");
+  if (mapperBox) {
+    mapperBox.dataset.totalLen = para.englishText.length;
+    mapperBox.innerHTML = renderParagraphEnglishMapperBox(para, idx);
+  }
+  const prodParaEl = document.getElementById(`en_prod_para_${para.id}`);
+  if (prodParaEl) {
+    prodParaEl.innerHTML = renderEnglishParagraphInteractive(doc, para, buildFootnoteLookupMap(doc));
+  }
 }
 
-function renderParagraphEnglishMapperBox(para, anchorLayer, activeIdx) {
+function renderParagraphEnglishMapperBox(para, activeIdx) {
   const en = para.englishText || "";
-  if (!en) return `<span style="color:var(--ink-faint);font-style:italic;">Paragraph has no English text yet — click "✎ Full Para" above to write or paste translation.</span>`;
+  if (!en) return `<span style="color:var(--ink-faint);font-style:italic;">Paragraph has no English text yet — type in the box above or click "✎ Full Para" to paste a full paragraph.</span>`;
 
-  const { units, metaArr } = getParaUnitsAndMeta(para, anchorLayer);
+  const { units, metaArr } = getParaUnitsAndMeta(para);
   const bounds = new Set([0, en.length]);
   units.forEach((_, i) => {
     const m = metaArr[i];
@@ -3100,8 +3323,8 @@ function assignSelectedEnglish(appendMode) {
   const para = doc.paragraphs.find(p => p.id === activeSelection.paraId);
   if (!para) return;
 
-  const { anchorLayer, idx } = activeSelection;
-  const { units, metaArr } = getParaUnitsAndMeta(para, anchorLayer);
+  const { idx } = activeSelection;
+  const { metaArr } = getParaUnitsAndMeta(para);
   const m = metaArr[idx];
   const en = para.englishText || "";
   const newSpan = {
@@ -3112,67 +3335,22 @@ function assignSelectedEnglish(appendMode) {
 
   m.enRanges = appendMode ? mergeEnRanges(en, [...(m.enRanges || []), newSpan]) : [newSpan];
 
-  const otherLayer = anchorLayer === "kanbun" ? "kakikudashi" : "kanbun";
-  if (doc.type === "kanbun") {
-    const { units: otherUnits, metaArr: otherMeta } = getParaUnitsAndMeta(para, otherLayer);
-    if (otherUnits.length === units.length && otherMeta[idx]) {
-      otherMeta[idx].enRanges = JSON.parse(JSON.stringify(m.enRanges));
-    }
-  }
-
   pendingSelectionRange = null;
   window.getSelection().removeAllRanges();
   saveState(activeDocId, para.id);
-  if (primaryLayer === "english") renderPrimaryStage();
+  if (showEnglishProductPane) renderPrimaryStage();
   renderCompanionWindow();
 }
 
-function clearEnglishAssignment(paraId, anchorLayer, idx) {
+function clearEnglishAssignment(paraId, idx) {
   const doc = getActiveDoc();
   const para = doc.paragraphs.find(p => p.id === paraId);
   if (!para) return;
-  const { metaArr } = getParaUnitsAndMeta(para, anchorLayer);
+  const { metaArr } = getParaUnitsAndMeta(para);
   if (metaArr[idx]) metaArr[idx].enRanges = [];
   saveState(activeDocId, para.id);
-  if (primaryLayer === "english") renderPrimaryStage();
+  if (showEnglishProductPane) renderPrimaryStage();
   renderCompanionWindow();
-}
-
-function onAssignedEnglishEdit(paraId, anchorLayer, idx, newVal) {
-  const doc = getActiveDoc();
-  const para = doc.paragraphs.find(p => p.id === paraId);
-  if (!para) return;
-  const { metaArr } = getParaUnitsAndMeta(para, anchorLayer);
-  const m = metaArr[idx];
-  if (!m || !m.enRanges || m.enRanges.length !== 1) return;
-
-  const r = m.enRanges[0];
-  const oldStart = r.start, oldEnd = r.end;
-  const delta = newVal.length - (oldEnd - oldStart);
-  para.englishText = para.englishText.slice(0, oldStart) + newVal + para.englishText.slice(oldEnd);
-
-  [para.kbMeta, para.kkMeta].forEach(list => {
-    (list || []).forEach(item => {
-      (item.enRanges || []).forEach(span => {
-        if (span === r || (span.start === oldStart && span.end === oldEnd)) {
-          span.end = oldStart + newVal.length;
-          span.snapshot = newVal;
-        } else {
-          if (span.start >= oldEnd) span.start += delta;
-          if (span.end >= oldEnd) span.end += delta;
-          span.snapshot = para.englishText.slice(span.start, span.end);
-        }
-      });
-    });
-  });
-
-  saveState(activeDocId, para.id);
-  const mapperBox = document.getElementById("enMapperBox");
-  if (mapperBox) {
-    mapperBox.dataset.totalLen = para.englishText.length;
-    mapperBox.innerHTML = renderParagraphEnglishMapperBox(para, anchorLayer, idx);
-  }
-  if (primaryLayer === "english") renderPrimaryStage();
 }
 
 function toggleFullEnParaEditor() {
@@ -3190,9 +3368,12 @@ function onFullParaEnglishInput(paraId, val) {
   const mapperBox = document.getElementById("enMapperBox");
   if (mapperBox && activeSelection) {
     mapperBox.dataset.totalLen = val.length;
-    mapperBox.innerHTML = renderParagraphEnglishMapperBox(para, activeSelection.anchorLayer, activeSelection.idx);
+    mapperBox.innerHTML = renderParagraphEnglishMapperBox(para, activeSelection.idx);
   }
-  if (primaryLayer === "english") renderPrimaryStage();
+  const prodParaEl = document.getElementById(`en_prod_para_${para.id}`);
+  if (prodParaEl) {
+    prodParaEl.innerHTML = renderEnglishParagraphInteractive(doc, para, buildFootnoteLookupMap(doc));
+  }
 }
 
 let modalParaId = null;
@@ -3204,26 +3385,20 @@ function openParaDankuModal(explicitParaId) {
   const para = doc.paragraphs.find(p => p.id === modalParaId);
   if (!para) return;
 
-  const kbCount = splitByMaru(para.kanbunText).length;
-  const kkCount = splitByMaru(para.kakikudashiText).length;
+  const st = getPrimaryStyleInfo(doc.primaryStyle);
+  const sentCount = splitByMaru(para.primaryText).length;
 
   document.getElementById("paraModalTitle").textContent =
-    `✂ Paragraph Sentence Punctuation Editor — ${doc.id} · ${para.label}`;
+    `✂ Paragraph Sentence Punctuation — ${doc.id} · ${para.label}`;
 
   document.getElementById("paraModalBody").innerHTML = `
     <div style="font-size:12.5px;color:var(--ink-muted);line-height:1.5;">
-      Add, move, or delete Asian sentence markers <strong>「。」</strong> anywhere in the paragraph below to change clickable sentences.
+      Add, move, or delete sentence markers <strong>「。」</strong> in the primary text below to adjust clickable sentences.
       <span style="margin-left:8px;cursor:pointer;color:var(--bookmark);font-weight:600;" onclick="setBookmark('${para.id}');closeParaDankuModal();">🔖 Toggle Session Bookmark on ${escapeHtml(para.label)}</span>
     </div>
-    ${doc.type === "kanbun" ? `
-      <div>
-        <div style="font-size:12px;font-weight:700;margin-bottom:4px;">漢文 Kanbun (<span id="modalKbCount">${kbCount}</span> clickable 「。」 sentences):</div>
-        <textarea id="modalKbTa" oninput="document.getElementById('modalKbCount').textContent=splitByMaru(this.value).length" ${!isScribe ? 'readonly' : ''}>${escapeHtml(para.kanbunText)}</textarea>
-      </div>
-    ` : ""}
     <div>
-      <div style="font-size:12px;font-weight:700;margin-bottom:4px;">${doc.type === "wabun" ? "校訂和文 Wabun" : "書き下し文 Kakikudashi"} (<span id="modalKkCount">${kkCount}</span> clickable 「。」 sentences):</div>
-      <textarea id="modalKkTa" oninput="document.getElementById('modalKkCount').textContent=splitByMaru(this.value).length" ${!isScribe ? 'readonly' : ''}>${escapeHtml(para.kakikudashiText)}</textarea>
+      <div style="font-size:12px;font-weight:700;margin-bottom:4px;">Primary Text · ${st.short} (<span id="modalPrimCount">${sentCount}</span> clickable 「。」 sentences):</div>
+      <textarea id="modalPrimTa" oninput="document.getElementById('modalPrimCount').textContent=splitByMaru(this.value).length" ${!isScribe ? 'readonly' : ''}>${escapeHtml(para.primaryText)}</textarea>
     </div>
     <div style="display:flex;justify-content:flex-end;gap:8px;">
       <button class="btn" onclick="closeParaDankuModal()">Cancel</button>
@@ -3255,7 +3430,7 @@ function reconcileMetaBySimilarity(oldUnits, newUnits, oldMeta) {
       used.add(ni);
       return JSON.parse(JSON.stringify(oldMeta[ni]));
     }
-    return { enRanges: [], pairStart: Math.min(ni, newUnits.length - 1), pairEnd: Math.min(ni, newUnits.length - 1), notes: [] };
+    return { kakikudashi: "", enRanges: [], notes: [] };
   });
 }
 
@@ -3264,21 +3439,12 @@ function saveParaDankuModal() {
   const para = doc.paragraphs.find(p => p.id === modalParaId);
   if (!para) return;
 
-  if (doc.type === "kanbun") {
-    const kbTa = document.getElementById("modalKbTa");
-    if (kbTa) {
-      const oldKb = splitByMaru(para.kanbunText);
-      const nextKb = splitByMaru(kbTa.value);
-      para.kbMeta = reconcileMetaBySimilarity(oldKb, nextKb, para.kbMeta || []);
-      para.kanbunText = kbTa.value;
-    }
-  }
-  const kkTa = document.getElementById("modalKkTa");
-  if (kkTa) {
-    const oldKk = splitByMaru(para.kakikudashiText);
-    const nextKk = splitByMaru(kkTa.value);
-    para.kkMeta = reconcileMetaBySimilarity(oldKk, nextKk, para.kkMeta || []);
-    para.kakikudashiText = kkTa.value;
+  const primTa = document.getElementById("modalPrimTa");
+  if (primTa) {
+    const oldUnits = splitByMaru(para.primaryText);
+    const nextUnits = splitByMaru(primTa.value);
+    para.sentMeta = reconcileMetaBySimilarity(oldUnits, nextUnits, para.sentMeta || []);
+    para.primaryText = primTa.value;
   }
 
   saveState(activeDocId, para.id);
@@ -3288,35 +3454,14 @@ function saveParaDankuModal() {
 }
 
 // ============================================================================
-// PERSISTENT FOOTNOTE-STYLE EDITORIAL NOTES RAIL (SHARED ACROSS ALL 3 LAYERS)
+// PERSISTENT FOOTNOTE-STYLE EDITORIAL NOTES RAIL (RIGHT OF PRIMARY TEXT)
 // ============================================================================
-function getCanonicalNoteLayer(doc) {
-  return doc && doc.type === "wabun" ? "kakikudashi" : "kanbun";
-}
-
-function getCanonicalAnchorIndices(doc, para, layer, idx) {
-  const canon = getCanonicalNoteLayer(doc);
-  if (layer === canon || layer === "english") return [idx];
-  const { units: canonUnits, metaArr: canonMeta } = getParaUnitsAndMeta(para, canon);
-  const { units: layerUnits } = getParaUnitsAndMeta(para, layer);
-  if (canonUnits.length === 0) return [];
-  if (canonUnits.length === layerUnits.length) return [idx];
-  const matches = [];
-  canonMeta.forEach((m, ci) => {
-    const ps = m.pairStart ?? ci;
-    const pe = m.pairEnd ?? ps;
-    if (idx >= ps && idx <= pe) matches.push(ci);
-  });
-  return matches.length ? matches : [Math.min(idx, canonUnits.length - 1)];
-}
-
 function buildDocumentFootnotes(doc) {
   if (!doc) return [];
-  const canon = getCanonicalNoteLayer(doc);
   const list = [];
   let num = 1;
   (doc.paragraphs || []).forEach(p => {
-    const { units, metaArr } = getParaUnitsAndMeta(p, canon);
+    const { units, metaArr } = getParaUnitsAndMeta(p);
     const maxCount = Math.max(units.length, metaArr.length);
     for (let si = 0; si < maxCount; si++) {
       const notes = (metaArr[si] && metaArr[si].notes) || [];
@@ -3363,53 +3508,33 @@ function renderNotesRail() {
   if (countEl) countEl.textContent = `(${footnotes.length})`;
 
   if (footnotes.length === 0) {
-    body.innerHTML = `<div style="font-size:12.5px;color:var(--ink-faint);line-height:1.6;padding:12px 6px;">No editorial notes on this text yet.<br><br>Click any sentence in the primary text and press <strong>+ Add Note</strong> in the top bar of the editing window to insert a numbered footnote linked across Kanbun, Kakikudashi, and English.</div>`;
+    body.innerHTML = `<div style="font-size:12.5px;color:var(--ink-faint);line-height:1.6;padding:12px 6px;">No editorial notes on this text yet.<br><br>Click any sentence in the primary text and press <strong>+ Add Note</strong> in the editor window header to add a numbered footnote here.</div>`;
     return;
-  }
-
-  const activeCanonSet = new Set();
-  if (activeSelection) {
-    const activePara = doc.paragraphs.find(p => p.id === activeSelection.paraId);
-    if (activePara) {
-      getCanonicalAnchorIndices(doc, activePara, activeSelection.anchorLayer, activeSelection.idx)
-        .forEach(ci => activeCanonSet.add(`${activePara.id}:${ci}`));
-    }
   }
 
   body.innerHTML = footnotes.map(fn => {
     const n = fn.note;
-    const isActive = activeCanonSet.has(`${fn.paraId}:${fn.sentIdx}`);
+    const isActive = Boolean(activeSelection && activeSelection.paraId === fn.paraId && activeSelection.idx === fn.sentIdx);
     const cardId = `fn_card_${fn.num}`;
     const taId = `fn_ta_${fn.num}`;
+    const timeId = `fn_time_${fn.num}`;
+    const ts = formatNoteTimestamp(n.updatedAt || n.createdAt);
     return `
-      <div class="fn-card cat-${escapeHtml(n.cat || 'grammar')} ${isActive ? 'active-fn' : ''}" id="${cardId}">
+      <div class="fn-card ${isActive ? 'active-fn' : ''}" id="${cardId}">
         <div class="fn-card-top">
           <span class="fn-num-pill" onclick="jumpToFootnoteSentence('${fn.paraId}', ${fn.sentIdx})" title="Jump to ${escapeHtml(fn.paraLabel)} · Sentence ${fn.sentIdx + 1}">
             [${fn.num}] ${escapeHtml(fn.paraLabel)} · Sent ${fn.sentIdx + 1}
           </span>
           ${isScribe ? `<button class="fn-del-btn" onclick="deleteFootnote('${fn.paraId}', ${fn.sentIdx}, ${fn.noteIdx})" title="Delete note [${fn.num}]">✕</button>` : ""}
         </div>
+        <div style="font-size:11px;color:var(--ink-muted);display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;">
+          <strong>${escapeHtml(n.author || 'Member')}</strong>
+          <span id="${timeId}" style="color:var(--ink-faint);">${escapeHtml(ts)}</span>
+        </div>
         ${isScribe ? `
-          <div class="fn-edit-row">
-            <select onchange="onInlineNoteFieldChange('${fn.paraId}', ${fn.sentIdx}, ${fn.noteIdx}, 'cat', this.value)">
-              <option value="variant" ${n.cat === 'variant' ? 'selected' : ''}>校異 Variant</option>
-              <option value="locus" ${n.cat === 'locus' ? 'selected' : ''}>典拠 Locus</option>
-              <option value="grammar" ${n.cat === 'grammar' ? 'selected' : ''}>語釈 Grammar</option>
-              <option value="suggestion" ${n.cat === 'suggestion' ? 'selected' : ''}>試訳 Note</option>
-            </select>
-            <input type="text" value="${escapeHtml(n.lemma || '')}" placeholder="Lemma" style="flex:1;min-width:75px;font-family:var(--font-jp);" oninput="onInlineNoteFieldChange('${fn.paraId}', ${fn.sentIdx}, ${fn.noteIdx}, 'lemma', this.value)">
-            <input type="text" value="${escapeHtml(n.author || '')}" placeholder="Author" style="width:74px;" oninput="onInlineNoteFieldChange('${fn.paraId}', ${fn.sentIdx}, ${fn.noteIdx}, 'author', this.value)">
-          </div>
-          <textarea id="${taId}" class="fn-textarea" placeholder="Write editorial note, textual variant, locus classicus, or translation discussion..." oninput="onInlineNoteFieldChange('${fn.paraId}', ${fn.sentIdx}, ${fn.noteIdx}, 'text', this.value)">${escapeHtml(n.text || '')}</textarea>
+          <textarea id="${taId}" class="fn-textarea" placeholder="Write editorial note..." oninput="onInlineNoteFieldChange('${fn.paraId}', ${fn.sentIdx}, ${fn.noteIdx}, this.value, '${timeId}')">${escapeHtml(n.text || '')}</textarea>
         ` : `
-          <div style="font-size:11px;color:var(--ink-muted);">
-            <span class="note-tag">${escapeHtml(n.tag || '')}</span>
-            <strong style="margin-left:4px;">${escapeHtml(n.author || '')}</strong>
-          </div>
-          <div style="font-size:12.5px;line-height:1.5;">
-            ${n.lemma ? `<span class="note-lemma">「${escapeHtml(n.lemma)}」</span>` : ""}
-            <span>${escapeHtml(n.text || '')}</span>
-          </div>
+          <div style="font-size:12.5px;line-height:1.5;white-space:pre-wrap;">${escapeHtml(n.text || '')}</div>
         `}
       </div>
     `;
@@ -3425,17 +3550,16 @@ function addFootnoteForActiveSentence() {
   const doc = getActiveDoc();
   const para = doc && doc.paragraphs.find(p => p.id === activeSelection.paraId);
   if (!para) return;
-  const canon = getCanonicalNoteLayer(doc);
-  const canonIndices = getCanonicalAnchorIndices(doc, para, activeSelection.anchorLayer, activeSelection.idx);
-  const targetIdx = canonIndices.length ? canonIndices[0] : 0;
-  const { metaArr } = getParaUnitsAndMeta(para, canon);
+  const { metaArr } = getParaUnitsAndMeta(para);
+  const targetIdx = activeSelection.idx;
   const m = metaArr[targetIdx];
+  if (!m) return;
   m.notes = m.notes || [];
+  const nowMs = getServerNowMs();
   m.notes.push({
     author: getCurrentUserName(),
-    cat: "grammar",
-    tag: "語釈 Grammar",
-    lemma: "",
+    createdAt: nowMs,
+    updatedAt: nowMs,
     text: ""
   });
   const newNoteIdx = m.notes.length - 1;
@@ -3457,24 +3581,18 @@ function addFootnoteForActiveSentence() {
   }
 }
 
-function onInlineNoteFieldChange(paraId, sentIdx, noteIdx, field, value) {
+function onInlineNoteFieldChange(paraId, sentIdx, noteIdx, value, timeElId) {
   const doc = getActiveDoc();
   const para = doc && doc.paragraphs.find(p => p.id === paraId);
   if (!para) return;
-  const canon = getCanonicalNoteLayer(doc);
-  const { metaArr } = getParaUnitsAndMeta(para, canon);
+  const { metaArr } = getParaUnitsAndMeta(para);
   const n = metaArr[sentIdx] && metaArr[sentIdx].notes && metaArr[sentIdx].notes[noteIdx];
   if (!n) return;
-  n[field] = value;
-  if (field === "cat") {
-    const tagMap = {
-      variant: "校異 Variant",
-      locus: "典拠 Locus",
-      grammar: "語釈 Grammar",
-      suggestion: "試訳 Note"
-    };
-    n.tag = tagMap[value] || "Note";
-    renderNotesRail();
+  n.text = value;
+  n.updatedAt = getServerNowMs();
+  if (timeElId) {
+    const el = document.getElementById(timeElId);
+    if (el) el.textContent = formatNoteTimestamp(n.updatedAt);
   }
   saveState(activeDocId, para.id);
 }
@@ -3483,8 +3601,7 @@ function deleteFootnote(paraId, sentIdx, noteIdx) {
   const doc = getActiveDoc();
   const para = doc && doc.paragraphs.find(p => p.id === paraId);
   if (!para) return;
-  const canon = getCanonicalNoteLayer(doc);
-  const { metaArr } = getParaUnitsAndMeta(para, canon);
+  const { metaArr } = getParaUnitsAndMeta(para);
   if (!metaArr[sentIdx] || !metaArr[sentIdx].notes) return;
   metaArr[sentIdx].notes.splice(noteIdx, 1);
   saveState(activeDocId, para.id);
@@ -3504,21 +3621,9 @@ function focusFootnote(ev, num) {
   }
 }
 
-function jumpToFootnoteSentence(paraId, canonSentIdx) {
-  const doc = getActiveDoc();
-  if (!doc) return;
-  const canon = getCanonicalNoteLayer(doc);
-  let targetLayer = primaryLayer === "english" ? canon : primaryLayer;
-  let targetIdx = canonSentIdx;
-  if (targetLayer !== canon) {
-    const para = doc.paragraphs.find(p => p.id === paraId);
-    if (para) {
-      const { metaArr } = getParaUnitsAndMeta(para, canon);
-      const m = metaArr[canonSentIdx];
-      if (m && typeof m.pairStart === "number") targetIdx = m.pairStart;
-    }
-  }
-  activeSelection = { paraId, anchorLayer: targetLayer, idx: targetIdx };
+function jumpToFootnoteSentence(paraId, sentIdx) {
+  flushAnyPendingDankuEdits();
+  activeSelection = { paraId, idx: sentIdx };
   pendingSelectionRange = null;
   renderPrimaryStage();
   document.getElementById("companionWindow").classList.add("open");
@@ -3560,17 +3665,6 @@ document.addEventListener("keydown", (e) => {
     else if (document.getElementById("newDocModal").classList.contains("open")) closeNewDocModal();
     else if (document.getElementById("paraDankuModal").classList.contains("open")) closeParaDankuModal();
     else if (activeSelection) closeCompanionWindow();
-    return;
-  }
-  if (!activeSelection) return;
-  const tag = (e.target.tagName || "").toLowerCase();
-  if (tag === "textarea" || tag === "input" || tag === "select") return;
-  if (e.key === "ArrowDown" || e.key === "ArrowLeft") {
-    e.preventDefault();
-    stepSentence(1);
-  } else if (e.key === "ArrowUp" || e.key === "ArrowRight") {
-    e.preventDefault();
-    stepSentence(-1);
   }
 });
 
@@ -3688,6 +3782,7 @@ function toggleRole() {
   const label = document.getElementById("roleLabel");
   pill.className = "role-pill " + (isScribe ? "is-scribe" : "is-annotator");
   label.textContent = isScribe ? "✏️ Editing Unlocked" : "👁 Read-Only Safety";
+  syncTopbarPrimaryStyle();
   if (activeSelection) renderCompanionWindow();
   renderNotesRail();
 }
@@ -3712,9 +3807,11 @@ function toggleSidebar() {
 
 function resetDemoData() {
   localStorage.removeItem(STORAGE_KEY);
-  state = { corpus: buildInitialCorpus(), kunSelections: {} };
+  localStorage.removeItem(LEGACY_STORAGE_KEY);
+  state = { corpus: buildInitialCorpus().map(normalizeDocSchema), kunSelections: {} };
   activeSelection = null;
   closeCompanionWindow();
+  syncTopbarPrimaryStyle();
   renderSidebar();
   renderBanner();
   renderPrimaryStage();
@@ -3722,18 +3819,28 @@ function resetDemoData() {
 
 function exportMarkdown() {
   const doc = getActiveDoc();
+  const st = getPrimaryStyleInfo(doc.primaryStyle);
   let md = `# ${doc.title}\n${doc.author}\n\n> ${doc.metadata}\n\n`;
   for (const p of doc.paragraphs) {
     md += `## ${p.label}\n\n`;
-    if (doc.type === "kanbun") {
-      md += `### 漢文\n${p.kanbunText.replace(/\{\{([^|}]+)\|[^}]+\}\}/g, "$1")}\n\n`;
+    const cleanPrimary = (p.primaryText || "")
+      .replace(/\[\[([^|\]]+)[^\]]*\]\]/g, "$1")
+      .replace(/\{\{([^|}]+)\|[^}]+\}\}/g, "$1");
+    md += `### 原文 (${st.short})\n${cleanPrimary}\n\n`;
+    const joinedKk = (p.sentMeta || []).map(m => m.kakikudashi || "").filter(Boolean).join("");
+    if (doc.hasKakikudashi && joinedKk.trim()) {
+      const cleanKk = joinedKk
+        .replace(/\[\[([^|\]]+)[^\]]*\]\]/g, "$1")
+        .replace(/\{\{([^|}]+)\|[^}]+\}\}/g, "$1");
+      md += `### 書き下し文\n${cleanKk}\n\n`;
     }
-    md += `### ${doc.type === "wabun" ? "校訂和文" : "書き下し文"}\n${p.kakikudashiText.replace(/\[\[([^|\]]+)[^\]]*\]\]/g, "$1").replace(/\{\{([^|}]+)\|[^}]+\}\}/g, "$1")}\n\n`;
-    md += `### English Translation\n${p.englishText}\n\n`;
-    const anchorMeta = doc.type === "wabun" ? p.kkMeta : p.kbMeta;
-    const notes = (anchorMeta || []).flatMap((m, i) => (m.notes || []).map(n => ({ ...n, ku: i + 1 })));
+    md += `### English Translation\n${p.englishText || ""}\n\n`;
+    const notes = (p.sentMeta || []).flatMap((m, i) => (m.notes || []).map(n => ({ ...n, ku: i + 1 })));
     if (notes.length) {
-      md += `### Philological Notes\n` + notes.map(n => `- **[Sentence ${n.ku} · ${n.tag}] ${n.lemma || ""}** (${n.author}): ${n.text}`).join("\n") + `\n\n`;
+      md += `### Editorial Notes\n` + notes.map(n => {
+        const ts = formatNoteTimestamp(n.updatedAt || n.createdAt);
+        return `- **[Sentence ${n.ku}]** (${n.author || "Member"}${ts ? " · " + ts : ""}): ${n.text}`;
+      }).join("\n") + `\n\n`;
     }
   }
   const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
@@ -3762,34 +3869,11 @@ async function uploadDocsMergeToCloud(docsList) {
   try {
     const { doc, writeBatch } = cloud.sdk;
     const batch = writeBatch(cloud.db);
-    docsList.forEach((dObj, idx) => {
-      batch.set(doc(cloud.db, "docs", dObj.id), {
-        id: dObj.id,
-        orderIndex: dObj.orderIndex || (idx + 1),
-        collection: dObj.collection || "",
-        title: dObj.title || dObj.id,
-        author: dObj.author || "",
-        type: dObj.type || "kanbun",
-        bookmarkAfterPara: dObj.bookmarkAfterPara || null,
-        bookmarkLabel: dObj.bookmarkLabel || "",
-        metadata: dObj.metadata || "",
-        paraOrder: (dObj.paragraphs || []).map(p => p.id),
-        updatedBy: getCurrentUserName(),
-        updatedAt: Date.now()
-      });
+    docsList.forEach((rawDoc, idx) => {
+      const dObj = normalizeDocSchema(rawDoc);
+      batch.set(doc(cloud.db, "docs", dObj.id), serializeDocMetaForCloud(dObj, idx + 1));
       (dObj.paragraphs || []).forEach(pObj => {
-        batch.set(doc(cloud.db, "docs", dObj.id, "paragraphs", pObj.id), {
-          id: pObj.id,
-          label: pObj.label,
-          kanbunText: pObj.kanbunText || "",
-          kakikudashiText: pObj.kakikudashiText || "",
-          englishText: pObj.englishText || "",
-          kbMeta: pObj.kbMeta || [],
-          kkMeta: pObj.kkMeta || [],
-          updatedBy: getCurrentUserName(),
-          updatedByUid: cloud.user.uid,
-          updatedAt: Date.now()
-        });
+        batch.set(doc(cloud.db, "docs", dObj.id, "paragraphs", pObj.id), serializeParaForCloud(pObj, dObj));
       });
     });
     await batch.commit();
@@ -3808,20 +3892,24 @@ function handleImportJson(ev) {
     try {
       const parsed = JSON.parse(reader.result);
       if (parsed && parsed.mode === "merge" && Array.isArray(parsed.docs)) {
-        parsed.docs.forEach(newDoc => {
+        const normalizedList = parsed.docs.map(normalizeDocSchema);
+        normalizedList.forEach(newDoc => {
           const i = state.corpus.findIndex(d => d.id === newDoc.id);
           if (i >= 0) state.corpus[i] = newDoc;
           else state.corpus.push(newDoc);
         });
         state.corpus.sort((a, b) => (a.orderIndex || 99) - (b.orderIndex || 99));
-        activeDocId = parsed.docs[0] ? parsed.docs[0].id : activeDocId;
+        activeDocId = normalizedList[0] ? normalizedList[0].id : activeDocId;
         activeSelection = null;
         saveLocalState();
         if (cloud.ready) {
-          await uploadDocsMergeToCloud(parsed.docs);
+          await uploadDocsMergeToCloud(normalizedList);
         }
       } else if (parsed && Array.isArray(parsed.corpus)) {
-        state = { corpus: parsed.corpus, kunSelections: parsed.kunSelections || {} };
+        state = {
+          corpus: parsed.corpus.map(normalizeDocSchema),
+          kunSelections: parsed.kunSelections || {}
+        };
         activeDocId = state.corpus[0].id;
         activeSelection = null;
         saveLocalState();
@@ -3833,7 +3921,7 @@ function handleImportJson(ev) {
         return;
       }
       closeCompanionWindow();
-      updatePrimaryPickerButtons();
+      syncTopbarPrimaryStyle();
       renderSidebar();
       renderBanner();
       renderPrimaryStage();
@@ -3849,12 +3937,16 @@ function handleImportJson(ev) {
 // ============================================================================
 // 4. RAW TEXT FEED / BULK EDIT MODAL & NEW TEXT CREATOR
 // ============================================================================
-let rawModalLayer = "kanbun";
+let rawModalLayer = "primary";
 let rawModalDrafts = {};
+let rawModalStyle = "kanbun";
 
 function getDocRawTextForLayer(doc, layer) {
-  const field = layer === "kanbun" ? "kanbunText" : (layer === "kakikudashi" ? "kakikudashiText" : "englishText");
-  const paras = (doc.paragraphs || []).map(p => (p[field] || "").trim());
+  const paras = (doc.paragraphs || []).map(p => {
+    if (layer === "primary") return (p.primaryText || "").trim();
+    if (layer === "kakikudashi") return (p.sentMeta || []).map(m => m.kakikudashi || "").join("").trim();
+    return (p.englishText || "").trim();
+  });
   while (paras.length > 0 && paras[paras.length - 1] === "") paras.pop();
   return paras.join("\n\n");
 }
@@ -3863,13 +3955,13 @@ function openRawTextModal(explicitLayer) {
   flushAnyPendingDankuEdits();
   const doc = getActiveDoc();
   if (!doc) return;
+  rawModalStyle = doc.primaryStyle || "kanbun";
   rawModalDrafts = {
-    kanbun: getDocRawTextForLayer(doc, "kanbun"),
+    primary: getDocRawTextForLayer(doc, "primary"),
     kakikudashi: getDocRawTextForLayer(doc, "kakikudashi"),
     english: getDocRawTextForLayer(doc, "english")
   };
-  rawModalLayer = explicitLayer || primaryLayer;
-  if (doc.type === "wabun" && rawModalLayer === "kanbun") rawModalLayer = "kakikudashi";
+  rawModalLayer = explicitLayer || "primary";
   renderRawTextModal();
   document.getElementById("rawTextModal").classList.add("open");
 }
@@ -3882,6 +3974,13 @@ function switchRawTextLayer(layer) {
   const ta = document.getElementById("rawTextArea");
   if (ta) rawModalDrafts[rawModalLayer] = ta.value;
   rawModalLayer = layer;
+  renderRawTextModal();
+}
+
+function onRawModalStyleChange(val) {
+  const ta = document.getElementById("rawTextArea");
+  if (ta) rawModalDrafts[rawModalLayer] = ta.value;
+  rawModalStyle = val;
   renderRawTextModal();
 }
 
@@ -3899,7 +3998,7 @@ function computeRawStatsText(layer, val) {
     return `${chunks.length} paragraph${chunks.length === 1 ? "" : "s"} · ${words} words`;
   }
   const sents = chunks.reduce((sum, c) => sum + splitByMaru(c).length, 0);
-  return `${chunks.length} paragraph${chunks.length === 1 ? "" : "s"} · ${sents} clickable 「。」 sentence${sents === 1 ? "" : "s"}`;
+  return `${chunks.length} paragraph${chunks.length === 1 ? "" : "s"} · ${sents} 「。」 sentence${sents === 1 ? "" : "s"}`;
 }
 
 function updateRawTextStats() {
@@ -3937,37 +4036,42 @@ function mergeRawLineBreaks() {
 function renderRawTextModal() {
   const doc = getActiveDoc();
   if (!doc) return;
-  const isWabun = doc.type === "wabun";
+  const st = getPrimaryStyleInfo(rawModalStyle);
   const val = rawModalDrafts[rawModalLayer] || "";
   const placeholderMap = {
-    kanbun: "Paste raw Kanbun here. Leave a blank line between paragraphs (第1段, 第2段…). Every 「。」 automatically becomes a clickable sentence.",
-    kakikudashi: isWabun
-      ? "Paste edited Wabun here. Leave a blank line between paragraphs. Furigana like 漢字（かんじ） renders automatically as ruby."
-      : "Paste Kakikudashi here. Leave a blank line between paragraphs. Furigana like 漢字（かんじ） renders automatically as ruby.",
-    english: "Paste English translation here. Leave a blank line between paragraphs to align with 第1段, 第2段…."
+    primary: `Paste raw ${st.short} primary text here. Leave a blank line between paragraphs (第1段, 第2段…). Every 「。」 becomes a clickable sentence.`,
+    kakikudashi: "Optional: paste 書き下し (Kakikudashi) here with blank lines between paragraphs, or leave empty if not needed.",
+    english: "Paste or edit the English translation product here. Leave a blank line between paragraphs to align with 第1段, 第2段…."
   };
 
   document.getElementById("rawModalTitle").textContent = `📝 Feed / Edit Raw Text — ${doc.id} · ${doc.title.split("—")[0].trim()}`;
 
   document.getElementById("rawModalBody").innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-      <div class="seg-control primary-picker">
-        ${!isWabun ? `<button class="${rawModalLayer === 'kanbun' ? 'active' : ''}" onclick="switchRawTextLayer('kanbun')">漢文 Kanbun</button>` : ""}
-        <button class="${rawModalLayer === 'kakikudashi' ? 'active' : ''}" onclick="switchRawTextLayer('kakikudashi')">${isWabun ? '校訂和文 Wabun' : '書き下し Kakikudashi'}</button>
-        <button class="${rawModalLayer === 'english' ? 'active' : ''}" onclick="switchRawTextLayer('english')">English</button>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <div class="seg-control primary-picker">
+          <button class="${rawModalLayer === 'primary' ? 'active' : ''}" onclick="switchRawTextLayer('primary')">1. Primary (${st.short})</button>
+          <button class="${rawModalLayer === 'kakikudashi' ? 'active' : ''}" onclick="switchRawTextLayer('kakikudashi')">2. 書き下し (Optional)</button>
+          <button class="${rawModalLayer === 'english' ? 'active' : ''}" onclick="switchRawTextLayer('english')">3. English Product</button>
+        </div>
+        <select class="style-select" onchange="onRawModalStyleChange(this.value)" title="Change primary text style">
+          <option value="kanbun" ${rawModalStyle === 'kanbun' ? 'selected' : ''}>漢文 Kanbun</option>
+          <option value="wakan" ${rawModalStyle === 'wakan' ? 'selected' : ''}>和漢混じり文 Wakan</option>
+          <option value="wabun" ${rawModalStyle === 'wabun' ? 'selected' : ''}>和文 Wabun</option>
+        </select>
       </div>
       <span id="rawStatsLabel" style="font-size:12px;font-weight:600;color:var(--accent);">${computeRawStatsText(rawModalLayer, val)}</span>
     </div>
     <div style="font-size:12px;color:var(--ink-muted);line-height:1.5;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-      <span>Separate paragraphs with a <strong>blank line</strong>. You can switch tabs above to edit or clear multiple text forms before clicking Apply.</span>
+      <span>Separate paragraphs with a <strong>blank line</strong>. Switch tabs above to paste or clear multiple layers before clicking Apply.</span>
       <span style="display:inline-flex;gap:5px;">
-        ${isScribe ? `<button type="button" class="btn btn-sm" onclick="mergeRawLineBreaks()" title="Join awkward single line breaks inside paragraphs while keeping blank lines as paragraph breaks">↩ Merge Line Breaks</button>
+        ${isScribe ? `<button type="button" class="btn btn-sm" onclick="mergeRawLineBreaks()" title="Join single line breaks inside paragraphs while keeping blank lines as paragraph breaks">↩ Merge Line Breaks</button>
         <button type="button" class="btn btn-sm" style="color:var(--scribe);border-color:#daa298;" onclick="clearRawTextLayer()" title="Clear all text in this tab">🧹 Clear This Layer</button>` : ""}
       </span>
     </div>
-    <textarea id="rawTextArea" style="min-height:290px;font-family:${rawModalLayer === 'english' ? 'var(--font-en)' : 'var(--font-jp)'};font-size:${rawModalLayer === 'english' ? '15px' : '15.5px'};" placeholder="${escapeHtml(placeholderMap[rawModalLayer])}" oninput="updateRawTextStats()" ${!isScribe ? 'readonly' : ''}>${escapeHtml(val)}</textarea>
+    <textarea id="rawTextArea" style="min-height:285px;font-family:${rawModalLayer === 'english' ? 'var(--font-en)' : 'var(--font-jp)'};font-size:${rawModalLayer === 'english' ? '15px' : '15.5px'};" placeholder="${escapeHtml(placeholderMap[rawModalLayer])}" oninput="updateRawTextStats()" ${!isScribe ? 'readonly' : ''}>${escapeHtml(val)}</textarea>
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-      <span style="font-size:11.5px;color:var(--ink-muted);">Existing philological notes and English assignments on matching sentences are preserved automatically.</span>
+      <span style="font-size:11.5px;color:var(--ink-muted);">Editorial notes and English links on unchanged sentences are preserved automatically.</span>
       <span style="display:inline-flex;gap:8px;">
         <button class="btn" onclick="closeRawTextModal()">Cancel</button>
         ${isScribe ? `<button class="btn active" onclick="applyRawTextModal()">Apply &amp; Sync All Changes</button>` : ""}
@@ -3982,11 +4086,11 @@ async function applyRawTextModal() {
   const ta = document.getElementById("rawTextArea");
   if (ta) rawModalDrafts[rawModalLayer] = ta.value;
 
-  const kbChunks = doc.type === "wabun" ? [] : splitRawChunks(rawModalDrafts.kanbun);
+  const primChunks = splitRawChunks(rawModalDrafts.primary);
   const kkChunks = splitRawChunks(rawModalDrafts.kakikudashi);
   const enChunks = splitRawChunks(rawModalDrafts.english);
 
-  const maxLen = Math.max(1, kbChunks.length, kkChunks.length, enChunks.length);
+  const maxLen = Math.max(1, primChunks.length, kkChunks.length, enChunks.length);
   const oldParas = doc.paragraphs || [];
   const nextParas = [];
 
@@ -3994,54 +4098,73 @@ async function applyRawTextModal() {
     const existing = oldParas[i];
     const pId = existing ? existing.id : `p${i + 1}`;
     const pLabel = existing ? existing.label : `第${i + 1}段`;
-    const newKb = kbChunks[i] || "";
+    const newPrim = primChunks[i] || "";
     const newKk = kkChunks[i] || "";
     const newEn = enChunks[i] || "";
 
-    const oldKbUnits = existing ? splitByMaru(existing.kanbunText) : [];
-    const newKbUnits = splitByMaru(newKb);
-    const kbMeta = existing ? reconcileMetaBySimilarity(oldKbUnits, newKbUnits, existing.kbMeta || []) : newKbUnits.map((_, idx) => ({ enRanges: [], pairStart: idx, pairEnd: idx, notes: [] }));
+    const oldPrimUnits = existing ? splitByMaru(existing.primaryText) : [];
+    const newPrimUnits = splitByMaru(newPrim);
+    const sentMeta = existing
+      ? reconcileMetaBySimilarity(oldPrimUnits, newPrimUnits, existing.sentMeta || [])
+      : newPrimUnits.map(() => ({ kakikudashi: "", enRanges: [], notes: [] }));
 
-    const oldKkUnits = existing ? splitByMaru(existing.kakikudashiText) : [];
-    const newKkUnits = splitByMaru(newKk);
-    const kkMeta = existing ? reconcileMetaBySimilarity(oldKkUnits, newKkUnits, existing.kkMeta || []) : newKkUnits.map((_, idx) => ({ enRanges: [], pairStart: idx, pairEnd: idx, notes: [] }));
+    const mappedKk = mapKakikudashiUnitsToPrimary(Math.max(1, newPrimUnits.length), newKk, null);
+    while (sentMeta.length < Math.max(newPrimUnits.length, newKk.trim() ? 1 : 0)) {
+      sentMeta.push({ kakikudashi: "", enRanges: [], notes: [] });
+    }
+    for (let s = 0; s < sentMeta.length; s++) {
+      sentMeta[s].kakikudashi = mappedKk[s] || "";
+    }
 
-    const pObj = { id: pId, label: pLabel, kanbunText: newKb, kakikudashiText: newKk, englishText: newEn, kbMeta, kkMeta };
+    const pObj = { id: pId, label: pLabel, primaryText: newPrim, englishText: newEn, sentMeta };
     syncEnglishSnapshots(pObj);
     nextParas.push(pObj);
   }
 
+  doc.primaryStyle = rawModalStyle;
+  doc.hasKakikudashi = kkChunks.length > 0;
+  doc._explicitHasKk = true;
   doc.paragraphs = nextParas;
   activeSelection = null;
+
   saveLocalState();
   closeRawTextModal();
   closeCompanionWindow();
+  syncTopbarPrimaryStyle();
+  renderSidebar();
+  renderBanner();
   renderPrimaryStage();
   if (cloud.ready) {
     await uploadDocsMergeToCloud([doc]);
   }
 }
 
-let newDocDrafts = { kanbun: "", kakikudashi: "", english: "" };
-let newDocActiveTab = "kanbun";
+let newDocDrafts = { primary: "", kakikudashi: "", english: "" };
+let newDocActiveTab = "primary";
 
 function openNewDocModal() {
-  newDocDrafts = { kanbun: "", kakikudashi: "", english: "" };
-  newDocActiveTab = "kanbun";
+  newDocDrafts = { primary: "", kakikudashi: "", english: "" };
+  newDocActiveTab = "primary";
   document.getElementById("newDocModalBody").innerHTML = `
-    <div style="display:grid;grid-template-columns:110px 1fr;gap:8px;align-items:center;font-size:12.5px;">
+    <div style="display:grid;grid-template-columns:130px 1fr;gap:8px;align-items:center;font-size:12.5px;">
       <label><strong>ID</strong></label>
       <input id="nd_id" type="text" placeholder="e.g. 02.02" style="padding:6px 8px;border:1px solid var(--border-strong);border-radius:6px;">
       <label><strong>Title</strong></label>
       <input id="nd_title" type="text" placeholder="e.g. 02.02 上巻序 — Sanbōe, Vol. 1 Preface" style="padding:6px 8px;border:1px solid var(--border-strong);border-radius:6px;">
       <label><strong>Author / Date</strong></label>
       <input id="nd_author" type="text" placeholder="e.g. 源為憲 Minamoto no Tamenori (984)" style="padding:6px 8px;border:1px solid var(--border-strong);border-radius:6px;">
-      <label><strong>Text Type</strong></label>
-      <select id="nd_type" onchange="onNewDocTypeChange()" style="padding:6px 8px;border:1px solid var(--border-strong);border-radius:6px;">
-        <option value="kanbun">漢文 3-Form (Kanbun + Kakikudashi + English)</option>
-        <option value="wabun">和文 2-Form (Wabun + English)</option>
-        <option value="english">English (English-First — can still add Japanese later)</option>
-      </select>
+      <label><strong>Primary Style</strong></label>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <select id="nd_style" onchange="onNewDocStyleChange()" style="padding:6px 8px;border:1px solid var(--border-strong);border-radius:6px;">
+          <option value="kanbun">漢文 Kanbun</option>
+          <option value="wakan">和漢混じり文 Wakan-majiribun</option>
+          <option value="wabun">和文 Wabun</option>
+        </select>
+        <label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;">
+          <input type="checkbox" id="nd_has_kk" checked onchange="renderNewDocTabs()">
+          Include optional 書き下し layer
+        </label>
+      </div>
       <label><strong>Source Info</strong></label>
       <input id="nd_meta" type="text" placeholder="Edition, manuscript witness, or citation..." style="padding:6px 8px;border:1px solid var(--border-strong);border-radius:6px;">
     </div>
@@ -4050,7 +4173,7 @@ function openNewDocModal() {
         <span style="font-size:12px;font-weight:700;">Initial Raw Text (blank line separates paragraphs):</span>
         <div class="seg-control primary-picker" id="nd_tabs"></div>
       </div>
-      <textarea id="nd_text" style="min-height:150px;" oninput="newDocDrafts[newDocActiveTab]=this.value" placeholder="Paste raw text here..."></textarea>
+      <textarea id="nd_text" style="min-height:150px;" oninput="newDocDrafts[newDocActiveTab]=this.value" placeholder="Paste primary text here..."></textarea>
     </div>
     <div style="display:flex;justify-content:flex-end;gap:8px;">
       <button class="btn" onclick="closeNewDocModal()">Cancel</button>
@@ -4061,13 +4184,13 @@ function openNewDocModal() {
   document.getElementById("newDocModal").classList.add("open");
 }
 
-function onNewDocTypeChange() {
+function onNewDocStyleChange() {
   const ta = document.getElementById("nd_text");
   if (ta) newDocDrafts[newDocActiveTab] = ta.value;
-  const selType = document.getElementById("nd_type").value;
-  if (selType === "wabun") newDocActiveTab = "kakikudashi";
-  else if (selType === "english") newDocActiveTab = "english";
-  else newDocActiveTab = "kanbun";
+  const style = document.getElementById("nd_style").value;
+  const kkCheck = document.getElementById("nd_has_kk");
+  if (kkCheck) kkCheck.checked = (style === "kanbun");
+  if (!kkCheck.checked && newDocActiveTab === "kakikudashi") newDocActiveTab = "primary";
   renderNewDocTabs();
 }
 
@@ -4079,15 +4202,16 @@ function switchNewDocTab(tab) {
 }
 
 function renderNewDocTabs() {
-  const selType = document.getElementById("nd_type").value;
-  const isWabun = selType === "wabun";
-  if (isWabun && newDocActiveTab === "kanbun") newDocActiveTab = "kakikudashi";
+  const style = document.getElementById("nd_style").value;
+  const st = getPrimaryStyleInfo(style);
+  const hasKk = document.getElementById("nd_has_kk").checked;
+  if (!hasKk && newDocActiveTab === "kakikudashi") newDocActiveTab = "primary";
 
   const tabsHost = document.getElementById("nd_tabs");
   tabsHost.innerHTML = `
-    ${!isWabun ? `<button type="button" class="${newDocActiveTab === 'kanbun' ? 'active' : ''}" onclick="switchNewDocTab('kanbun')">漢文 Kanbun</button>` : ""}
-    <button type="button" class="${newDocActiveTab === 'kakikudashi' ? 'active' : ''}" onclick="switchNewDocTab('kakikudashi')">${isWabun ? '校訂和文 Wabun' : '書き下し Kakikudashi'}</button>
-    <button type="button" class="${newDocActiveTab === 'english' ? 'active' : ''}" onclick="switchNewDocTab('english')">English</button>
+    <button type="button" class="${newDocActiveTab === 'primary' ? 'active' : ''}" onclick="switchNewDocTab('primary')">1. Primary (${st.short})</button>
+    ${hasKk ? `<button type="button" class="${newDocActiveTab === 'kakikudashi' ? 'active' : ''}" onclick="switchNewDocTab('kakikudashi')">2. 書き下し</button>` : ""}
+    <button type="button" class="${newDocActiveTab === 'english' ? 'active' : ''}" onclick="switchNewDocTab('english')">${hasKk ? '3' : '2'}. English Product</button>
   `;
 
   const ta = document.getElementById("nd_text");
@@ -4095,10 +4219,10 @@ function renderNewDocTabs() {
     ta.value = newDocDrafts[newDocActiveTab] || "";
     ta.style.fontFamily = newDocActiveTab === "english" ? "var(--font-en)" : "var(--font-jp)";
     ta.placeholder = newDocActiveTab === "english"
-      ? "Paste English text here (leave a blank line between paragraphs)..."
-      : (newDocActiveTab === "kanbun"
-          ? "Paste Kanbun here (leave a blank line between paragraphs)..."
-          : "Paste Kakikudashi / Wabun here (leave a blank line between paragraphs)...");
+      ? "Optional: paste English translation draft here (blank line between paragraphs)..."
+      : (newDocActiveTab === "primary"
+          ? `Paste ${st.short} primary text here (blank line between paragraphs)...`
+          : "Optional: paste 書き下し here (blank line between paragraphs)...");
   }
 }
 
@@ -4113,8 +4237,8 @@ async function createNewDocFromModal() {
   const rawId = (document.getElementById("nd_id").value || "").trim();
   const title = (document.getElementById("nd_title").value || "").trim();
   const author = (document.getElementById("nd_author").value || "").trim();
-  const selType = document.getElementById("nd_type").value;
-  const storedType = selType === "wabun" ? "wabun" : "kanbun";
+  const primaryStyle = document.getElementById("nd_style").value;
+  const hasKakikudashi = document.getElementById("nd_has_kk").checked;
   const metadata = (document.getElementById("nd_meta").value || "").trim();
 
   if (!rawId || !title) {
@@ -4122,36 +4246,44 @@ async function createNewDocFromModal() {
     return;
   }
 
-  const kbChunks = storedType === "wabun" ? [] : splitRawChunks(newDocDrafts.kanbun);
-  const kkChunks = splitRawChunks(newDocDrafts.kakikudashi);
+  const primChunks = splitRawChunks(newDocDrafts.primary);
+  const kkChunks = hasKakikudashi ? splitRawChunks(newDocDrafts.kakikudashi) : [];
   const enChunks = splitRawChunks(newDocDrafts.english);
-  const maxLen = Math.max(1, kbChunks.length, kkChunks.length, enChunks.length);
+  const maxLen = Math.max(1, primChunks.length, kkChunks.length, enChunks.length);
 
   const paragraphs = [];
   for (let i = 0; i < maxLen; i++) {
+    const pText = primChunks[i] || "";
+    const kkText = kkChunks[i] || "";
+    const pUnits = splitByMaru(pText);
+    const slotCount = Math.max(pUnits.length, kkText.trim() ? 1 : 0);
+    const mappedKk = mapKakikudashiUnitsToPrimary(Math.max(1, slotCount), kkText, null);
+    const sentMeta = [];
+    for (let s = 0; s < slotCount; s++) {
+      sentMeta.push({ kakikudashi: mappedKk[s] || "", enRanges: [], notes: [] });
+    }
     paragraphs.push({
       id: `p${i + 1}`,
       label: `第${i + 1}段`,
-      kanbunText: kbChunks[i] || "",
-      kakikudashiText: kkChunks[i] || "",
+      primaryText: pText,
       englishText: enChunks[i] || "",
-      kbMeta: [],
-      kkMeta: []
+      sentMeta
     });
   }
 
-  const newDoc = {
+  const newDoc = normalizeDocSchema({
     id: rawId,
     orderIndex: state.corpus.length + 1,
     collection: title.split("—")[0].trim(),
     title,
     author,
-    type: storedType,
+    primaryStyle,
+    hasKakikudashi,
     bookmarkAfterPara: null,
     bookmarkLabel: "",
     metadata,
     paragraphs
-  };
+  });
 
   const existingIdx = state.corpus.findIndex(d => d.id === rawId);
   if (existingIdx >= 0) state.corpus[existingIdx] = newDoc;
@@ -4159,13 +4291,11 @@ async function createNewDocFromModal() {
 
   activeDocId = rawId;
   activeSelection = null;
-  if (selType === "english") primaryLayer = "english";
-  else if (selType === "wabun") primaryLayer = "kakikudashi";
 
   saveLocalState();
   closeNewDocModal();
   closeCompanionWindow();
-  updatePrimaryPickerButtons();
+  syncTopbarPrimaryStyle();
   renderSidebar();
   renderBanner();
   renderPrimaryStage();
@@ -4174,7 +4304,7 @@ async function createNewDocFromModal() {
   }
 }
 
-updatePrimaryPickerButtons();
+syncTopbarPrimaryStyle();
 renderSidebar();
 renderBanner();
 renderPrimaryStage();
