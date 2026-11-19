@@ -615,25 +615,10 @@
     min-height: 0;
   }
   .tategaki-para {
-    margin-left: 1.4em;
+    margin-left: 1.35em;
+    text-indent: 1em;
     position: relative;
   }
-  .para-pill-vert {
-    writing-mode: horizontal-tb;
-    display: inline-block;
-    font-family: var(--font-ui);
-    font-size: 10px;
-    font-weight: 700;
-    color: var(--ink-muted);
-    background: #ece6d8;
-    border: 1px solid var(--border-strong);
-    border-radius: 4px;
-    padding: 2px 5px;
-    margin-bottom: 6px;
-    vertical-align: middle;
-    cursor: pointer;
-  }
-  .para-pill-vert:hover { background: #dfd7c5; }
   .bookmark-vert {
     writing-mode: horizontal-tb;
     display: inline-block;
@@ -2714,8 +2699,7 @@ function renderPrimaryStage() {
 
     parasHtml += `
       <div class="tategaki-para">
-        <span class="para-pill-vert" onclick="openParaDankuModal('${p.id}')" title="Click to edit paragraph 。 punctuation or toggle bookmark">${escapeHtml(p.label)}</span>
-        ${isBookmarked ? `<span class="bookmark-vert" onclick="setBookmark('${p.id}')">🔖</span>` : ""}
+        ${isBookmarked ? `<span class="bookmark-vert" onclick="setBookmark('${p.id}')" title="Click to remove bookmark">🔖</span>` : ""}
         ${sentsHtml}
       </div>
     `;
@@ -2725,10 +2709,7 @@ function renderPrimaryStage() {
   if (showEnglishProductPane) {
     const enBlocks = doc.paragraphs.map(p => `
       <div class="en-para-block">
-        <div class="en-para-head">
-          <span>${escapeHtml(p.label)}</span>
-          ${doc.bookmarkAfterPara === p.id ? `<span class="bookmark-vert">🔖 ${escapeHtml(doc.bookmarkLabel)}</span>` : ""}
-        </div>
+        ${doc.bookmarkAfterPara === p.id ? `<div class="en-para-head"><span class="bookmark-vert">🔖 ${escapeHtml(doc.bookmarkLabel)}</span></div>` : ""}
         <div id="en_prod_para_${p.id}">${renderEnglishParagraphInteractive(doc, p, fnMap)}</div>
       </div>
     `).join("");
@@ -2933,7 +2914,7 @@ function renderCompanionWindow() {
   const sentMeta = metaArr[idx];
 
   document.getElementById("cwTitleText").textContent =
-    `${doc.id} · ${para.label}`;
+    doc.title.split("—")[0].trim();
 
   const cards = [];
   cards.push(renderPrimarySentenceCard(doc, para, units, idx));
@@ -2959,6 +2940,8 @@ function renderPrimarySentenceCard(doc, para, units, idx) {
   const taId = `cw_ta_prim_${para.id}`;
   const applyBtnId = `cw_danku_btn_${para.id}`;
   const canMergeNext = idx < units.length - 1;
+  const paraIdx = (doc.paragraphs || []).findIndex(p => p.id === para.id);
+  const canJoinNextPara = !canMergeNext && paraIdx >= 0 && paraIdx < doc.paragraphs.length - 1;
 
   let editorHtml = "";
   if (isScribe) {
@@ -2972,7 +2955,9 @@ function renderPrimarySentenceCard(doc, para, units, idx) {
           </span>
           <span class="markup-group">
             <button type="button" class="markup-btn danku-action" onclick="insertMaruAtCursor('${taId}', '${para.id}', ${idx})" title="Insert 。 at cursor to split into two sentences">✂ Split 。</button>
-            ${canMergeNext ? `<button type="button" class="markup-btn danku-action" onclick="mergeWithNextSentence('${para.id}', ${idx})" title="Merge with next sentence">🔗 Merge Next</button>` : ""}
+            ${canMergeNext ? `<button type="button" class="markup-btn danku-action" onclick="mergeWithNextSentence('${para.id}', ${idx})" title="Merge with next sentence">🔗 Merge</button>` : ""}
+            ${canMergeNext ? `<button type="button" class="markup-btn" onclick="splitParagraphAfterSentence('${para.id}', ${idx})" title="Start a new paragraph after this sentence">↵ New Para</button>` : ""}
+            ${canJoinNextPara ? `<button type="button" class="markup-btn" onclick="mergeWithNextParagraph('${para.id}')" title="Merge the following paragraph into this one">⇤ Join Next Para</button>` : ""}
             <button type="button" class="markup-btn danku-pending" id="${applyBtnId}" style="display:none;" onclick="applyPrimarySentenceEdit('${taId}', '${para.id}', ${idx})">⚡ Apply</button>
           </span>
         </div>
@@ -3306,6 +3291,119 @@ function mergeWithNextSentence(paraId, idx) {
   const currentSlice = units[idx].text;
   const withoutFinalMaru = currentSlice.replace(/。([」』]*)\s*$/, `$1${comma}`);
   commitPrimarySliceReplacement(para, idx, withoutFinalMaru, true);
+}
+
+async function splitParagraphAfterSentence(paraId, idx) {
+  const doc = getActiveDoc();
+  if (!doc) return;
+  const pIdx = doc.paragraphs.findIndex(p => p.id === paraId);
+  if (pIdx < 0) return;
+  const para = doc.paragraphs[pIdx];
+  syncLayerSnapshots(para, "kakikudashi");
+  syncLayerSnapshots(para, "english");
+  const { units, metaArr } = getParaUnitsAndMeta(para);
+  if (idx >= units.length - 1) return;
+
+  const splitChar = units[idx].end;
+  const firstPrim = (para.primaryText || "").slice(0, splitChar).trim();
+  const secondPrim = (para.primaryText || "").slice(splitChar).trim();
+
+  const firstMeta = metaArr.slice(0, idx + 1);
+  const secondMeta = metaArr.slice(idx + 1).map(m => JSON.parse(JSON.stringify(m)));
+
+  const splitLayerText = (fullText, firstM, secondM, rangesField) => {
+    const full = fullText || "";
+    let splitPos = 0;
+    firstM.forEach(m => (m[rangesField] || []).forEach(r => { if (r.end > splitPos) splitPos = r.end; }));
+    if (splitPos === 0 && secondM.some(m => (m[rangesField] || []).length > 0)) {
+      let minS = full.length;
+      secondM.forEach(m => (m[rangesField] || []).forEach(r => { if (r.start < minS) minS = r.start; }));
+      splitPos = minS;
+    }
+    const rawSecond = full.slice(splitPos);
+    const leadTrim = rawSecond.length - rawSecond.trimStart().length;
+    const shift = splitPos + leadTrim;
+    const t1 = full.slice(0, splitPos).trimEnd();
+    const t2 = rawSecond.trimStart();
+    secondM.forEach(m => {
+      m[rangesField] = (m[rangesField] || [])
+        .map(r => {
+          const s = Math.max(0, r.start - shift);
+          const e = Math.max(0, r.end - shift);
+          return e > s ? { start: s, end: e, snapshot: t2.slice(s, e) } : null;
+        })
+        .filter(Boolean);
+    });
+    return [t1, t2];
+  };
+
+  const [kk1, kk2] = splitLayerText(para.kakikudashiText, firstMeta, secondMeta, "kkRanges");
+  const [en1, en2] = splitLayerText(para.englishText, firstMeta, secondMeta, "enRanges");
+
+  para.primaryText = firstPrim;
+  para.kakikudashiText = kk1;
+  para.englishText = en1;
+  para.sentMeta = firstMeta;
+
+  let newNum = doc.paragraphs.length + 1;
+  while (doc.paragraphs.some(p => p.id === `p${newNum}`)) newNum++;
+  const newPara = {
+    id: `p${newNum}`,
+    label: `第${pIdx + 2}段`,
+    primaryText: secondPrim,
+    kakikudashiText: kk2,
+    englishText: en2,
+    sentMeta: secondMeta
+  };
+  doc.paragraphs.splice(pIdx + 1, 0, newPara);
+  doc.paraOrder = doc.paragraphs.map(p => p.id);
+
+  saveLocalState();
+  renderPrimaryStage();
+  renderCompanionWindow();
+  if (cloud.ready) await uploadDocsMergeToCloud([doc]);
+}
+
+async function mergeWithNextParagraph(paraId) {
+  const doc = getActiveDoc();
+  if (!doc) return;
+  const pIdx = doc.paragraphs.findIndex(p => p.id === paraId);
+  if (pIdx < 0 || pIdx >= doc.paragraphs.length - 1) return;
+  const p1 = doc.paragraphs[pIdx];
+  const p2 = doc.paragraphs[pIdx + 1];
+  syncLayerSnapshots(p1, "kakikudashi");
+  syncLayerSnapshots(p1, "english");
+  syncLayerSnapshots(p2, "kakikudashi");
+  syncLayerSnapshots(p2, "english");
+
+  const { metaArr: m1 } = getParaUnitsAndMeta(p1);
+  const { metaArr: m2 } = getParaUnitsAndMeta(p2);
+
+  const kkOffset = (p1.kakikudashiText || "").length;
+  p1.kakikudashiText = (p1.kakikudashiText || "") + (p2.kakikudashiText || "");
+
+  const en1 = p1.englishText || "";
+  const en2 = p2.englishText || "";
+  const enSep = (en1.trim() && en2.trim()) ? " " : "";
+  const enOffset = en1.length + enSep.length;
+  p1.englishText = en1 + enSep + en2;
+
+  const shiftedM2 = m2.map(m => ({
+    kkRanges: (m.kkRanges || []).map(r => ({ start: r.start + kkOffset, end: r.end + kkOffset, snapshot: r.snapshot })),
+    enRanges: (m.enRanges || []).map(r => ({ start: r.start + enOffset, end: r.end + enOffset, snapshot: r.snapshot })),
+    notes: JSON.parse(JSON.stringify(m.notes || []))
+  }));
+
+  p1.primaryText = (p1.primaryText || "") + (p2.primaryText || "");
+  p1.sentMeta = [...m1, ...shiftedM2];
+
+  doc.paragraphs.splice(pIdx + 1, 1);
+  doc.paraOrder = doc.paragraphs.map(p => p.id);
+
+  saveLocalState();
+  renderPrimaryStage();
+  renderCompanionWindow();
+  if (cloud.ready) await uploadDocsMergeToCloud([doc]);
 }
 
 function wrapPrimaryMarkup(taId, paraId, idx, kind) {
@@ -3762,8 +3860,8 @@ function renderNotesRail() {
     return `
       <div class="fn-card ${isActive ? 'active-fn' : ''}" id="${cardId}">
         <div class="fn-card-top">
-          <span class="fn-num-pill" onclick="jumpToFootnoteSentence('${fn.paraId}', ${fn.sentIdx})" title="Jump to ${escapeHtml(fn.paraLabel + (fn.snippet ? ' · ' + fn.snippet : ''))}">
-            [${fn.num}] ${escapeHtml(fn.paraLabel)}${fn.snippet ? ' · ' + escapeHtml(fn.snippet) : ''}
+          <span class="fn-num-pill" onclick="jumpToFootnoteSentence('${fn.paraId}', ${fn.sentIdx})" title="Jump to ${escapeHtml(fn.snippet || 'linked sentence')}">
+            [${fn.num}]${fn.snippet ? ' ' + escapeHtml(fn.snippet) : ''}
           </span>
           ${isScribe ? `<button class="fn-del-btn" onclick="deleteFootnote('${fn.paraId}', ${fn.sentIdx}, ${fn.noteIdx})" title="Delete note [${fn.num}]">✕</button>` : ""}
         </div>
@@ -4202,17 +4300,16 @@ function exportWordDocx() {
     addP(wTextRun(doc.metadata, { size: 19, color: "635D53" }), { spaceAfter: 240, line: 280 });
   }
 
-  for (const p of doc.paragraphs || []) {
+  const paras = doc.paragraphs || [];
+  const enInsertionsByPara = {};
+  const placedInEn = new Set();
+  paras.forEach(p => {
     syncLayerSnapshots(p, "kakikudashi");
     syncLayerSnapshots(p, "english");
     const { units, metaArr } = getParaUnitsAndMeta(p);
     const enText = p.englishText || "";
-    const hasEn = enText.trim().length > 0;
-
-    // Track which footnotes will be placed inside English vs. Original text
-    const enInsertions = [];
-    const placedInEn = new Set();
-    if (hasEn) {
+    const insList = [];
+    if (enText.trim()) {
       units.forEach((_, idx) => {
         const fns = fnMap[`${p.id}:${idx}`] || [];
         if (!fns.length) return;
@@ -4220,19 +4317,21 @@ function exportWordDocx() {
         if (enRanges.length > 0) {
           const pos = Math.min(enText.length, enRanges[enRanges.length - 1].end);
           fns.forEach(fn => {
-            enInsertions.push({ pos, num: fn.num });
+            insList.push({ pos, num: fn.num });
             placedInEn.add(fn.num);
           });
         }
       });
     }
+    enInsertionsByPara[p.id] = insList;
+  });
 
-    // Paragraph label
-    addP(wTextRun(p.label, { bold: true, size: 24, color: "233B5D" }), { spaceBefore: 240, spaceAfter: 80 });
-
-    // 1. Original Text
-    if ((p.primaryText || "").trim()) {
-      addP(wTextRun(`原文（${st.short}）`, { bold: true, size: 18, color: "635D53" }), { spaceBefore: 60, spaceAfter: 40 });
+  // 1. Full Original Text (natural paragraphs)
+  const primParas = paras.filter(p => (p.primaryText || "").trim());
+  if (primParas.length) {
+    addP(wTextRun(`原文（${st.short}）`, { bold: true, size: 24, color: "233B5D" }), { spaceBefore: 200, spaceAfter: 80 });
+    primParas.forEach(p => {
+      const { units } = getParaUnitsAndMeta(p);
       let primRuns = "";
       units.forEach((u, idx) => {
         primRuns += wTextRun(resolveJapaneseForExport(u.text), { size: 22 });
@@ -4240,18 +4339,25 @@ function exportWordDocx() {
         fns.forEach(fn => { primRuns += wFootnoteRefRun(fn.num); });
       });
       addP(primRuns, { spaceAfter: 140, line: 340 });
-    }
+    });
+  }
 
-    // 2. Kakikudashi (if enabled and present)
-    if (doc.hasKakikudashi && (p.kakikudashiText || "").trim()) {
-      addP(wTextRun("書き下し", { bold: true, size: 18, color: "635D53" }), { spaceBefore: 40, spaceAfter: 40 });
+  // 2. Full Kakikudashi (if enabled and present, natural paragraphs)
+  const kkParas = doc.hasKakikudashi ? paras.filter(p => (p.kakikudashiText || "").trim()) : [];
+  if (kkParas.length) {
+    addP(wTextRun("書き下し", { bold: true, size: 24, color: "233B5D" }), { spaceBefore: 220, spaceAfter: 80 });
+    kkParas.forEach(p => {
       addP(wTextRun(resolveJapaneseForExport(p.kakikudashiText), { size: 22 }), { spaceAfter: 140, line: 340 });
-    }
+    });
+  }
 
-    // 3. English Translation (with inline native Word footnotes)
-    if (hasEn) {
-      addP(wTextRun("English Translation", { bold: true, size: 18, color: "635D53" }), { spaceBefore: 40, spaceAfter: 40 });
-      enInsertions.sort((a, b) => (a.pos - b.pos) || (a.num - b.num));
+  // 3. Full English Translation (natural paragraphs with inline native Word footnotes)
+  const enParas = paras.filter(p => (p.englishText || "").trim());
+  if (enParas.length) {
+    addP(wTextRun("English Translation", { bold: true, size: 24, color: "233B5D" }), { spaceBefore: 220, spaceAfter: 80 });
+    enParas.forEach(p => {
+      const enText = p.englishText || "";
+      const enInsertions = (enInsertionsByPara[p.id] || []).slice().sort((a, b) => (a.pos - b.pos) || (a.num - b.num));
       let enRuns = "";
       let cursor = 0;
       enInsertions.forEach(ins => {
@@ -4264,8 +4370,8 @@ function exportWordDocx() {
       if (cursor < enText.length) {
         enRuns += wTextRun(enText.slice(cursor), { size: 22 });
       }
-      addP(enRuns, { spaceAfter: 180, line: 320 });
-    }
+      addP(enRuns, { spaceAfter: 160, line: 320 });
+    });
   }
 
   const footnotesEntriesXml = footnotes.map(fn => {
@@ -4369,28 +4475,26 @@ function exportMarkdown() {
   const doc = getActiveDoc();
   const st = getPrimaryStyleInfo(doc.primaryStyle);
   let md = `# ${doc.title}\n${doc.author}\n\n> ${doc.metadata}\n\n`;
-  for (const p of doc.paragraphs) {
-    md += `## ${p.label}\n\n`;
-    const cleanPrimary = (p.primaryText || "")
-      .replace(/\[\[([^|\]]+)[^\]]*\]\]/g, "$1")
-      .replace(/\{\{([^|}]+)\|[^}]+\}\}/g, "$1");
-    md += `### 原文 (${st.short})\n${cleanPrimary}\n\n`;
-    if (doc.hasKakikudashi && (p.kakikudashiText || "").trim()) {
-      const cleanKk = p.kakikudashiText
-        .replace(/\[\[([^|\]]+)[^\]]*\]\]/g, "$1")
-        .replace(/\{\{([^|}]+)\|[^}]+\}\}/g, "$1");
-      md += `### 書き下し文\n${cleanKk}\n\n`;
-    }
-    md += `### English Translation\n${p.englishText || ""}\n\n`;
-    const { units: pUnits } = getParaUnitsAndMeta(p);
-    const notes = (p.sentMeta || []).flatMap((m, i) => (m.notes || []).map(n => ({ ...n, snippet: getSentenceSnippet(pUnits[i] && pUnits[i].text, 10) })));
-    if (notes.length) {
-      md += `### Editorial Notes\n` + notes.map((n, ni) => {
-        const ts = formatNoteTimestamp(n.updatedAt || n.createdAt);
-        const loc = n.snippet ? `「${n.snippet}」` : `Note ${ni + 1}`;
-        return `- **[${ni + 1}] ${loc}** (${n.author || "Member"}${ts ? " · " + ts : ""}): ${n.text}`;
-      }).join("\n") + `\n\n`;
-    }
+  const paras = doc.paragraphs || [];
+  const primBlocks = paras.map(p => resolveJapaneseForExport(p.primaryText || "").trim()).filter(Boolean);
+  if (primBlocks.length) md += `## 原文（${st.short}）\n\n${primBlocks.join("\n\n")}\n\n`;
+
+  if (doc.hasKakikudashi) {
+    const kkBlocks = paras.map(p => resolveJapaneseForExport(p.kakikudashiText || "").trim()).filter(Boolean);
+    if (kkBlocks.length) md += `## 書き下し\n\n${kkBlocks.join("\n\n")}\n\n`;
+  }
+
+  const enBlocks = paras.map(p => (p.englishText || "").trim()).filter(Boolean);
+  if (enBlocks.length) md += `## English Translation\n\n${enBlocks.join("\n\n")}\n\n`;
+
+  const fns = buildDocumentFootnotes(doc);
+  if (fns.length) {
+    md += `## Editorial Notes\n\n` + fns.map(fn => {
+      const n = fn.note || {};
+      const ts = formatNoteTimestamp(n.updatedAt || n.createdAt);
+      const loc = fn.snippet ? `「${fn.snippet}」` : "";
+      return `- **[${fn.num}]${loc ? " " + loc : ""}** (${n.author || "Member"}${ts ? " · " + ts : ""}): ${n.text || ""}`;
+    }).join("\n") + `\n\n`;
   }
   const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
   const a = document.createElement("a");
@@ -4590,9 +4694,9 @@ function renderRawTextModal() {
   const st = getPrimaryStyleInfo(rawModalStyle);
   const val = rawModalDrafts[rawModalLayer] || "";
   const placeholderMap = {
-    primary: `Paste raw ${st.short} text here. Leave a blank line between paragraphs (第1段, 第2段…). Every 「。」 becomes a clickable sentence.`,
+    primary: `Paste raw ${st.short} text here. Leave a blank line between paragraphs. Every 「。」 becomes a clickable sentence.`,
     kakikudashi: "Paste 書き下し (Kakikudashi) here with blank lines between paragraphs, or leave empty if not needed.",
-    english: "Paste or edit the English translation here. Leave a blank line between paragraphs to align with 第1段, 第2段…."
+    english: "Paste or edit the English translation here. Leave a blank line between paragraphs."
   };
 
   document.getElementById("rawModalTitle").textContent = `📝 Feed / Edit Raw Text — ${doc.id} · ${doc.title.split("—")[0].trim()}`;
