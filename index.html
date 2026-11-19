@@ -1,0 +1,3401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>説話集序跋読書会 — Setsuwa Paratext Collaborative Workbench</title>
+<script src="./firebase-config.js"></script>
+<style>
+  :root {
+    --bg-app: #f3efe6;
+    --bg-washi: #fbf8f1;
+    --bg-card: #ffffff;
+    --bg-sidebar: #eae4d7;
+    --bg-subtle: #f5f1e8;
+    --ink: #1d1c19;
+    --ink-muted: #635d53;
+    --ink-faint: #918a7e;
+    --border: #dcd5c6;
+    --border-strong: #c2b9a7;
+    --accent: #264a78;
+    --accent-soft: #e5eef9;
+    --scribe: #8c3727;
+    --scribe-soft: #fcece8;
+    --kun-dot: #9e442f;
+    --kun-bg: #faece7;
+    --var-line: #236768;
+    --var-bg: #e3f3f3;
+    --hi-hover: rgba(255, 224, 130, 0.45);
+    --hi-active: rgba(255, 200, 75, 0.72);
+    --bookmark: #a85814;
+    --danku-amber: #b85d00;
+    --danku-bg: #fff4e0;
+    --ok-green: #246b45;
+    --ok-bg: #e4f4eb;
+    --font-jp: "Hiragino Mincho ProN", "YuMincho", "Yu Mincho", "Noto Serif JP", "Songti SC", serif;
+    --font-en: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+    --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --jp-size: 19px;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg-app);
+    color: var(--ink);
+    font-family: var(--font-ui);
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* Auth Gate Overlay */
+  .auth-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(243, 239, 230, 0.96);
+    z-index: 500;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .auth-overlay.open { display: flex; }
+  .auth-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-strong);
+    border-radius: 14px;
+    max-width: 440px;
+    width: 100%;
+    padding: 28px 30px;
+    box-shadow: 0 18px 48px rgba(0,0,0,0.12);
+    text-align: center;
+  }
+  .auth-card h1 {
+    font-family: var(--font-jp);
+    font-size: 21px;
+    margin: 0 0 6px;
+  }
+  .auth-card p {
+    font-size: 13.5px;
+    color: var(--ink-muted);
+    line-height: 1.55;
+    margin: 0 0 18px;
+  }
+  .auth-error {
+    background: var(--scribe-soft);
+    color: var(--scribe);
+    border: 1px solid #daa298;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 12.5px;
+    line-height: 1.5;
+    margin-bottom: 14px;
+    text-align: left;
+    display: none;
+  }
+  .auth-error.open { display: block; }
+  .btn-google {
+    width: 100%;
+    justify-content: center;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+  .btn-google:hover { background: #1c395e; }
+
+  /* Cloud Status & Seed Banners */
+  .cloud-banner {
+    background: #eef4fb;
+    border-bottom: 1px solid #c3d7ee;
+    padding: 7px 18px;
+    font-size: 12.5px;
+    color: #23446b;
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .cloud-banner.open { display: flex; }
+  .cloud-banner.warn {
+    background: var(--danku-bg);
+    border-bottom-color: #e6be81;
+    color: #7c4000;
+  }
+
+  .sync-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 99px;
+    border: 1px solid var(--border-strong);
+    background: var(--bg-subtle);
+    color: var(--ink-muted);
+    white-space: nowrap;
+  }
+  .sync-pill.synced { background: var(--ok-bg); color: var(--ok-green); border-color: #a6d7bc; }
+  .sync-pill.saving { background: var(--danku-bg); color: var(--danku-amber); border-color: #e6be81; }
+  .sync-pill.error { background: var(--scribe-soft); color: var(--scribe); border-color: #daa298; }
+
+  .peer-notice {
+    background: #eef4fb;
+    border: 1px solid #bfd3ec;
+    border-radius: 7px;
+    padding: 6px 10px;
+    font-size: 12px;
+    color: #23446b;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* Left Sidebar */
+  aside.sidebar {
+    width: 268px;
+    min-width: 268px;
+    background: var(--bg-sidebar);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    transition: margin-left 0.2s ease;
+    z-index: 30;
+  }
+  aside.sidebar.collapsed { margin-left: -268px; }
+  .sidebar-header {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar-header h1 {
+    font-size: 14.5px;
+    margin: 0 0 3px 0;
+    font-weight: 700;
+    font-family: var(--font-jp);
+  }
+  .sidebar-header p {
+    margin: 0;
+    font-size: 11.5px;
+    color: var(--ink-muted);
+  }
+  .corpus-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+  }
+  .corpus-group-label {
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-muted);
+    padding: 8px 8px 4px;
+  }
+  .corpus-item {
+    padding: 8px 10px;
+    border-radius: 7px;
+    cursor: pointer;
+    margin-bottom: 3px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    border: 1px solid transparent;
+  }
+  .corpus-item:hover { background: rgba(0,0,0,0.04); }
+  .corpus-item.active {
+    background: var(--bg-card);
+    border-color: var(--border-strong);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  }
+  .corpus-item.stub { opacity: 0.56; cursor: default; }
+  .corpus-item-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12.5px;
+    font-weight: 600;
+    font-family: var(--font-jp);
+    gap: 6px;
+  }
+  .badge-lang {
+    font-family: var(--font-ui);
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 99px;
+    background: #dedad0;
+    color: #49453e;
+    white-space: nowrap;
+  }
+  .badge-lang.kanbun { background: #dce7f4; color: #23446b; }
+  .badge-lang.wabun { background: #e3eee4; color: #28562d; }
+  .corpus-item-sub {
+    font-size: 11px;
+    color: var(--ink-muted);
+  }
+
+  /* Main Workspace */
+  .workspace {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    position: relative;
+  }
+
+  header.topbar {
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+    z-index: 25;
+  }
+  .topbar-left, .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    flex-wrap: wrap;
+  }
+  .btn {
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 5px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border-strong);
+    background: var(--bg-card);
+    color: var(--ink);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.14s;
+  }
+  .btn:hover { background: var(--bg-sidebar); }
+  .btn.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+  .btn.amber {
+    background: var(--danku-bg);
+    color: var(--danku-amber);
+    border-color: #e3a857;
+    font-weight: 600;
+  }
+  .btn.amber:hover { background: #ffe8c2; }
+  .btn-sm {
+    font-size: 11px;
+    padding: 3px 8px;
+  }
+  .seg-control {
+    display: inline-flex;
+    background: var(--bg-sidebar);
+    padding: 2px;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+  }
+  .seg-control.primary-picker {
+    background: #e3ecf7;
+    border-color: #b7cde8;
+    padding: 3px;
+  }
+  .seg-control button {
+    border: none;
+    background: transparent;
+    padding: 4px 9px;
+    font-size: 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    color: var(--ink-muted);
+    font-weight: 500;
+  }
+  .seg-control.primary-picker button {
+    font-weight: 600;
+    color: #2b496e;
+    padding: 5px 11px;
+  }
+  .seg-control button.active {
+    background: var(--bg-card);
+    color: var(--ink);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    font-weight: 700;
+  }
+  .seg-control.primary-picker button.active {
+    background: var(--accent);
+    color: #fff;
+  }
+  .seg-control button:disabled {
+    opacity: 0.38;
+    cursor: not-allowed;
+  }
+  .control-label {
+    font-size: 11px;
+    color: var(--ink-muted);
+    font-weight: 600;
+  }
+
+  .role-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 99px;
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border-strong);
+    user-select: none;
+  }
+  .role-pill.is-scribe {
+    background: var(--scribe-soft);
+    color: var(--scribe);
+    border-color: #daa298;
+  }
+  .role-pill.is-annotator {
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-color: #a6c1e3;
+  }
+  .presence-avatars {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    font-size: 10.5px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    cursor: default;
+  }
+
+  /* Stage Body */
+  .stage-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    position: relative;
+  }
+  .stage-body.dock-left {
+    flex-direction: row-reverse;
+  }
+
+  .primary-stage {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    background: var(--bg-app);
+  }
+
+  .paratext-banner {
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border);
+    padding: 9px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .paratext-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .paratext-title-row h2 {
+    margin: 0;
+    font-family: var(--font-jp);
+    font-size: 17.5px;
+  }
+  .paratext-meta {
+    font-size: 12px;
+    color: var(--ink-muted);
+    margin-left: 8px;
+  }
+  .witness-drawer {
+    padding-top: 8px;
+    border-top: 1px dashed var(--border-strong);
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--ink-muted);
+    display: none;
+  }
+  .witness-drawer.open { display: block; }
+
+  /* Primary Reading Canvas: Vertical Tategaki Mode */
+  .tategaki-primary-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding: 14px 18px;
+  }
+  .tategaki-paper {
+    flex: 1;
+    background: var(--bg-washi);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: inset 0 0 24px rgba(180, 165, 135, 0.08), 0 2px 6px rgba(0,0,0,0.03);
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    font-family: var(--font-jp);
+    font-size: var(--jp-size);
+    line-height: 2.55;
+    letter-spacing: 0.06em;
+    padding: 28px 34px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    width: 100%;
+    min-height: 0;
+  }
+  .tategaki-para {
+    margin-left: 1.4em;
+    position: relative;
+  }
+  .para-pill-vert {
+    writing-mode: horizontal-tb;
+    display: inline-block;
+    font-family: var(--font-ui);
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--ink-muted);
+    background: #ece6d8;
+    border: 1px solid var(--border-strong);
+    border-radius: 4px;
+    padding: 2px 5px;
+    margin-bottom: 6px;
+    vertical-align: middle;
+    cursor: pointer;
+  }
+  .para-pill-vert:hover { background: #dfd7c5; }
+  .bookmark-vert {
+    writing-mode: horizontal-tb;
+    display: inline-block;
+    font-family: var(--font-ui);
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--bookmark);
+    background: #fef3e1;
+    border: 1px solid #e5c18d;
+    border-radius: 4px;
+    padding: 2px 5px;
+    margin-bottom: 6px;
+  }
+
+  .ku-num {
+    writing-mode: horizontal-tb;
+    display: inline-block;
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    font-size: 9.5px;
+    font-weight: 700;
+    color: var(--ink-faint);
+    background: rgba(0,0,0,0.045);
+    border-radius: 3px;
+    padding: 0 3.5px;
+    line-height: 14px;
+    margin: 2px 0;
+    vertical-align: middle;
+    user-select: none;
+  }
+  body.hide-ku-nums .ku-num { display: none; }
+
+  /* Primary Reading Canvas: Horizontal English Mode */
+  .english-primary-wrap {
+    flex: 1;
+    overflow-y: auto;
+    padding: 22px 28px 80px;
+  }
+  .english-paper {
+    max-width: 850px;
+    margin: 0 auto;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 32px 42px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+    font-family: var(--font-en);
+    font-size: 17.5px;
+    line-height: 1.84;
+  }
+  .en-para-block {
+    margin-bottom: 24px;
+  }
+  .en-para-head {
+    font-family: var(--font-ui);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ink-muted);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .doc-sent {
+    border-radius: 4px;
+    padding: 2px 1px;
+    cursor: pointer;
+    transition: background 0.13s, box-shadow 0.13s;
+  }
+  .doc-sent:hover { background: var(--hi-hover); }
+  .doc-sent.active-sent {
+    background: var(--hi-active);
+    box-shadow: 0 0 0 2px rgba(180, 120, 20, 0.38);
+  }
+  .doc-sent.en-unassigned {
+    color: var(--ink-muted);
+    border-bottom: 1px dotted var(--border-strong);
+  }
+  .note-indicator {
+    writing-mode: horizontal-tb;
+    display: inline-block;
+    font-family: var(--font-ui);
+    font-size: 9.5px;
+    font-weight: 700;
+    background: var(--accent);
+    color: #fff;
+    border-radius: 99px;
+    padding: 0 5px;
+    line-height: 15px;
+    margin: 2px;
+    vertical-align: middle;
+  }
+
+  /* Ruby Furigana Modes */
+  ruby { ruby-align: center; }
+  rt {
+    font-size: 0.5em;
+    color: var(--ink-muted);
+    user-select: none;
+    -webkit-user-select: none;
+    letter-spacing: 0;
+  }
+  body.ruby-hover rt { opacity: 0; transition: opacity 0.14s; }
+  body.ruby-hover ruby:hover rt { opacity: 1; color: var(--scribe); }
+  body.ruby-hidden rt { display: none; }
+
+  .kunoji {
+    display: inline-block;
+    height: 2em;
+    line-height: 2em;
+    vertical-align: middle;
+  }
+
+  .kun-chip {
+    border-left: 2px dotted var(--kun-dot);
+    padding-left: 2px;
+    cursor: pointer;
+    border-radius: 2px;
+  }
+  .kun-chip:hover { background: var(--kun-bg); }
+  .kun-alt-inline {
+    display: none;
+    font-size: 0.6em;
+    color: var(--kun-dot);
+    text-combine-upright: none;
+  }
+  body.show-kun-inline .kun-alt-inline { display: inline; }
+
+  .var-span {
+    border-right: 2px dashed var(--var-line);
+    padding-right: 2px;
+    cursor: pointer;
+  }
+  .var-span:hover { background: var(--var-bg); }
+
+  /* Companion Window */
+  .companion-window {
+    display: none;
+    background: var(--bg-card);
+    border: 1px solid var(--border-strong);
+    box-shadow: 0 14px 40px rgba(0,0,0,0.18);
+    z-index: 120;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .companion-window.open { display: flex; }
+
+  .companion-window.mode-float {
+    position: fixed;
+    width: min(1080px, 95vw);
+    max-height: 68vh;
+    bottom: 18px;
+    left: 280px;
+    border-radius: 12px;
+    resize: both;
+  }
+  .companion-window.mode-bottom {
+    position: relative;
+    width: 100%;
+    height: 50%;
+    min-height: 310px;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+    border-top: 2px solid var(--accent);
+    box-shadow: 0 -4px 16px rgba(0,0,0,0.06);
+  }
+  .companion-window.mode-left {
+    position: relative;
+    width: 50%;
+    min-width: 440px;
+    height: 100%;
+    border-top: none;
+    border-bottom: none;
+    border-left: none;
+    border-right: 2px solid var(--accent);
+    box-shadow: 4px 0 16px rgba(0,0,0,0.06);
+  }
+
+  .cw-header {
+    background: #233b5d;
+    color: #fff;
+    padding: 8px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    cursor: grab;
+    user-select: none;
+    flex-wrap: wrap;
+  }
+  .companion-window.mode-bottom .cw-header,
+  .companion-window.mode-left .cw-header { cursor: default; }
+  .cw-title {
+    font-size: 12.5px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    flex-wrap: wrap;
+  }
+  .cw-controls {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: wrap;
+  }
+  .cw-btn {
+    background: rgba(255,255,255,0.14);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.24);
+    border-radius: 5px;
+    padding: 3px 8px;
+    font-size: 11.5px;
+    cursor: pointer;
+    font-family: var(--font-ui);
+  }
+  .cw-btn:hover { background: rgba(255,255,255,0.25); }
+  .cw-btn.active { background: #fff; color: #233b5d; font-weight: 700; }
+
+  .cw-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 13px 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 13px;
+    background: var(--bg-subtle);
+  }
+
+  .cw-layers-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+    gap: 12px;
+    align-items: start;
+  }
+  .layer-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 11px 13px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .layer-card.is-primary-card {
+    background: #fcfaf5;
+    border-style: dashed;
+  }
+  .layer-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--ink-muted);
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .layer-badge-primary {
+    background: #eae4d7;
+    color: #4f4a40;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+  }
+  .layer-badge-companion {
+    background: var(--accent-soft);
+    color: var(--accent);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+  }
+
+  .cw-tategaki-preview {
+    background: var(--bg-washi);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    font-family: var(--font-jp);
+    font-size: 16.5px;
+    line-height: 2.25;
+    letter-spacing: 0.04em;
+    height: 165px;
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 10px 12px;
+  }
+  .cw-en-preview {
+    font-family: var(--font-en);
+    font-size: 15px;
+    line-height: 1.62;
+    padding: 6px 8px;
+    background: #fffcf5;
+    border: 1px solid #eadcb8;
+    border-radius: 6px;
+    color: var(--ink);
+  }
+  .cw-en-empty {
+    font-size: 12.5px;
+    font-style: italic;
+    color: var(--ink-faint);
+    padding: 6px 4px;
+  }
+
+  .layer-editor-wrap { display: flex; flex-direction: column; gap: 5px; }
+  .markup-toolbar { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+  .markup-btn {
+    font-size: 10.5px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--border-strong);
+    background: var(--bg-subtle);
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .markup-btn:hover { background: var(--bg-sidebar); }
+  .markup-btn.danku-action {
+    border-color: #d99b43;
+    background: var(--danku-bg);
+    color: #8f4700;
+    font-weight: 600;
+  }
+  .markup-btn.danku-pending {
+    background: #d96b00;
+    color: #fff;
+    border-color: #b85800;
+    font-weight: 700;
+  }
+  .layer-textarea {
+    width: 100%;
+    font-size: 13.5px;
+    line-height: 1.55;
+    padding: 7px 9px;
+    border: 1px solid #d5a69d;
+    border-radius: 6px;
+    background: #fffdfb;
+    color: var(--ink);
+    resize: vertical;
+    min-height: 62px;
+  }
+  .layer-textarea.jp-input { font-family: var(--font-jp); font-size: 14px; }
+  .layer-textarea.en-input { font-family: var(--font-en); font-size: 14.5px; }
+
+  .en-mapper-wrap {
+    border-top: 1px dashed var(--border);
+    padding-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .en-mapper-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    font-size: 11px;
+    color: var(--ink-muted);
+  }
+  .en-mapper-box {
+    background: var(--bg-subtle);
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-family: var(--font-en);
+    font-size: 14px;
+    line-height: 1.72;
+    color: var(--ink);
+    cursor: text;
+    max-height: 165px;
+    overflow-y: auto;
+  }
+  .en-mapper-box::selection, .en-mapper-box *::selection {
+    background: #264a78;
+    color: #fff;
+  }
+  .en-seg-active {
+    background: var(--hi-active);
+    border-bottom: 2px solid #b87a00;
+    border-radius: 3px;
+    padding: 1px 0;
+  }
+  .en-seg-other { border-bottom: 1.5px dotted #7992b5; }
+  .en-seg-badge::before {
+    content: attr(data-badge);
+    font-family: var(--font-ui);
+    font-size: 9px;
+    font-weight: 700;
+    background: rgba(38, 74, 120, 0.14);
+    color: var(--accent);
+    padding: 0 4px;
+    border-radius: 3px;
+    margin-right: 2px;
+    vertical-align: text-top;
+  }
+  .en-seg-active.en-seg-badge::before { background: #b87a00; color: #fff; }
+
+  .pair-range-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 4px 8px;
+    font-size: 11px;
+    color: var(--ink-muted);
+  }
+
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.38);
+    z-index: 250;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal-card {
+    background: var(--bg-card);
+    border-radius: 12px;
+    width: min(880px, 95vw);
+    max-height: 86vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 18px 48px rgba(0,0,0,0.24);
+    overflow: hidden;
+  }
+  .modal-head {
+    background: #233b5d;
+    color: #fff;
+    padding: 11px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+    font-size: 13.5px;
+  }
+  .modal-body {
+    padding: 16px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .modal-body textarea {
+    width: 100%;
+    min-height: 110px;
+    font-family: var(--font-jp);
+    font-size: 15px;
+    line-height: 1.7;
+    padding: 10px;
+    border: 1px solid var(--border-strong);
+    border-radius: 7px;
+  }
+
+  .cw-notes-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 11px 13px;
+  }
+  .note-card {
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-size: 12.5px;
+    line-height: 1.5;
+    margin-bottom: 6px;
+  }
+  .note-card.cat-variant { border-left-color: var(--var-line); }
+  .note-card.cat-locus { border-left-color: #7a5195; }
+  .note-card.cat-suggestion { border-left-color: var(--scribe); }
+  .note-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--ink-muted);
+    margin-bottom: 3px;
+  }
+  .note-tag {
+    font-weight: 700;
+    font-size: 10px;
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: rgba(0,0,0,0.06);
+  }
+  .note-lemma {
+    font-family: var(--font-jp);
+    font-weight: 700;
+    margin-right: 4px;
+  }
+
+  .add-note-form {
+    display: none;
+    background: var(--bg-subtle);
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid var(--border-strong);
+    margin-top: 6px;
+  }
+  .add-note-form.open { display: block; }
+  .add-note-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+  }
+  .add-note-row input, .add-note-row select, .add-note-form textarea {
+    font-family: var(--font-ui);
+    font-size: 12px;
+    padding: 5px 7px;
+    border: 1px solid var(--border-strong);
+    border-radius: 5px;
+    background: #fff;
+  }
+  .add-note-form textarea {
+    width: 100%;
+    min-height: 52px;
+    resize: vertical;
+    margin-bottom: 6px;
+  }
+
+  .popover {
+    position: fixed;
+    z-index: 300;
+    background: var(--bg-card);
+    border: 1px solid var(--border-strong);
+    border-radius: 9px;
+    box-shadow: 0 8px 26px rgba(0,0,0,0.18);
+    padding: 12px 14px;
+    max-width: 360px;
+    min-width: 240px;
+    display: none;
+    font-size: 13px;
+  }
+  .popover.open { display: block; }
+  .popover-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--ink-muted);
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .chip-options { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .chip-opt {
+    font-family: var(--font-jp);
+    font-size: 14px;
+    padding: 4px 11px;
+    border-radius: 99px;
+    border: 1px solid var(--border-strong);
+    background: var(--bg-app);
+    cursor: pointer;
+  }
+  .chip-opt.selected { background: var(--kun-dot); color: #fff; border-color: var(--kun-dot); }
+  .popover-add { display: flex; gap: 5px; margin-top: 6px; }
+  .popover-add input {
+    flex: 1;
+    font-size: 12.5px;
+    padding: 4px 7px;
+    border: 1px solid var(--border-strong);
+    border-radius: 5px;
+    font-family: var(--font-jp);
+  }
+
+  @media (max-width: 900px) {
+    .companion-window.mode-float { left: 10px; right: 10px; width: auto; }
+  }
+</style>
+</head>
+<body class="ruby-full hide-ku-nums">
+
+<!-- Google Sign-In Gate (shown automatically when Firebase config is populated) -->
+<div class="auth-overlay" id="authOverlay">
+  <div class="auth-card">
+    <h1>説話集序跋読書会</h1>
+    <p>Setsuwa Paratext Collaborative Workbench<br>Sign in with an invited Google account to view and edit the shared texts.</p>
+    <div class="auth-error" id="authErrorBox"></div>
+    <button class="btn btn-google" id="googleSignInBtn" onclick="signInWithGoogle()">Sign in with Google</button>
+    <div id="authSignOutRow" style="display:none;margin-top:12px;">
+      <button class="btn" onclick="signOutFromGoogle()">Sign out and try another account</button>
+    </div>
+  </div>
+</div>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <h1>説話集序跋読書会</h1>
+    <p>Setsuwa Paratexts through 1600</p>
+  </div>
+  <div class="corpus-list" id="corpusList"></div>
+</aside>
+
+<div class="workspace">
+  <div class="cloud-banner" id="cloudBanner">
+    <span id="cloudBannerText"></span>
+    <span id="cloudBannerActions"></span>
+  </div>
+
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="btn" onclick="toggleSidebar()" title="Show/Hide Corpus Sidebar">☰ Corpus</button>
+      <span class="control-label">Primary Text:</span>
+      <div class="seg-control primary-picker" id="primaryPicker">
+        <button id="pick_kanbun" onclick="setPrimaryLayer('kanbun')">漢文 Kanbun</button>
+        <button id="pick_kakikudashi" onclick="setPrimaryLayer('kakikudashi')">書き下し Kakikudashi</button>
+        <button id="pick_english" onclick="setPrimaryLayer('english')">English</button>
+      </div>
+
+      <span class="control-label" style="margin-left:4px;">Ruby:</span>
+      <div class="seg-control" id="rubyControl">
+        <button class="active" onclick="setRubyMode('full', this)">Full</button>
+        <button onclick="setRubyMode('hover', this)">Hover</button>
+        <button onclick="setRubyMode('hidden', this)">Off</button>
+      </div>
+      <button class="btn" id="kunInlineBtn" onclick="toggleKunInline()" title="Show alternate kun-readings inline alongside vertical columns">左傍注 Alt Kun</button>
+      <button class="btn" id="kuNumBtn" onclick="toggleKuNums()" title="Optional: show/hide sentence numbers">Sent #</button>
+      <div class="seg-control" title="Adjust Text Size">
+        <button onclick="adjustFontSize(-1.5)">A−</button>
+        <button onclick="adjustFontSize(1.5)">A+</button>
+      </div>
+    </div>
+
+    <div class="topbar-right">
+      <span class="sync-pill" id="syncPill" title="Cloud synchronization status">⚪ Local Mode</span>
+      <div class="presence-avatars" id="presenceAvatars" title="Online group members"></div>
+      <div class="role-pill is-scribe" id="rolePill" onclick="toggleRole()" title="Personal safety toggle: unlock editing or switch to read-only browsing">
+        <span id="roleLabel">✏️ Editing Unlocked</span>
+      </div>
+      <button class="btn" onclick="exportMarkdown()" title="Export active text + notes to Markdown">⬇ MD</button>
+      <button class="btn" onclick="exportJsonBackup()" title="Download full corpus + notes JSON backup">⬇ JSON</button>
+      <button class="btn" onclick="triggerImportJson()" title="Restore or merge a JSON backup file">⬆ Import</button>
+      <input type="file" id="jsonImportInput" accept=".json,application/json" style="display:none;" onchange="handleImportJson(event)">
+      <button class="btn" id="signOutBtn" style="display:none;" onclick="signOutFromGoogle()" title="Sign out">Sign out</button>
+    </div>
+  </header>
+
+  <div class="stage-body" id="stageBody">
+    <div class="primary-stage">
+      <div class="paratext-banner" id="paratextBanner"></div>
+      <div id="primaryCanvasHost" style="flex:1;display:flex;flex-direction:column;min-height:0;"></div>
+    </div>
+
+    <section class="companion-window mode-float" id="companionWindow">
+      <div class="cw-header" id="cwHeader">
+        <div class="cw-title">
+          <span id="cwTitleText">Sentence Inspector</span>
+          <button class="cw-btn" onclick="stepSentence(-1)" title="Previous sentence (↑ / →)">← Prev Sentence</button>
+          <button class="cw-btn" onclick="stepSentence(1)" title="Next sentence (↓ / ←)">Next Sentence →</button>
+          <button class="cw-btn" onclick="openParaDankuModal()" title="Edit 。 sentence punctuation across this entire paragraph">✂ Paragraph Punctuation</button>
+        </div>
+        <div class="cw-controls">
+          <button class="cw-btn active" id="editPrimaryToggleBtn" onclick="toggleShowPrimaryInWindow()" title="Show or hide editor for the primary layer inside this window">✓ Primary Included</button>
+          <button class="cw-btn active" id="winMode_float" onclick="setWindowMode('float')" title="Floating draggable window">⧉ Float</button>
+          <button class="cw-btn" id="winMode_bottom" onclick="setWindowMode('bottom')" title="Dock at bottom">⬓ Bottom</button>
+          <button class="cw-btn" id="winMode_left" onclick="setWindowMode('left')" title="Dock on left">◫ Left</button>
+          <button class="cw-btn" onclick="closeCompanionWindow()" title="Close window (Esc)">✕</button>
+        </div>
+      </div>
+      <div class="cw-body" id="cwBody"></div>
+    </section>
+  </div>
+</div>
+
+<!-- Full-Paragraph Punctuation Modal -->
+<div class="modal-backdrop" id="paraDankuModal">
+  <div class="modal-card">
+    <div class="modal-head">
+      <span id="paraModalTitle">✂ Paragraph Sentence Punctuation Editor</span>
+      <button class="cw-btn" onclick="closeParaDankuModal()">✕</button>
+    </div>
+    <div class="modal-body" id="paraModalBody"></div>
+  </div>
+</div>
+
+<div class="popover" id="popover"></div>
+
+<script>
+// ============================================================================
+// 1. ASIAN SENTENCE MARKER ("。") CLICKABLE-UNIT TOKENIZER & DANKU ENGINE
+// ============================================================================
+function splitByMaru(rawText) {
+  const str = rawText || "";
+  const units = [];
+  let braceDepth = 0;
+  let bracketDepth = 0;
+  let parenDepth = 0;
+  let segStart = 0;
+
+  while (segStart < str.length && /[\s　]/.test(str[segStart])) segStart++;
+
+  for (let i = 0; i < str.length; i++) {
+    const ch = str[i];
+    const next = str[i + 1] || "";
+
+    if (ch === "{" && next === "{") { braceDepth++; i++; continue; }
+    if (ch === "}" && next === "}") { braceDepth = Math.max(0, braceDepth - 1); i++; continue; }
+    if (ch === "[" && next === "[") { bracketDepth++; i++; continue; }
+    if (ch === "]" && next === "]") { bracketDepth = Math.max(0, bracketDepth - 1); i++; continue; }
+    if (ch === "（" || ch === "(") { parenDepth++; continue; }
+    if (ch === "）" || ch === ")") { parenDepth = Math.max(0, parenDepth - 1); continue; }
+
+    if (ch === "。" && braceDepth === 0 && bracketDepth === 0 && parenDepth === 0) {
+      let endIdx = i + 1;
+      while (endIdx < str.length && (str[endIdx] === "」" || str[endIdx] === "』")) {
+        endIdx++;
+      }
+      const slice = str.slice(segStart, endIdx);
+      if (slice.trim().length > 0) {
+        units.push({ text: slice, start: segStart, end: endIdx });
+      }
+      segStart = endIdx;
+      while (segStart < str.length && /[\s　]/.test(str[segStart])) segStart++;
+      i = endIdx - 1;
+    }
+  }
+
+  if (segStart < str.length) {
+    const tail = str.slice(segStart).trim();
+    if (tail.length > 0) {
+      units.push({ text: tail, start: segStart, end: str.length });
+    }
+  }
+  return units;
+}
+
+function createSeededParagraph(id, label, clauses) {
+  const kbParts = [];
+  const kkParts = [];
+  const enParts = [];
+
+  let enCursor = 0;
+  const clauseEnRanges = [];
+  clauses.forEach((c) => {
+    if (c.kanbun) kbParts.push(c.kanbun.trim());
+    if (c.kakikudashi) kkParts.push(c.kakikudashi.trim());
+    const enStr = (c.english || "").trim();
+    if (enStr) {
+      if (enParts.length > 0) enCursor += 1;
+      const s = enCursor;
+      const e = enCursor + enStr.length;
+      enParts.push(enStr);
+      enCursor = e;
+      clauseEnRanges.push({ start: s, end: e, snapshot: enStr, notes: c.notes || [] });
+    } else {
+      clauseEnRanges.push({ start: null, end: null, snapshot: "", notes: c.notes || [] });
+    }
+  });
+
+  const kanbunText = kbParts.join("");
+  const kakikudashiText = kkParts.join("");
+  const englishText = enParts.join(" ");
+
+  const kbUnits = splitByMaru(kanbunText);
+  const kkUnits = splitByMaru(kakikudashiText);
+
+  const kbMeta = [];
+  const kkMeta = [];
+  let kbPtr = 0;
+  let kkPtr = 0;
+
+  clauses.forEach((c, cIdx) => {
+    const cKbCount = c.kanbun ? splitByMaru(c.kanbun).length : 0;
+    const cKkCount = c.kakikudashi ? splitByMaru(c.kakikudashi).length : 0;
+    const er = clauseEnRanges[cIdx];
+
+    const kbStart = kbPtr;
+    const kbEnd = Math.max(kbStart, kbPtr + cKbCount - 1);
+    const kkStart = kkPtr;
+    const kkEnd = Math.max(kkStart, kkPtr + cKkCount - 1);
+
+    for (let i = 0; i < cKbCount; i++) {
+      kbMeta.push({
+        enRanges: er.start !== null ? [{ start: er.start, end: er.end, snapshot: er.snapshot }] : [],
+        pairStart: cKkCount > 0 ? (cKbCount === cKkCount ? kkStart + i : kkStart) : 0,
+        pairEnd: cKkCount > 0 ? (cKbCount === cKkCount ? kkStart + i : kkEnd) : 0,
+        notes: i === 0 ? JSON.parse(JSON.stringify(er.notes)) : []
+      });
+    }
+    for (let j = 0; j < cKkCount; j++) {
+      kkMeta.push({
+        enRanges: er.start !== null ? [{ start: er.start, end: er.end, snapshot: er.snapshot }] : [],
+        pairStart: cKbCount > 0 ? (cKbCount === cKkCount ? kbStart + j : kbStart) : 0,
+        pairEnd: cKbCount > 0 ? (cKbCount === cKkCount ? kbStart + j : kbEnd) : 0,
+        notes: (cKbCount === 0 && j === 0) ? JSON.parse(JSON.stringify(er.notes)) : []
+      });
+    }
+    kbPtr += cKbCount;
+    kkPtr += cKkCount;
+  });
+
+  while (kbMeta.length < kbUnits.length) kbMeta.push({ enRanges: [], pairStart: 0, pairEnd: 0, notes: [] });
+  while (kkMeta.length < kkUnits.length) kkMeta.push({ enRanges: [], pairStart: 0, pairEnd: 0, notes: [] });
+
+  return { id, label, kanbunText, kakikudashiText, englishText, kbMeta, kkMeta };
+}
+
+function buildInitialCorpus() {
+  return [
+    {
+      id: "01.01",
+      orderIndex: 1,
+      collection: "01 日本霊異記",
+      title: "01.01 上巻序 — Nihon ryōiki, Vol. 1 Preface",
+      author: "景戒 Kyōkai (early 9th c., Kōnin era)",
+      type: "kanbun",
+      bookmarkAfterPara: "p5",
+      bookmarkLabel: "Workshopped through 09/17/2026",
+      metadata: "転記出典：久遠の絆電子本文／やたがらすナビ書き下し文（中川聡 CC BY-SA 4.0）。比較伝本：興福寺本（国宝・上巻のみ）、東海大学桃園文庫蔵本（高野山金剛三昧院本系）。各「。」までのまとまりが1文としてクリック可能になり、「。」の追加・変更・削除で自動的に文が分割・結合されます。",
+      paragraphs: [
+        createSeededParagraph("p1", "第1段", [
+          {
+            kanbun: "原夫內經、外書，諸傳於日本，而興始代，凡有二時，皆自百濟國浮來之。",
+            kakikudashi: "原夫（たづねみ）れば、内経（ないきゃう）・外書（げしょ）の日本に伝はりて興り始めし代には、凡（おほよ）そ二つ時有りき。皆、百済（くだら）の国より[[浮べ|浮け]]来りき。",
+            english: "When we inquire into the matter, there were, broadly speaking, two periods in which the Inner Scriptures and Outer Writings were transmitted to Japan and first began to flourish. Both came floating over from the kingdom of Paekche."
+          },
+          {
+            kanbun: "輕嶋豐明宮御宇譽田天皇代，外書來之。",
+            kakikudashi: "軽嶋（かるしま）の豊明（とよあきら）の宮に宇（あめのした）御（をさ）めたまひし誉田（ほむだ）の天皇（すめらみこと）のみ代に、外書[[来りき|来れり]]。",
+            english: "In the reign of Emperor Homuda (Emperor Ōjin), who ruled the realm from the Palace of Toyoakira at Karushima, the Outer Writings arrived."
+          },
+          {
+            kanbun: "磯城金刺宮御宇欽明天皇代，內典來也。",
+            kakikudashi: "磯城嶋（しきしま）の金刺（かなざし）の宮に宇（あめのした）御（をさ）めたまひし欽明（きんめい）天皇のみ代に、内典[[来りき|来れり]]。",
+            english: "In the reign of Emperor Kinmei, who ruled the realm from the Palace of Kanazashi at Shikishima, the Inner Scriptures arrived."
+          },
+          {
+            kanbun: "然乃學外之者，誹於佛法。",
+            kakikudashi: "然れども乃ち外を学ぶる者（ひと）は、仏法を誹（そし）れり。",
+            english: "However, soon those who studied the Outer Writings slandered the Buddha Dharma,"
+          },
+          {
+            kanbun: "讀內之者，輕於外典。",
+            kakikudashi: "内を読む者は、外典（げてん）を軽（かろ）みせり。",
+            english: "while those who read the Inner Scriptures regarded the Outer Writings lightly."
+          },
+          {
+            kanbun: "愚癡之類，懷於迷執，匪信於罪福。",
+            kakikudashi: "愚痴（ぐち）の類（ともがら）は、迷執（めいしふ）を懐（うだ）き（て）、罪福を信（まこと）なりとせず。",
+            english: "The ignorant cling to deluded attachments and did not believe in karmic retributions and rewards.",
+            notes: [
+              { author: "Member A", cat: "grammar", tag: "試訳 Alt", lemma: "懷於迷執", text: "Alternative English rendering discussed in group: 'hold fast to deluded attachments'." }
+            ]
+          },
+          {
+            kanbun: "深智之儔，覯於內外，信恐因果。",
+            kakikudashi: "深智（じんち）の儔（ともがら）は内外（ないげ）を覯（み）て、信（まこと）として因果を恐る。",
+            english: "Those of profound wisdom examined both the inner and the outer, believed them to be true, and feared cause and effect."
+          }
+        ]),
+        createSeededParagraph("p2", "第2段", [
+          {
+            kanbun: "唯代代天皇，或登高山，頂起悲心，住雨漏殿，撫于庶民。",
+            kakikudashi: "唯し、代々の天皇、或いは高き山の頂（いただき）に登りて悲（あはれび）（の心）を起し、雨の漏れる殿（おほとの）に住みて、庶（の）民（おほみたから）を撫（な）でたまひき。",
+            english: "As for the emperors of successive generations, some climbed to the summits of high mountains and aroused a heart of compassion, then dwelt in palaces where the rain leaked through and cared for the common people."
+          },
+          {
+            kanbun: "或生而高辨，兼委未事，一聞十訴，一言不漏。",
+            kakikudashi: "或いは生れながらにして高弁（かうべん）に、兼ねて未（ゆくさき）（の）事を委（し）り、一たびに十（とたり）の訴（うるたへ）を聞きて一言も漏（ら）したまはず。",
+            english: "Some were born with keen discernment and knew beforehand what was yet to come, hearing the petitions of ten persons at once without letting a single word escape."
+          },
+          {
+            kanbun: "生年廿五，受天皇請，說大乘經，所造經疏，長流末代。",
+            kakikudashi: "生年二十五にして天皇の請（ねが）を受け（まつり）て、大乗経を[[説きたまひき|説きたまふ]]。造りたまへる経の疏（しょ）は長（とこしへ）に末の代に[[流（つた）はる|流（つた）はれり]]。",
+            english: "At the age of twenty-five, he accepted the sovereign's request and expounded the Mahāyāna scriptures; the scriptural commentaries he composed have been transmitted perpetually to the latter age."
+          },
+          {
+            kanbun: "或發弘誓，願敬造佛像，天隨所願，地敞寶藏。",
+            kakikudashi: "或いは弘誓（ぐぜい）の願を発し、敬（つつし）みて仏像を造りたまふ。天は願ふ所に随ひ、地は宝蔵を[[敞（あら）はせり|敞（ひら）きたり]]。",
+            english: "Some made a great vow and reverently fashioned Buddha images; heaven responded according to their wish, and the earth opened up its treasures."
+          },
+          {
+            kanbun: "亦大僧等，德侔十地，道超二乘。",
+            kakikudashi: "亦、大僧等（たち）、徳は十地に侔（ひと）しく、道は二乗よりも[[超ぎたり|超（こ）えたり]]。",
+            english: "There were also great monks whose virtue equaled the Ten Stages and whose Path surpassed the Two Vehicles."
+          },
+          {
+            kanbun: "秉智燭以照昏岐，運慈舟而濟溺類，難行苦行，名流遠國。",
+            kakikudashi: "智の燭（ともしび）を秉（と）りて昏（くら）き岐（ちまた）を照らし、慈（うつく）しびの船を運びて溺（おぼほ）るる類を済（すく）ひ、[[難行苦行して|難行苦行の名]]、名は遠国（をんごく）にも流はれり。",
+            english: "Holding the torch of wisdom, they illuminated the dark crossroads; steering the boat of compassion, they rescued those who were drowning, and through arduous ascetic practices their renown spread even to distant lands."
+          },
+          {
+            kanbun: "今時深智人，神功亦罕測。",
+            kakikudashi: "今時（いま）の深智の人、神功（じんこう）も亦測（たばか）り罕（がた）し。",
+            english: "Even for people of profound wisdom in the present age, their miraculous deeds are difficult to fathom."
+          }
+        ]),
+        createSeededParagraph("p3", "第3段", [
+          {
+            kanbun: "於是，諾樂藥師寺沙門景戒，熟瞰世人也。{{才|底本「才」、異文「方」}}好鄙行，翹利養貪財物，過磁石於舉鐵山以噓鐵，欲他分惜己物，甚流頭於粉粟粒以啖糠。",
+            kakikudashi: "是（ここ）に諾楽の薬師寺の沙門景戒、熟（つらつら）世の人を瞰（み）る（とき）に、[[才好くして鄙（とひと）なる行（わざ）あり|方（まさ）に鄙なる行を好めり]]。利養を[[翹（のぞ）み|翹（くはた）て]]、財物を貪（むさぼ）ること、磁石（じしやく）の鉄（くろがね）の山を挙（こ）して、鉄を嘘（す）ふよりも[[過ぎたり|過ぐ]]。他（ひと）の分を欲（ねが）ひ、己（おの）が物を惜（おし）むこと、流頭（るず）の粟（あは）の粒（つび）を粉（くだ）きて、以て糠（ぬか）を啖（は）むよりも甚（はなは）だし。",
+            english: "Hereupon I, Kyōkai, a śramaṇa of Yakushiji in Nara, carefully observed the people of the world and found that although they possess ability, they delight in base conduct. Their longing for profit and greed for wealth exceed even a lodestone raising an iron mountain and drawing iron to itself; their desire for others' portions and reluctance to part with their own are more extreme than grinding millet grains in a mill only to eat the bran."
+          },
+          {
+            kanbun: "或貪寺物，生犢償債。或誹法僧，現身被災。或殉道積行，而現得驗。或深信修善，以生霑祜。",
+            kakikudashi: "或いは寺の[[物|者]]を貪り、犢（うしのこ）に生れて債（もののかひ）を償（つくの）ふ。或いは法・僧を誹（そし）りて現身（げんしん）に災（わざわ）ひを被（かがふ）る。或いは道を殉（もと）め行を積（つ）みて、[[現（げん）|現（うつつ）]]に[[験（しるし）|験（げん）]]を得たり。或いは深く[[信じて|信け]]善を修（おさ）め、以て生きながら祜（さいはひ）に霑（うる）ふ。",
+            english: "Some, having coveted temple property, are reborn as calves to repay their debts; some, having slandered the Dharma and the Saṃgha, suffer calamity in their present lives; some pursue the Way and obtain miraculous efficacy in reality; some believe deeply and cultivate goodness, receiving blessings while still alive."
+          },
+          {
+            kanbun: "善惡之報，如影隨形。苦樂之響，如谷應音。見聞之者，甫驚怪，忘一卓之間。漸愧之者，倏悸惕，{{忩|諸本「忩」（いそぐ） vs 異読「怠」（おこたる）}}起避之頃。匪呈善惡之狀，何以直於曲執而定是非。叵示因果之報，何由改於惡心而修善道乎。",
+            kakikudashi: "善悪の報（むくい）は、影の形に随（したが）ふが如し。苦楽（くらく）の響（ひびき）は、谷の音（こゑ）に応（こた）ふるが如し。見聞（みき）きする者は、[[甫（はじめて）|甫（すなはち）]]驚き怪（あや）しび、[[一卓（いったく）|一卓（たちまち）]]の内（うち）を忘（わす）る。慚愧（ざんき）する者は、倐（たちまち）に悸（こころつご）きし惕（いた）み、起（た）ち避（さ）る頃を[[忩（いそ）ぐ|怠（おこた）る]]。善悪の状（さま）を呈（あらは）すにあらずは、何を以てか、曲執（きょくしゅう）を直して是非を定めむ。因果の報を示すにあらずは、何に由りてか、悪心を改めて善道を修めむ。",
+            english: "The recompense of good and evil is like a shadow following a form, and the resonance of suffering and happiness is like an echo answering a sound in a valley. Those who see or hear such things are astonished at first, yet forget them within a single meal; those who feel shame and remorse, though alarmed at heart, neglect it as soon as they rise and withdraw. Unless the circumstances of good and evil are presented, how can crooked attachments be straightened? Unless the recompense of cause and effect is demonstrated, how can an evil mind be corrected and the good path cultivated?"
+          }
+        ]),
+        createSeededParagraph("p4", "第4段", [
+          {
+            kanbun: "昔漢地造『冥報記』，大唐國作『般若驗記』。何唯慎乎他國傳錄，弗信恐乎自土奇事。",
+            kakikudashi: "昔、漢地にして冥報記（みょうほうき）を造り、大唐国（だいたうこく）にして般若験記を作りき。何ぞ、唯し他国の伝録をのみ慎（つつし）みて、自土の奇事（きじ）を[[信じ|信け]]恐りざらむや。",
+            english: "Long ago, on the continent, the Mingbaoji was compiled, and in the Great Tang dynasty, the Bore yanji was composed. Why should we heed only the transmitted records of foreign lands and fail to believe and stand in awe of the extraordinary events of our own land?"
+          },
+          {
+            kanbun: "粵起自矚之，不得忍寢。居心思之，不能默然。故聊注側聞，號曰『日本國現報善惡靈異記』。作上、中、下參卷，以流季葉。",
+            kakikudashi: "粤（ここ）に起ちて自ら之を矚（み）るに、忍（しの）び寝むること得ず。[[居て心に思ふに|心に居（お）きて思ふに]]、黙然（もだ）ること能はず。故（かれ）、聊（いささ）かに側（ほのか）に聞けることを注し、号（なづ）けて日本国現報善悪霊異記と曰ふ。上・中・下の参巻と作（な）し、以て季（すゑ）の葉（よ）に流（つた）ふ。",
+            english: "Thereupon, rising and beholding these events myself, I could not bear to let them sleep; pondering them in my heart, I could not remain silent. Therefore, I have recorded a few things heard incidentally and entitled the work Nihonkoku genpō zen'aku ryōiki, making it into three fascicles—upper, middle, and lower—so that it may flow down to latter generations."
+          }
+        ]),
+        createSeededParagraph("p5", "第5段", [
+          {
+            kanbun: "然景戒稟性不儒，濁意難澄。",
+            kakikudashi: "然れども景戒性を稟（う）くること儒（さか）しくあらず、濁（にご）れる意（こころ）澄（す）そ難し。",
+            english: "Yet I, Kyōkai, was not endowed with an intelligent nature, and it is difficult to clarify my clouded mind."
+          },
+          {
+            kanbun: "坎井之識，久迷太方。",
+            kakikudashi: "坎井（かんせい）の識、久しき太方に迷ふ。",
+            english: "With the understanding of one who looks up from the bottom of a well, I have long remained confused about the Great Principle.",
+            notes: [
+              { author: "Xiao", cat: "locus", tag: "典拠 Locus", lemma: "坎井之識", text: "Zhuangzi 莊子 (Qiushui 秋水): 坎井之蛙 ('frog in a caved-in well') vs. 大方之家." }
+            ]
+          },
+          {
+            kanbun: "能功所雕，淺工加{{刀|興福寺本・諸本：「刀」 vs 別案：「力」}}。",
+            kakikudashi: "能功（のうこう）の雕（ゑ）れる所に、浅工（せんこう）にして[[刀（かたな）|力（ちから）]]を加ふ。",
+            english: "Where a skilled craftsman has carved, I, an unskilled one, add my knife."
+          },
+          {
+            kanbun: "恐{{寒|興福寺本：「寒」／草書「足」偏による「蹇」（蹇鈍）の誤読案／国書DB高野山金剛三昧院本翻刻：「塞」}}心{{貽|諸本：「貽」 vs 異読案：「胎」（木胎・瓷胎＝基礎骨格）}}患於傷手，此亦崐山之一礫。",
+            kakikudashi: "恐り寒心（かんしん）すらくは、患（うれひ）を手を傷（そこな）ふに貽（いた）らむ。此れも亦昆山（こんざん）の一つの磔（たびいし）なり。",
+            english: "Fearfully and with a trembling heart, I worry that I may bring upon myself the misfortune of injuring my hand—yet this too is a single pebble from Mount Kunlun.",
+            notes: [
+              { author: "Workshop", cat: "locus", tag: "典拠 Locus", lemma: "傷手 / 寒心", text: "《抱朴子·暢玄》：「舍繩墨而助傷手之工」(cf. Laozi 74 代大匠斲希有不傷其手矣). For 寒心: 《梁書·武帝紀下》：「聯寒心消志，爲日久矣」." },
+              { author: "Xiao", cat: "variant", tag: "校異 Variant", lemma: "恐寒心貽患於傷手", text: "Try replacing ， with 。 (or clicking ✂ Insert 。) to test live sentence splitting! Hypotheses: (1) 恐寒心貽患於傷手; (2) 心胎 ('core substrate'); (3) Paleographic 蹇 vs. Kongō Sanmai-in 塞." }
+            ]
+          },
+          {
+            kanbun: "但以口說不詳，忘遺多矣。不昇貪善之至，慓示濫竽之業。後生賢者，幸勿嗤嗤焉。祈覽奇記者，卻邪入正，諸惡莫作，諸善奉行。諾樂右京藥師寺沙門　景戒　錄。",
+            kakikudashi: "但し、口説すること詳（あきら）かならぬを以て、忘れ遺（のこ）すこと多くあらむ。善を[[貪（ねが）ふ|貪（むさぼ）ふ]]ことの至りに昇へず、濫竽（らんう）の業（わざ）を示さむことを慄（おそ）る。後生の賢者、幸（むが）しくも塏（あざけ）り嗤（わら）ふことに勿れ。祈（ねが）はくは奇記を覧（み）む者、邪（じゃ）を却（しりぞ）けて正に入れ。[[諸悪莫作（しょあくまくさ）、諸善奉行（しょぜんぶぎょう）|諸（もろもろ）の悪をなすことなかれ、諸の善を奉行（おこな）へ]]。諾楽（なら）の右京（うきゃう）の薬師寺（やくしじ）の沙門（しゃもん）景戒（きゃうかい）録（しる）す。",
+            english: "Still, because the oral accounts are not detailed, much has probably been forgotten and omitted. Unable to restrain my ardent desire for goodness, I fear that I may merely display the feat of an impostor among the reed-pipe players. May the wise of later generations refrain from mocking me, and may those who read this record step away from what is deviant and enter what is correct: Commit no evil; practice every good. Recorded by the śramaṇa Kyōkai of Yakushiji in the Right Capital of Nara."
+          }
+        ])
+      ]
+    },
+    {
+      id: "01.02",
+      orderIndex: 2,
+      collection: "01 日本霊異記",
+      title: "01.02 中巻序 — Nihon ryōiki, Vol. 2 Preface",
+      author: "景戒 Kyōkai (early 9th c.)",
+      type: "kanbun",
+      bookmarkAfterPara: "m2",
+      bookmarkLabel: "Translated",
+      metadata: "比較伝本：来迎院本（約38字の破損欠落あり）、真福寺本模本（不忍文庫本、「情惷憨心」より残存）、狩谷棭斎『考証日本霊異記』。",
+      paragraphs: [
+        createSeededParagraph("m1", "第1段", [
+          {
+            kanbun: "竊視歷代，自宣化天皇以往，隨外道憑卜者。自欽明天皇也後，敬三寶信正教。然或皇臣燒寺流佛像，或皇臣建寺弘佛法。",
+            kakikudashi: "[[窃（ひそか）に歴（へ）たるみ代を視（み）るに|ひそかにおもひ見れば、二つの御代あり]]。宣化（せんくわ）天皇より以往（さき）は、外道（げだう）に随（したが）ひて、卜者（かみなぎ）にたのみたまへり。欽明（きんめい）天皇より後（のち）は、三宝を敬（ゐやま）ひて、正教を信じたまへり。然れども、或るは皇臣（わうしん）にして寺を焼き仏像を流しき。或るは皇臣にして寺を建て仏法を弘めき。",
+            english: "On humbly looking over the successive reigns, before Emperor Senka the sovereigns followed non-Buddhist ways and relied upon diviners; from Emperor Kinmei onward, they revered the Three Treasures and believed in the True Teaching. Yet some imperial subjects burned temples and cast away Buddha images, while others built temples and propagated the Buddha Dharma."
+          },
+          {
+            kanbun: "之中，勝寶應真聖武太上天皇，尤造大佛，長紹法種，剃頭髮，著袈裟，受戒修善，以正治民。慈及動植，德秀千古。得一撫運，居上三靈。由此福德，飛空之螯，咋芝草葺寺。走地之蟻，搆金沙建塔。法幢高豎而，蟠足遂八方。惠船輕汎，而帆影扇九天。瑞應之華競而開國邑，善惡之報現而示吉凶。故號稱勝寶應真聖武太上天皇焉。",
+            kakikudashi: "これが中に、勝宝応真聖武大上（しようほうおうしんしやうむだいじやう）天皇は、尤（すぐ）れて大仏を造り、長（とこしへ）に法種（ほふしゆ）を紹（つ）ぎ、ひげ髪（かみ）を剃（そ）り、袈裟（けさ）を著（き）、戒を受け善を修し、正を[[以（も）て|もちて]]民を治めたまひき。慈（うつくし）びは動植にも及び、徳は千古にも秀（すぐ）れたまへり。一を得て運を撫（な）で、三霊に居上（のぼ）りたまへり。此（こ）の福徳に由（よ）りて、空を飛ぶむしも、芝草（しさう）を咋（く）ひて寺を葺（ふ）けり。地を走る蟻（あり）も、金沙（こんさ）をかまへて塔を建てたり。法幢（はふどう）は高く堅（た）ちて、蟠足（はんそく）は八方にひらめけり。恵船（ゑせん）は軽く汎（うか）びて、帆影は九天に扇（あふ）げり。瑞応（ずいおう）の華は競（きほ）ひて国邑（こくいふ）に開けり。善悪の報（むくい）は現にして吉凶を示せり。故（ゆゑ）に、み号（な）を勝宝応真聖武大上天皇と称（ほ）めたてまつる。",
+            english: "Among them, Retired Emperor Shōhō Ōjin Shōmu made the Great Buddha, shaved his hair, donned the monastic robe, and governed the people by what is right. His compassion extended to creatures and plants, and by this merit flying insects thatched temples with fragrant grass while ants built stupas of golden sand. Banners of the Dharma stood high, boats of beneficence floated gently, flowers of auspicious response bloomed across the realm, and the recompense of good and evil showed good and ill fortune—therefore he was acclaimed as Retired Emperor Shōhō Ōjin Shōmu."
+          }
+        ]),
+        createSeededParagraph("m2", "第2段", [
+          {
+            kanbun: "唯以是天皇代所錄善惡表多數者，由聖皇德顯世最多。漏事不顧，今隨所聞，且載且覆。搜惟於心，途易{{□□□□□□□□□□□□尤明□□□□□□□□□□□富□□|来迎院所蔵写本に破損があり、約三十八字欠落}}之者鐵杖加身。好善之者，金珠裝鉢。譬如擯之向依，遷之避斥，加也損減，除也滿益。流頭食糠米明捨寶，許由繞耳，巢父引牛，豈異此意歟。",
+            kakikudashi: "唯（ひと）り以（おもひみれ）ば、是（こ）の天皇（すめらみこと）のみ代に録（しる）す所の善悪の表（しるし）は、多数（あまた）なりと者（い）へり。聖皇（ひじりのみかど）の[[徳顕（あきら）かなるに由りて、事は最も多し|徳によりて、顕（あらは）れし事最も多し]]。[[事を漏（もら）すを顧（かえり）みずして|漏らせる事多しといへども]]、今聞く所に随（したが）ひて、[[且（か）つは載せ、且つは覆（こぼ）す|且（しまら）く載すらくのみ]]。[[心に捜（あなぐ）り惟忖（おもひはか）るに|覆（かへ）し搜り心に惟忖るに]]、（来迎院本破損・約三十八字略）（悪を好む）人は、鉄（くろがね）の杖（つえ）身に加はる。善を好む者（ひと）には、[[金珠（こんしゆ）の装鉢あり|金珠もて鉢を装（かざ）る]]。譬如（たとへ）ば、[[之を擯（しりぞ）くれば向（むか）ひ依り、之をひけば避け斥（しりぞ）き|押せば向ひ依り、ひけばさり斥き]]、加ふれば[[損減し|損（うしな）ひ減じ]]、除（のぞ）けば満ち益（まさ）るがごとし。流頭の糠（ぬか）を食（くら）ひ、米明の宝を捨て、許由（きよいう）の耳を繞（かく）み、巣父（さうほ）の牛を引くこと、豈此（あにこれ）が意に異（ことな）らむや。",
+            english: "So many good and bad signs were recorded in this reign because the sage emperor manifested abundant merits. Following what I have heard, I record some and omit others. Searching within my mind . . . [thirty-eight characters lost in manuscript] . . . those who delight in evil have iron staffs laid upon their bodies, while for those who delight in good, golden pearls adorn their bowls. Push it away and it draws near; pull it and it recedes; add to it and it diminishes; remove from it and it increases. While some eat bran from the mill, Zhu Ming gave away his treasure, Xu You washed his ears, and Chaofu led away his ox—how could these differ from this principle?"
+          }
+        ])
+      ]
+    },
+    {
+      id: "01.03",
+      orderIndex: 3,
+      collection: "01 日本霊異記",
+      title: "01.03 下巻序 — Nihon ryōiki, Vol. 3 Preface",
+      author: "景戒 Kyōkai (early 9th c.)",
+      type: "kanbun",
+      bookmarkAfterPara: null,
+      bookmarkLabel: "",
+      metadata: "比較伝本：前田家本、真福寺本模本（不忍文庫本）。今後の読書会セッション用：各「。」単位の文の分割・結合と英訳パッセージ手動紐付けをテストできます。",
+      paragraphs: [
+        createSeededParagraph("l1", "第1段", [
+          {
+            kanbun: "夫善惡因果者，著於內經。吉凶得失，載諸外典。今探是賢劫尺迦一代教文，有三時。一，正法五百年。二，像法千年。三，末法萬年。自佛涅槃以來，迄于延曆六年歲次丁卯，而逕一千七百廿二年。過正像二而入末法。然日本從佛法傳適以還，迄于延曆六年而逕二百卅六歲也。",
+            kakikudashi: "夫（そ）れ善悪（ぜんあく）の因果は、内経（ないきゃう）に著（あらは）る。吉凶（きっきょう）の得失は、諸（もろもろ）の外典（げてん）に載（の）す。今是（こ）の賢劫（けんごふ）の釈迦（しゃか）一代の教文を探るに、三時有り。一には正法（しゃうぼう）五百年。二には像法（ざうぼう）千年。三には末法（まっぽう）万年なり。仏の涅槃より以来、延暦（えんりゃく）六年歳次丁卯に迄（いた）るまで、一千七百二十二年を逕（へ）たり。正・像の二つを過ぎて末法に入れり。然して日本に仏法伝はりてより以還（このかた）、延暦六年に迄るまで二百三十六歳を逕たり。",
+            english: "Good and evil karma are set forth in the Inner Scriptures, while good and ill fortune are recorded in the Outer Classics. Examining Śākyamuni's teachings in this Auspicious Kalpa, there are Three Periods: five hundred years of the True Dharma, one thousand years of the Semblance Dharma, and ten thousand years of the Degenerate Dharma (mappō). From the Buddha's nirvāṇa down to the cyclical year hinoto-u, the sixth year of Enryaku (787), 1,722 years have elapsed—passing through the True and Semblance ages into the Degenerate Dharma—while 236 years have passed since the Dharma first reached Japan."
+          }
+        ])
+      ]
+    },
+    {
+      id: "02.01",
+      orderIndex: 4,
+      collection: "02 三宝絵",
+      title: "02.01 総序 (抜粋) — Sanbōe, General Preface (Wabun Demo)",
+      author: "源為憲 Minamoto no Tamenori (984)",
+      type: "wabun",
+      bookmarkAfterPara: null,
+      bookmarkLabel: "",
+      metadata: "底本：東寺観智院本（電子校訂：中川聡 CC BY-SA 4.0）。和文でも「。」ごとにクリック単位が区切られ、引用内の「。」（「…離れたる草。」など）も結合・分割や英訳紐付けが自在に行えます。",
+      paragraphs: [
+        createSeededParagraph("sb1", "冒頭段", [
+          {
+            kanbun: "",
+            kakikudashi: "古（いにしへ）の人の云へることあり。「身を観ずれば岸の額に根を離れたる草。命を論ずれば江の辺（ほとり）に繋がざる船」と。また、「世の中を何に譬（たと）へむ朝まだき漕ぎ行く船の跡の白浪」と云へり。",
+            english: "People of antiquity had a saying: 'When we contemplate the body, it is like grass uprooted upon the brow of a cliff; when we consider life, it is like an untethered boat beside an inlet.' And again: 'To what shall I liken this world? White waves in the wake of a boat rowing out at break of day.'"
+          },
+          {
+            kanbun: "",
+            kakikudashi: "また物語と云ひて、女の御心をやる物なり。おほあらきのもりの草よりも繁く、{{荒磯海（ありそみ）|底本「アリソミ」に「有ソ海」と傍書}}の浜の真砂（まさご）よりも多かれど、木・草・山・川・鳥・獣・魚・虫など名付けたるは、もの言はぬ物にものを言はせ、情けなき物に情けを付けたるは、ただ海（あま）の浮木（うきぎ）の浮かべたることをのみいひながし、沢の{{真菰（まこも）|底本「末己毛」に「間薦」と傍書}}の誠（まこと）となる詞（ことば）をば結び置かず。",
+            english: "Then too there are the so-called tales (monogatari), which divert women's hearts. Though thicker than the grasses of Ōaraki Forest and more numerous than grains of sand along a rocky shore, they assign speech to mute trees, plants, mountains, rivers, birds, beasts, fish, and insects, and endow insentient things with feeling—pouring forth floating words like driftwood on the sea without binding together phrases of genuine truth."
+          }
+        ])
+      ]
+    }
+  ];
+}
+
+const STUB_COLLECTIONS = [
+  { title: "03 日本往生極楽記 (985)", type: "kanbun", sub: "慶滋保胤 — 1 paratext" },
+  { title: "04 本朝法華験記 (1040–44)", type: "kanbun", sub: "鎮源 — 1 paratext" },
+  { title: "05–09 往生伝群 (12th c.)", type: "kanbun", sub: "匡房・為康・蓮禅・宗友 — 5 paratexts" },
+  { title: "10 宝物集 (late 12th c.)", type: "wabun", sub: "平康頼 — 7-fascicle postscript" },
+  { title: "13 発心集 (early 13th c.)", type: "wabun", sub: "鴨長明 — Preface & Postscript" },
+  { title: "14 宇治拾遺物語 (early 13th c.)", type: "wabun", sub: "Anon. — Preface" },
+  { title: "16 閑居友 (1222)", type: "wabun", sub: "慶政 — 2 postscripts" },
+  { title: "17 十訓抄 (1252)", type: "wabun", sub: "Anon. — 12 prefaces & postscript" },
+  { title: "18 古今著聞集 (1254)", type: "kanbun", sub: "橘成季 — 31 paratexts" },
+  { title: "21 沙石集 (1279–83)", type: "wabun", sub: "無住 — 13 paratexts & colophons" },
+  { title: "23 長谷寺霊験記 (Kamakura)", type: "wabun", sub: "Anon. — Preface & 1435 colophon" },
+  { title: "24 元亨釈書 (1322)", type: "kanbun", sub: "虎関師錬 — 6 memorials & essays" }
+];
+
+// ============================================================================
+// 2. STATE & CLOUD SYNC ENGINE (FIREBASE SPARK + LOCAL FALLBACK)
+// ============================================================================
+const STORAGE_KEY = "setsuwa_workbench_v5_cloud";
+let state = loadLocalState();
+let activeDocId = state.corpus[0].id;
+let primaryLayer = "kanbun";
+let activeSelection = null;
+let showPrimaryInWindow = true;
+let showFullEnParaEditor = false;
+let windowMode = "float";
+let isScribe = true; // Unlocked by default for all invited collaborators
+let jpFontSize = 19;
+let pendingSelectionRange = null;
+let POPOVER_REGISTRY = {};
+
+// Firebase runtime state
+const cloud = {
+  configured: false,
+  ready: false,
+  sdk: null,
+  auth: null,
+  db: null,
+  user: null,
+  unsubs: [],
+  paraUnsubs: {},
+  onlinePeers: {},
+  saveTimers: {},
+  presenceTimer: null
+};
+
+const AVATAR_COLORS = ["#8c3727", "#264a78", "#2d6a4f", "#7a5195", "#a85814", "#236768"];
+
+function hashColor(str) {
+  let h = 0;
+  for (let i = 0; i < (str || "").length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+  return AVATAR_COLORS[h % AVATAR_COLORS.length];
+}
+
+function getCurrentUserName() {
+  if (cloud.user) return cloud.user.displayName || cloud.user.email.split("@")[0];
+  return "Member";
+}
+
+function isFirebaseConfigured() {
+  const cfg = window.SETSUWA_FIREBASE_CONFIG;
+  return Boolean(cfg && cfg.apiKey && cfg.projectId && !String(cfg.apiKey).startsWith("PASTE_"));
+}
+
+function setSyncStatus(kind, text) {
+  const el = document.getElementById("syncPill");
+  if (!el) return;
+  el.className = "sync-pill " + (kind || "");
+  el.textContent = text;
+}
+
+function showCloudBanner(text, actionsHtml, isWarn) {
+  const banner = document.getElementById("cloudBanner");
+  document.getElementById("cloudBannerText").innerHTML = text;
+  document.getElementById("cloudBannerActions").innerHTML = actionsHtml || "";
+  banner.classList.toggle("warn", Boolean(isWarn));
+  banner.classList.add("open");
+}
+
+function hideCloudBanner() {
+  document.getElementById("cloudBanner").classList.remove("open");
+}
+
+function loadLocalState() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) return JSON.parse(saved);
+  } catch (e) {}
+  return { corpus: buildInitialCorpus(), kunSelections: {} };
+}
+
+function saveLocalState() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+}
+
+function saveState(changedDocId, changedParaId, saveKun) {
+  saveLocalState();
+  if (!cloud.ready || !cloud.db || !cloud.user) return;
+
+  if (saveKun) {
+    scheduleCloudWrite("kunSelections", async () => {
+      const { doc, setDoc } = cloud.sdk;
+      await setDoc(doc(cloud.db, "settings", "kunSelections"), {
+        selections: state.kunSelections,
+        updatedBy: getCurrentUserName(),
+        updatedAt: Date.now()
+      });
+    });
+  }
+
+  if (changedDocId && changedParaId) {
+    const dObj = state.corpus.find(d => d.id === changedDocId);
+    const pObj = dObj && dObj.paragraphs.find(p => p.id === changedParaId);
+    if (pObj) {
+      scheduleCloudWrite(`para_${changedDocId}_${changedParaId}`, async () => {
+        const { doc, setDoc } = cloud.sdk;
+        await setDoc(doc(cloud.db, "docs", changedDocId, "paragraphs", changedParaId), {
+          id: pObj.id,
+          label: pObj.label,
+          kanbunText: pObj.kanbunText,
+          kakikudashiText: pObj.kakikudashiText,
+          englishText: pObj.englishText,
+          kbMeta: pObj.kbMeta || [],
+          kkMeta: pObj.kkMeta || [],
+          updatedBy: getCurrentUserName(),
+          updatedByUid: cloud.user.uid,
+          updatedAt: Date.now()
+        });
+      });
+    }
+  } else if (changedDocId) {
+    const dObj = state.corpus.find(d => d.id === changedDocId);
+    if (dObj) {
+      scheduleCloudWrite(`doc_${changedDocId}`, async () => {
+        const { doc, setDoc } = cloud.sdk;
+        await setDoc(doc(cloud.db, "docs", changedDocId), {
+          id: dObj.id,
+          orderIndex: dObj.orderIndex || 99,
+          collection: dObj.collection,
+          title: dObj.title,
+          author: dObj.author,
+          type: dObj.type,
+          bookmarkAfterPara: dObj.bookmarkAfterPara || null,
+          bookmarkLabel: dObj.bookmarkLabel || "",
+          metadata: dObj.metadata || "",
+          paraOrder: dObj.paragraphs.map(p => p.id),
+          updatedBy: getCurrentUserName(),
+          updatedAt: Date.now()
+        }, { merge: true });
+      });
+    }
+  }
+}
+
+function scheduleCloudWrite(key, fn) {
+  setSyncStatus("saving", "🟡 Saving…");
+  if (cloud.saveTimers[key]) clearTimeout(cloud.saveTimers[key]);
+  cloud.saveTimers[key] = setTimeout(async () => {
+    delete cloud.saveTimers[key];
+    try {
+      await fn();
+      if (Object.keys(cloud.saveTimers).length === 0) {
+        setSyncStatus("synced", "🟢 Live Synced");
+      }
+    } catch (err) {
+      console.error("Cloud write failed:", err);
+      setSyncStatus("error", "🔴 Sync Error");
+    }
+  }, 450);
+}
+
+async function initCloudSync() {
+  if (!isFirebaseConfigured()) {
+    setSyncStatus("", "⚪ Local Demo");
+    renderPresenceAvatars();
+    showCloudBanner(
+      "<strong>Local Demo Mode:</strong> Edits save to this browser. Paste your Firebase keys into <code>firebase-config.js</code> to enable live multi-user sync.",
+      `<button class="btn btn-sm" onclick="hideCloudBanner()">Dismiss</button>`,
+      true
+    );
+    return;
+  }
+
+  cloud.configured = true;
+  setSyncStatus("saving", "🟡 Connecting…");
+  document.getElementById("authOverlay").classList.add("open");
+
+  try {
+    const [appMod, authMod, fsMod] = await Promise.all([
+      import("https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js"),
+      import("https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js"),
+      import("https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js")
+    ]);
+
+    cloud.sdk = { ...appMod, ...authMod, ...fsMod };
+    const app = appMod.initializeApp(window.SETSUWA_FIREBASE_CONFIG);
+    cloud.auth = authMod.getAuth(app);
+    cloud.db = fsMod.getFirestore(app);
+
+    authMod.onAuthStateChanged(cloud.auth, (user) => {
+      cleanupCloudListeners();
+      cloud.user = user || null;
+      if (!user) {
+        cloud.ready = false;
+        document.getElementById("authOverlay").classList.add("open");
+        document.getElementById("signOutBtn").style.display = "none";
+        document.getElementById("authSignOutRow").style.display = "none";
+        setSyncStatus("", "⚪ Signed Out");
+        return;
+      }
+      document.getElementById("signOutBtn").style.display = "inline-flex";
+      startFirestoreSync();
+    });
+  } catch (err) {
+    console.error("Firebase init failed:", err);
+    showAuthError("Could not load Firebase SDK. Check your internet connection or firebase-config.js.");
+    setSyncStatus("error", "🔴 Offline");
+  }
+}
+
+function showAuthError(msg) {
+  const box = document.getElementById("authErrorBox");
+  box.innerHTML = msg;
+  box.classList.add("open");
+}
+
+function clearAuthError() {
+  const box = document.getElementById("authErrorBox");
+  box.classList.remove("open");
+}
+
+async function signInWithGoogle() {
+  if (!cloud.auth || !cloud.sdk) return;
+  clearAuthError();
+  try {
+    const provider = new cloud.sdk.GoogleAuthProvider();
+    await cloud.sdk.signInWithPopup(cloud.auth, provider);
+  } catch (err) {
+    showAuthError(`Sign-in failed: ${escapeHtml(err.message || String(err))}`);
+  }
+}
+
+async function signOutFromGoogle() {
+  if (!cloud.auth || !cloud.sdk) return;
+  cleanupCloudListeners();
+  await cloud.sdk.signOut(cloud.auth);
+}
+
+function cleanupCloudListeners() {
+  cloud.unsubs.forEach(u => { try { u(); } catch (e) {} });
+  cloud.unsubs = [];
+  Object.values(cloud.paraUnsubs).forEach(u => { try { u(); } catch (e) {} });
+  cloud.paraUnsubs = {};
+  if (cloud.presenceTimer) { clearInterval(cloud.presenceTimer); cloud.presenceTimer = null; }
+}
+
+function startFirestoreSync() {
+  const { collection, doc, onSnapshot } = cloud.sdk;
+  setSyncStatus("saving", "🟡 Loading Cloud…");
+
+  const docsUnsub = onSnapshot(collection(cloud.db, "docs"), (snap) => {
+    clearAuthError();
+    document.getElementById("authOverlay").classList.remove("open");
+    cloud.ready = true;
+
+    if (snap.empty) {
+      setSyncStatus("synced", "🟢 Connected (Empty)");
+      showCloudBanner(
+        "<strong>Cloud database is ready!</strong> Click the button on the right to upload the starter corpus (<em>Nihon ryōiki</em> &amp; <em>Sanbōe</em>) for your group.",
+        `<button class="btn btn-sm active" onclick="seedStarterCorpusToCloud()">☁️ Upload Starter Corpus to Cloud</button>`,
+        false
+      );
+      return;
+    }
+
+    hideCloudBanner();
+    const remoteDocs = [];
+    snap.forEach(dSnap => {
+      const data = dSnap.data();
+      const existing = state.corpus.find(c => c.id === dSnap.id);
+      remoteDocs.push({
+        id: dSnap.id,
+        orderIndex: data.orderIndex || 99,
+        collection: data.collection || "",
+        title: data.title || dSnap.id,
+        author: data.author || "",
+        type: data.type || "kanbun",
+        bookmarkAfterPara: data.bookmarkAfterPara || null,
+        bookmarkLabel: data.bookmarkLabel || "",
+        metadata: data.metadata || "",
+        paraOrder: data.paraOrder || [],
+        paragraphs: existing ? existing.paragraphs : []
+      });
+    });
+
+    remoteDocs.sort((a, b) => (a.orderIndex - b.orderIndex) || a.id.localeCompare(b.id));
+    state.corpus = remoteDocs;
+    if (!state.corpus.some(d => d.id === activeDocId) && state.corpus.length > 0) {
+      activeDocId = state.corpus[0].id;
+    }
+
+    remoteDocs.forEach(dObj => subscribeToDocParagraphs(dObj.id));
+    updatePrimaryPickerButtons();
+    renderSidebar();
+    renderBanner();
+    renderPrimaryStage();
+    setSyncStatus("synced", "🟢 Live Synced");
+  }, (err) => {
+    console.error("Firestore docs listener error:", err);
+    if (err.code === "permission-denied") {
+      document.getElementById("authOverlay").classList.add("open");
+      document.getElementById("authSignOutRow").style.display = "block";
+      showAuthError(
+        `Signed in as <strong>${escapeHtml(cloud.user ? cloud.user.email : "")}</strong>, which is not on the allowlist yet.<br>Add this email to <code>firestore.rules</code> in Firebase Console and refresh.`
+      );
+      setSyncStatus("error", "🔴 Access Pending");
+    } else {
+      setSyncStatus("error", "🔴 Sync Error");
+    }
+  });
+  cloud.unsubs.push(docsUnsub);
+
+  const kunUnsub = onSnapshot(doc(cloud.db, "settings", "kunSelections"), (dSnap) => {
+    if (dSnap.exists()) {
+      const data = dSnap.data();
+      if (data && data.selections) {
+        state.kunSelections = data.selections;
+        renderPrimaryStage();
+        if (activeSelection && !isActivelyTypingInCompanion()) renderCompanionWindow();
+      }
+    }
+  }, () => {});
+  cloud.unsubs.push(kunUnsub);
+
+  const presUnsub = onSnapshot(collection(cloud.db, "presence"), (snap) => {
+    const now = Date.now();
+    const peers = {};
+    snap.forEach(pSnap => {
+      const p = pSnap.data();
+      if (p && now - (p.lastSeen || 0) < 120000) {
+        peers[pSnap.id] = p;
+      }
+    });
+    cloud.onlinePeers = peers;
+    renderPresenceAvatars();
+    updatePeerNoticeInCompanion();
+  }, () => {});
+  cloud.unsubs.push(presUnsub);
+
+  publishPresence();
+  cloud.presenceTimer = setInterval(publishPresence, 30000);
+}
+
+function subscribeToDocParagraphs(docId) {
+  if (cloud.paraUnsubs[docId]) return;
+  const { collection, onSnapshot } = cloud.sdk;
+  cloud.paraUnsubs[docId] = onSnapshot(collection(cloud.db, "docs", docId, "paragraphs"), (snap) => {
+    const dObj = state.corpus.find(d => d.id === docId);
+    if (!dObj) return;
+    const byId = {};
+    snap.forEach(pSnap => { byId[pSnap.id] = pSnap.data(); });
+    const order = (dObj.paraOrder && dObj.paraOrder.length) ? dObj.paraOrder : Object.keys(byId).sort();
+    dObj.paragraphs = order.filter(id => byId[id]).map(id => byId[id]);
+    saveLocalState();
+
+    if (docId === activeDocId) {
+      renderPrimaryStage();
+      if (activeSelection && !isActivelyTypingInCompanion()) {
+        renderCompanionWindow();
+      }
+    }
+  }, () => {});
+}
+
+function isActivelyTypingInCompanion() {
+  const el = document.activeElement;
+  if (!el) return false;
+  const win = document.getElementById("companionWindow");
+  return Boolean(win && win.contains(el) && (el.tagName === "TEXTAREA" || el.tagName === "INPUT"));
+}
+
+async function publishPresence() {
+  if (!cloud.ready || !cloud.db || !cloud.user) return;
+  try {
+    const { doc, setDoc } = cloud.sdk;
+    await setDoc(doc(cloud.db, "presence", cloud.user.uid), {
+      uid: cloud.user.uid,
+      name: getCurrentUserName(),
+      email: cloud.user.email || "",
+      color: hashColor(cloud.user.email || cloud.user.uid),
+      docId: activeDocId,
+      paraId: activeSelection ? activeSelection.paraId : null,
+      sentenceIdx: activeSelection ? activeSelection.idx : null,
+      lastSeen: Date.now()
+    });
+  } catch (e) {}
+}
+
+function renderPresenceAvatars() {
+  const host = document.getElementById("presenceAvatars");
+  if (!host) return;
+  if (!cloud.ready) {
+    host.innerHTML = `<span class="avatar" style="background:#8c3727" title="Local browser session">L</span>`;
+    return;
+  }
+  const list = Object.values(cloud.onlinePeers);
+  if (!list.length && cloud.user) {
+    list.push({ name: getCurrentUserName(), email: cloud.user.email, color: hashColor(cloud.user.email) });
+  }
+  host.innerHTML = list.map(p => {
+    const initial = (p.name || p.email || "?").trim().charAt(0).toUpperCase();
+    const loc = p.paraId ? ` · viewing ${p.docId} ${p.paraId}` : "";
+    return `<span class="avatar" style="background:${p.color || '#264a78'}" title="${escapeHtml((p.name || p.email) + loc)}">${escapeHtml(initial)}</span>`;
+  }).join("");
+}
+
+function getOtherPeersOnActivePara() {
+  if (!cloud.ready || !cloud.user || !activeSelection) return [];
+  return Object.values(cloud.onlinePeers).filter(p =>
+    p.uid !== cloud.user.uid &&
+    p.docId === activeDocId &&
+    p.paraId === activeSelection.paraId
+  );
+}
+
+function updatePeerNoticeInCompanion() {
+  const slot = document.getElementById("cwPeerNoticeSlot");
+  if (!slot) return;
+  const peers = getOtherPeersOnActivePara();
+  if (!peers.length) {
+    slot.innerHTML = "";
+    return;
+  }
+  const names = peers.map(p => escapeHtml(p.name || p.email)).join(", ");
+  slot.innerHTML = `<div class="peer-notice">👀 <strong>${names}</strong> ${peers.length > 1 ? "are" : "is"} also open on this paragraph — coordinate before splitting or merging 「。」 sentences here.</div>`;
+}
+
+async function seedStarterCorpusToCloud(customState) {
+  if (!cloud.ready || !cloud.db || !cloud.user) return;
+  setSyncStatus("saving", "🟡 Uploading Corpus…");
+  try {
+    const { doc, writeBatch } = cloud.sdk;
+    const payload = customState || { corpus: buildInitialCorpus(), kunSelections: state.kunSelections || {} };
+    const batch = writeBatch(cloud.db);
+
+    payload.corpus.forEach((dObj, idx) => {
+      batch.set(doc(cloud.db, "docs", dObj.id), {
+        id: dObj.id,
+        orderIndex: dObj.orderIndex || (idx + 1),
+        collection: dObj.collection || "",
+        title: dObj.title || dObj.id,
+        author: dObj.author || "",
+        type: dObj.type || "kanbun",
+        bookmarkAfterPara: dObj.bookmarkAfterPara || null,
+        bookmarkLabel: dObj.bookmarkLabel || "",
+        metadata: dObj.metadata || "",
+        paraOrder: (dObj.paragraphs || []).map(p => p.id),
+        updatedBy: getCurrentUserName(),
+        updatedAt: Date.now()
+      });
+      (dObj.paragraphs || []).forEach(pObj => {
+        batch.set(doc(cloud.db, "docs", dObj.id, "paragraphs", pObj.id), {
+          id: pObj.id,
+          label: pObj.label,
+          kanbunText: pObj.kanbunText || "",
+          kakikudashiText: pObj.kakikudashiText || "",
+          englishText: pObj.englishText || "",
+          kbMeta: pObj.kbMeta || [],
+          kkMeta: pObj.kkMeta || [],
+          updatedBy: getCurrentUserName(),
+          updatedByUid: cloud.user.uid,
+          updatedAt: Date.now()
+        });
+      });
+    });
+
+    batch.set(doc(cloud.db, "settings", "kunSelections"), {
+      selections: payload.kunSelections || {},
+      updatedBy: getCurrentUserName(),
+      updatedAt: Date.now()
+    });
+
+    await batch.commit();
+    hideCloudBanner();
+    setSyncStatus("synced", "🟢 Live Synced");
+  } catch (err) {
+    console.error("Seed failed:", err);
+    setSyncStatus("error", "🔴 Upload Failed");
+  }
+}
+
+// ============================================================================
+// 3. CORE WORKBENCH RENDERING & EDITING LOGIC
+// ============================================================================
+function getActiveDoc() {
+  return state.corpus.find(d => d.id === activeDocId) || state.corpus[0];
+}
+
+function getParaUnitsAndMeta(para, layer) {
+  const isKb = layer === "kanbun";
+  const raw = isKb ? para.kanbunText : para.kakikudashiText;
+  const units = splitByMaru(raw);
+  const metaArr = isKb ? para.kbMeta : para.kkMeta;
+  while (metaArr.length < units.length) {
+    metaArr.push({ enRanges: [], pairStart: 0, pairEnd: 0, notes: [] });
+  }
+  return { units, metaArr };
+}
+
+function syncEnglishSnapshots(para) {
+  const en = para.englishText || "";
+  [para.kbMeta, para.kkMeta].forEach(metaList => {
+    (metaList || []).forEach(m => {
+      (m.enRanges || []).forEach(r => {
+        if (r.start === null || r.end === null) return;
+        const currentSlice = en.slice(r.start, r.end);
+        if (r.snapshot && currentSlice !== r.snapshot) {
+          const found = en.indexOf(r.snapshot);
+          if (found >= 0) {
+            r.start = found;
+            r.end = found + r.snapshot.length;
+          } else {
+            r.start = Math.min(r.start, en.length);
+            r.end = Math.min(r.end, en.length);
+            r.snapshot = en.slice(r.start, r.end);
+          }
+        } else {
+          r.snapshot = currentSlice;
+        }
+      });
+      m.enRanges = (m.enRanges || []).filter(r => r.end > r.start);
+    });
+  });
+}
+
+function parseFurigana(str) {
+  return str.replace(/([\u4e00-\u9faf\u3400-\u4dbf々ヶ]+)（([ぁ-んァ-ヶー・]+)）/g, "<ruby>$1<rt>$2</rt></ruby>");
+}
+
+function stripParen(str) {
+  return str.replace(/（[^）]+）|\([^)]+\)/g, "");
+}
+
+function escapeHtml(str) {
+  return (str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function renderJapaneseRich(raw, regPrefix) {
+  if (!raw) return "";
+  let html = escapeHtml(raw);
+
+  let varIdx = 0;
+  html = html.replace(/\{\{([^|}]+)\|([^}]+)\}\}/g, (_, surf, note) => {
+    const regId = `${regPrefix}_var_${varIdx++}`;
+    POPOVER_REGISTRY[regId] = { kind: "variant", surf, note };
+    return `<span class="var-span" data-pop="${regId}" title="Click for textual variant / witness note">${parseFurigana(surf)}</span>`;
+  });
+
+  let kunIdx = 0;
+  html = html.replace(/\[\[([^\]]+)\]\]/g, (_, inner) => {
+    const sigKey = "kun_" + inner;
+    const regId = `${regPrefix}_kun_${kunIdx++}`;
+    const defaultOpts = inner.split("|");
+    const saved = state.kunSelections[sigKey];
+    const allOpts = saved && Array.isArray(saved.opts) ? saved.opts : defaultOpts;
+    const chosenIdx = saved && typeof saved.idx === "number" ? saved.idx : 0;
+    const chosen = allOpts[chosenIdx] || allOpts[0];
+    const others = allOpts.filter((_, i) => i !== chosenIdx);
+    POPOVER_REGISTRY[regId] = { kind: "kun", sigKey, opts: allOpts, chosenIdx };
+    const altText = others.length ? `<span class="kun-alt-inline">〔イ：${others.map(stripParen).join("・")}〕</span>` : "";
+    return `<span class="kun-chip" data-pop="${regId}" title="Click to switch kun-reading">${parseFurigana(chosen)}${altText}</span>`;
+  });
+
+  html = parseFurigana(html);
+  html = html.replace(/〴〵|〳〵|／〃＼/g, m => `<span class="kunoji">${m}</span>`);
+  return html;
+}
+
+function renderSidebar() {
+  const el = document.getElementById("corpusList");
+  let html = `<div class="corpus-group-label">Active Paratexts</div>`;
+  for (const doc of state.corpus) {
+    const active = doc.id === activeDocId ? "active" : "";
+    const badgeClass = doc.type === "kanbun" ? "kanbun" : "wabun";
+    const badgeLabel = doc.type === "kanbun" ? "漢文 3-Form" : "和文 2-Form";
+    html += `
+      <div class="corpus-item ${active}" onclick="selectDoc('${doc.id}')">
+        <div class="corpus-item-top">
+          <span>${escapeHtml(doc.title.split("—")[0])}</span>
+          <span class="badge-lang ${badgeClass}">${badgeLabel}</span>
+        </div>
+        <div class="corpus-item-sub">${escapeHtml(doc.author)}</div>
+      </div>`;
+  }
+  html += `<div class="corpus-group-label" style="margin-top:10px">Sourcebook Census (25 Collections)</div>`;
+  for (const s of STUB_COLLECTIONS) {
+    const badgeClass = s.type === "kanbun" ? "kanbun" : "wabun";
+    html += `
+      <div class="corpus-item stub">
+        <div class="corpus-item-top">
+          <span>${escapeHtml(s.title)}</span>
+          <span class="badge-lang ${badgeClass}">${s.type === "kanbun" ? "漢文" : "和文"}</span>
+        </div>
+        <div class="corpus-item-sub">${escapeHtml(s.sub)}</div>
+      </div>`;
+  }
+  el.innerHTML = html;
+}
+
+function updatePrimaryPickerButtons() {
+  const doc = getActiveDoc();
+  if (!doc) return;
+  const isWabun = doc.type === "wabun";
+  if (isWabun && primaryLayer === "kanbun") primaryLayer = "kakikudashi";
+
+  const btnKanbun = document.getElementById("pick_kanbun");
+  const btnKaki = document.getElementById("pick_kakikudashi");
+  const btnEn = document.getElementById("pick_english");
+
+  btnKanbun.disabled = isWabun;
+  btnKaki.textContent = isWabun ? "校訂和文 Wabun" : "書き下し Kakikudashi";
+
+  [btnKanbun, btnKaki, btnEn].forEach(b => b.classList.remove("active"));
+  document.getElementById("pick_" + primaryLayer).classList.add("active");
+}
+
+function setPrimaryLayer(layer) {
+  const doc = getActiveDoc();
+  if (!doc || (doc.type === "wabun" && layer === "kanbun")) return;
+
+  if (activeSelection && (layer === "kanbun" || layer === "kakikudashi") && activeSelection.anchorLayer !== layer) {
+    const para = doc.paragraphs.find(p => p.id === activeSelection.paraId);
+    if (para) {
+      const { metaArr } = getParaUnitsAndMeta(para, activeSelection.anchorLayer);
+      const m = metaArr[activeSelection.idx];
+      const mappedIdx = m && typeof m.pairStart === "number" ? m.pairStart : 0;
+      activeSelection = { paraId: para.id, anchorLayer: layer, idx: mappedIdx };
+    }
+  }
+
+  primaryLayer = layer;
+  updatePrimaryPickerButtons();
+  renderPrimaryStage();
+  if (activeSelection) renderCompanionWindow();
+}
+
+function selectDoc(id) {
+  activeDocId = id;
+  activeSelection = null;
+  closePopover();
+  closeCompanionWindow();
+  updatePrimaryPickerButtons();
+  renderSidebar();
+  renderBanner();
+  renderPrimaryStage();
+  publishPresence();
+}
+
+function renderBanner() {
+  const doc = getActiveDoc();
+  if (!doc) return;
+  const banner = document.getElementById("paratextBanner");
+  banner.innerHTML = `
+    <div class="paratext-title-row">
+      <div style="display:flex;align-items:baseline;flex-wrap:wrap;gap:6px;">
+        <h2>${escapeHtml(doc.title)}</h2>
+        <span class="paratext-meta">${escapeHtml(doc.author)} · Click any 「。」 sentence to open the editing window</span>
+      </div>
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-sm" onclick="toggleWitnessDrawer()">📜 Source &amp; Witness Info</button>
+        ${!cloud.ready ? `<button class="btn btn-sm" onclick="resetDemoData()" title="Restore initial sample state">↺ Reset Demo</button>` : ""}
+      </div>
+    </div>
+    <div class="witness-drawer" id="witnessDrawer">${escapeHtml(doc.metadata)}</div>
+  `;
+}
+
+function renderPrimaryStage() {
+  POPOVER_REGISTRY = {};
+  const doc = getActiveDoc();
+  const host = document.getElementById("primaryCanvasHost");
+  if (!doc) return;
+
+  if (primaryLayer === "english") {
+    const anchorLayer = doc.type === "wabun" ? "kakikudashi" : "kanbun";
+    let parasHtml = "";
+    for (const p of doc.paragraphs) {
+      syncEnglishSnapshots(p);
+      const isBookmarked = doc.bookmarkAfterPara === p.id;
+      const enHtml = renderEnglishParagraphInteractive(p, anchorLayer);
+      parasHtml += `
+        <div class="en-para-block">
+          <div class="en-para-head">
+            <span style="cursor:pointer;" onclick="setBookmark('${p.id}')" title="Click to toggle session bookmark">${escapeHtml(p.label)}</span>
+            <button class="btn btn-sm" style="padding:1px 6px;font-size:10px;" onclick="openParaDankuModal('${p.id}')">✂ Edit Punctuation</button>
+            ${isBookmarked ? `<span class="bookmark-vert">🔖 ${escapeHtml(doc.bookmarkLabel)}</span>` : ""}
+          </div>
+          <div>${enHtml}</div>
+        </div>
+      `;
+    }
+    host.innerHTML = `<div class="english-primary-wrap"><div class="english-paper">${parasHtml}</div></div>`;
+  } else {
+    let parasHtml = "";
+    for (const p of doc.paragraphs) {
+      const isBookmarked = doc.bookmarkAfterPara === p.id;
+      const { units, metaArr } = getParaUnitsAndMeta(p, primaryLayer);
+      const sentsHtml = units.map((u, idx) => {
+        const isActive = activeSelection &&
+          activeSelection.paraId === p.id &&
+          activeSelection.anchorLayer === primaryLayer &&
+          activeSelection.idx === idx;
+        const m = metaArr[idx] || {};
+        const nCount = (m.notes || []).length;
+        const badge = nCount ? `<span class="note-indicator" title="${nCount} note(s)">${nCount}</span>` : "";
+        return `<span class="doc-sent ${isActive ? 'active-sent' : ''}" data-para="${p.id}" data-layer="${primaryLayer}" data-idx="${idx}" onclick="onPrimarySentClick(event, '${p.id}', '${primaryLayer}', ${idx})"><span class="ku-num">${idx + 1}</span>${renderJapaneseRich(u.text, `main_${p.id}_${primaryLayer}_${idx}`)}${badge}</span>`;
+      }).join("");
+
+      parasHtml += `
+        <div class="tategaki-para">
+          <span class="para-pill-vert" onclick="openParaDankuModal('${p.id}')" title="Click to edit paragraph 。 punctuation or bookmark">${escapeHtml(p.label)}</span>
+          ${isBookmarked ? `<span class="bookmark-vert" onclick="setBookmark('${p.id}')">🔖</span>` : ""}
+          ${sentsHtml}
+        </div>
+      `;
+    }
+
+    host.innerHTML = `<div class="tategaki-primary-wrap"><div class="tategaki-paper" id="tategakiPaper">${parasHtml}</div></div>`;
+
+    const paper = document.getElementById("tategakiPaper");
+    if (paper) {
+      paper.addEventListener("wheel", (e) => {
+        if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+          paper.scrollLeft -= e.deltaY;
+          e.preventDefault();
+        }
+      }, { passive: false });
+    }
+  }
+}
+
+function renderEnglishParagraphInteractive(para, anchorLayer) {
+  const en = para.englishText || "";
+  if (!en) return `<span class="en-unassigned" onclick="onPrimarySentClick(event, '${para.id}', '${anchorLayer}', 0)">[No English translation yet — click to open sentence editor]</span>`;
+
+  const { units, metaArr } = getParaUnitsAndMeta(para, anchorLayer);
+  const bounds = new Set([0, en.length]);
+  units.forEach((_, idx) => {
+    const m = metaArr[idx];
+    (m && m.enRanges || []).forEach(r => {
+      if (r.start !== null && r.end !== null) {
+        bounds.add(Math.max(0, Math.min(en.length, r.start)));
+        bounds.add(Math.max(0, Math.min(en.length, r.end)));
+      }
+    });
+  });
+
+  const sorted = Array.from(bounds).sort((a, b) => a - b);
+  let html = "";
+  for (let i = 0; i < sorted.length - 1; i++) {
+    const a = sorted[i], b = sorted[i + 1];
+    if (b <= a) continue;
+    const slice = en.slice(a, b);
+    const owners = [];
+    units.forEach((_, idx) => {
+      const m = metaArr[idx];
+      if ((m && m.enRanges || []).some(r => r.start <= a && r.end >= b)) owners.push(idx);
+    });
+    const targetIdx = owners.length > 0 ? owners[0] : 0;
+    const isActive = activeSelection && activeSelection.paraId === para.id && owners.includes(activeSelection.idx);
+    const unassignedCls = owners.length === 0 ? "en-unassigned" : "";
+    const kuTag = owners.length > 0 && owners.some(idx => {
+      const rs = metaArr[idx].enRanges || [];
+      return rs.some(r => r.start === a);
+    }) ? `<span class="ku-num" style="margin-right:3px;">Sent ${owners.map(x => x + 1).join(",")}</span>` : "";
+
+    html += `<span class="doc-sent ${isActive ? 'active-sent' : ''} ${unassignedCls}" onclick="onPrimarySentClick(event, '${para.id}', '${anchorLayer}', ${targetIdx})" title="${owners.length ? 'Assigned to Sentence ' + owners.map(x => x + 1).join(', ') : 'Unassigned English — click to assign'}">${kuTag}${escapeHtml(slice)}</span>`;
+  }
+  return html;
+}
+
+function flushAnyPendingDankuEdits() {
+  document.querySelectorAll("textarea[data-dirty-danku='1']").forEach(ta => {
+    const paraId = ta.getAttribute("data-para-id");
+    const cardLayer = ta.getAttribute("data-card-layer");
+    const sIdx = Number(ta.getAttribute("data-start-idx"));
+    const eIdx = Number(ta.getAttribute("data-end-idx"));
+    const doc = getActiveDoc();
+    const para = doc && doc.paragraphs.find(p => p.id === paraId);
+    if (para) {
+      ta.dataset.dirtyDanku = "0";
+      commitJpSliceReplacement(para, cardLayer, sIdx, eIdx, ta.value, false);
+    }
+  });
+}
+
+function onPrimarySentClick(ev, paraId, anchorLayer, idx) {
+  if (ev.target.closest("[data-pop]")) return;
+  flushAnyPendingDankuEdits();
+  activeSelection = { paraId, anchorLayer, idx };
+  pendingSelectionRange = null;
+  renderPrimaryStage();
+  document.getElementById("companionWindow").classList.add("open");
+  renderCompanionWindow();
+  publishPresence();
+}
+
+function closeCompanionWindow() {
+  flushAnyPendingDankuEdits();
+  activeSelection = null;
+  pendingSelectionRange = null;
+  document.getElementById("companionWindow").classList.remove("open");
+  renderPrimaryStage();
+  publishPresence();
+}
+
+function getFlatNavigatorList(doc, anchorLayer) {
+  const list = [];
+  doc.paragraphs.forEach(p => {
+    const { units } = getParaUnitsAndMeta(p, anchorLayer);
+    units.forEach((_, idx) => list.push({ paraId: p.id, anchorLayer, idx }));
+  });
+  return list;
+}
+
+function stepSentence(delta) {
+  if (!activeSelection) return;
+  flushAnyPendingDankuEdits();
+  const doc = getActiveDoc();
+  const list = getFlatNavigatorList(doc, activeSelection.anchorLayer);
+  const pos = list.findIndex(x => x.paraId === activeSelection.paraId && x.idx === activeSelection.idx);
+  if (pos < 0) return;
+  const next = list[Math.min(list.length - 1, Math.max(0, pos + delta))];
+  activeSelection = next;
+  pendingSelectionRange = null;
+  renderPrimaryStage();
+  const activeEl = document.querySelector(".doc-sent.active-sent");
+  if (activeEl) activeEl.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
+  renderCompanionWindow();
+  publishPresence();
+}
+
+function toggleShowPrimaryInWindow() {
+  showPrimaryInWindow = !showPrimaryInWindow;
+  renderCompanionWindow();
+}
+
+function setWindowMode(mode) {
+  windowMode = mode;
+  const win = document.getElementById("companionWindow");
+  const stageBody = document.getElementById("stageBody");
+  win.classList.remove("mode-float", "mode-bottom", "mode-left");
+  win.classList.add("mode-" + mode);
+  if (mode !== "float") {
+    win.style.top = ""; win.style.left = ""; win.style.bottom = ""; win.style.width = ""; win.style.height = "";
+  }
+  stageBody.classList.toggle("dock-left", mode === "left");
+  ["float", "bottom", "left"].forEach(m => {
+    document.getElementById("winMode_" + m).classList.toggle("active", m === mode);
+  });
+}
+
+function renderCompanionWindow() {
+  if (!activeSelection) return;
+  const doc = getActiveDoc();
+  const para = doc && doc.paragraphs.find(p => p.id === activeSelection.paraId);
+  if (!para) return;
+  syncEnglishSnapshots(para);
+
+  const anchorLayer = activeSelection.anchorLayer;
+  const { units: anchorUnits, metaArr: anchorMetaArr } = getParaUnitsAndMeta(para, anchorLayer);
+  if (anchorUnits.length === 0) return;
+  if (activeSelection.idx >= anchorUnits.length) activeSelection.idx = anchorUnits.length - 1;
+
+  const idx = activeSelection.idx;
+  const anchorMeta = anchorMetaArr[idx];
+
+  document.getElementById("cwTitleText").textContent =
+    `${doc.id} · ${para.label} · Sentence ${idx + 1} of ${anchorUnits.length}`;
+
+  const primaryNameMap = {
+    kanbun: "漢文",
+    kakikudashi: doc.type === "wabun" ? "校訂和文" : "書き下し",
+    english: "English"
+  };
+  const editBtn = document.getElementById("editPrimaryToggleBtn");
+  editBtn.textContent = showPrimaryInWindow
+    ? `✓ Primary (${primaryNameMap[primaryLayer]}) Shown`
+    : `✎ Show Primary (${primaryNameMap[primaryLayer]})`;
+  editBtn.classList.toggle("active", showPrimaryInWindow);
+
+  const cards = [];
+  const isWabun = doc.type === "wabun";
+
+  if (!isWabun) {
+    if (primaryLayer !== "kanbun" || showPrimaryInWindow) {
+      cards.push(renderJpSentenceCard(doc, para, "kanbun", primaryLayer === "kanbun"));
+    }
+    if (primaryLayer !== "kakikudashi" || showPrimaryInWindow) {
+      cards.push(renderJpSentenceCard(doc, para, "kakikudashi", primaryLayer === "kakikudashi"));
+    }
+  } else {
+    if (primaryLayer !== "kakikudashi" || showPrimaryInWindow) {
+      cards.push(renderJpSentenceCard(doc, para, "kakikudashi", primaryLayer === "kakikudashi"));
+    }
+  }
+
+  if (primaryLayer !== "english" || showPrimaryInWindow) {
+    cards.push(renderEnglishAssignmentCard(doc, para, anchorLayer, idx, anchorMeta, primaryLayer === "english"));
+  }
+
+  const notesHtml = renderCompanionNotes(para, anchorLayer, idx, anchorMeta);
+
+  document.getElementById("cwBody").innerHTML = `
+    <div id="cwPeerNoticeSlot"></div>
+    <div class="cw-layers-grid">${cards.join("")}</div>
+    ${notesHtml}
+  `;
+
+  updatePeerNoticeInCompanion();
+  attachEnglishMapperSelectionListener();
+}
+
+function renderJpSentenceCard(doc, para, cardLayer, isPrimaryCard) {
+  const anchorLayer = activeSelection.anchorLayer;
+  const anchorIdx = activeSelection.idx;
+  const { units: anchorUnits, metaArr: anchorMetaArr } = getParaUnitsAndMeta(para, anchorLayer);
+  const { units: targetUnits } = getParaUnitsAndMeta(para, cardLayer);
+
+  const label = cardLayer === "kanbun" ? "漢文 Kanbun" : (doc.type === "wabun" ? "校訂和文 Edited Wabun" : "書き下し文 Kakikudashi");
+
+  let startIdx = anchorIdx, endIdx = anchorIdx;
+  if (cardLayer !== anchorLayer) {
+    const m = anchorMetaArr[anchorIdx] || {};
+    if (targetUnits.length === anchorUnits.length) {
+      startIdx = anchorIdx;
+      endIdx = anchorIdx;
+    } else {
+      startIdx = Math.min(targetUnits.length - 1, Math.max(0, m.pairStart ?? Math.min(anchorIdx, targetUnits.length - 1)));
+      endIdx = Math.min(targetUnits.length - 1, Math.max(startIdx, m.pairEnd ?? startIdx));
+    }
+  }
+
+  const combinedSliceText = targetUnits.slice(startIdx, endIdx + 1).map(u => u.text).join("");
+  const previewId = `cw_prev_${para.id}_${cardLayer}`;
+  const taId = `cw_ta_${para.id}_${cardLayer}`;
+  const applyBtnId = `cw_danku_btn_${para.id}_${cardLayer}`;
+
+  let pairBarHtml = "";
+  if (cardLayer !== anchorLayer && targetUnits.length > 0 && targetUnits.length !== anchorUnits.length) {
+    pairBarHtml = `
+      <div class="pair-range-bar">
+        <span>⇄ Linked ${cardLayer === "kanbun" ? "漢文" : "書き下し"}: <strong>Sentence ${startIdx + 1}${endIdx > startIdx ? "–" + (endIdx + 1) : ""}</strong> (of ${targetUnits.length})</span>
+        ${isScribe ? `
+          <span style="display:inline-flex;gap:3px;">
+            <button class="markup-btn" onclick="adjustPairRange('${para.id}', -1, 0)" title="Shift start earlier">◀Start</button>
+            <button class="markup-btn" onclick="adjustPairRange('${para.id}', 1, 0)" title="Shift start later">Start▶</button>
+            <button class="markup-btn" onclick="adjustPairRange('${para.id}', 0, -1)" title="Shrink end">−End</button>
+            <button class="markup-btn" onclick="adjustPairRange('${para.id}', 0, 1)" title="Include next sentence">+End</button>
+          </span>
+        ` : ""}
+      </div>
+    `;
+  }
+
+  let editorHtml = "";
+  if (isScribe) {
+    const canMergeNext = endIdx < targetUnits.length - 1;
+    editorHtml = `
+      <div class="layer-editor-wrap">
+        <div class="markup-toolbar">
+          <button type="button" class="markup-btn danku-action" onclick="insertMaruAtCursor('${taId}', '${para.id}', '${cardLayer}', ${startIdx}, ${endIdx})" title="Insert 。 at cursor to split into two clickable sentences">✂ Insert 。 (Split Sentence)</button>
+          ${canMergeNext ? `<button type="button" class="markup-btn danku-action" onclick="mergeWithNextSentence('${para.id}', '${cardLayer}', ${startIdx}, ${endIdx})" title="Remove final 。 to merge with Sentence ${endIdx + 2}">🔗 Merge w/ Sentence ${endIdx + 2}</button>` : ""}
+          <button type="button" class="markup-btn danku-pending" id="${applyBtnId}" style="display:none;" onclick="applyJpSentenceEdit('${taId}', '${para.id}', '${cardLayer}', ${startIdx}, ${endIdx})">⚡ Apply Sentence Split</button>
+        </div>
+        <div class="markup-toolbar">
+          <span style="font-size:10px;color:var(--ink-muted);">Markup:</span>
+          <button type="button" class="markup-btn" onclick="wrapJpMarkup('${taId}', '${para.id}', '${cardLayer}', ${startIdx}, ${endIdx}, 'ruby')">+振仮名</button>
+          <button type="button" class="markup-btn" onclick="wrapJpMarkup('${taId}', '${para.id}', '${cardLayer}', ${startIdx}, ${endIdx}, 'kun')">+訓読 [[A|B]]</button>
+          <button type="button" class="markup-btn" onclick="wrapJpMarkup('${taId}', '${para.id}', '${cardLayer}', ${startIdx}, ${endIdx}, 'var')">+校異 {{字|注}}</button>
+        </div>
+        <textarea
+          id="${taId}"
+          class="layer-textarea jp-input"
+          data-para-id="${para.id}"
+          data-card-layer="${cardLayer}"
+          data-start-idx="${startIdx}"
+          data-end-idx="${endIdx}"
+          data-dirty-danku="0"
+          oninput="onJpSentenceInput('${taId}', '${previewId}', '${applyBtnId}', '${para.id}', '${cardLayer}', ${startIdx}, ${endIdx})"
+          onchange="if(this.dataset.dirtyDanku==='1'){applyJpSentenceEdit('${taId}','${para.id}','${cardLayer}',${startIdx},${endIdx});}"
+          onkeydown="if((event.metaKey||event.ctrlKey)&&event.key==='Enter'){event.preventDefault();applyJpSentenceEdit('${taId}','${para.id}','${cardLayer}',${startIdx},${endIdx});}"
+        >${escapeHtml(combinedSliceText)}</textarea>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="layer-card ${isPrimaryCard ? 'is-primary-card' : ''}">
+      <div class="layer-card-head">
+        <span>${label} (${endIdx > startIdx ? "Sentences " + (startIdx + 1) + "–" + (endIdx + 1) : "Sentence " + (startIdx + 1)})</span>
+        <span class="${isPrimaryCard ? 'layer-badge-primary' : 'layer-badge-companion'}">
+          ${isPrimaryCard ? "Primary Layer" : "Companion Layer"}
+        </span>
+      </div>
+      ${pairBarHtml}
+      <div class="cw-tategaki-preview" id="${previewId}">${renderJapaneseRich(combinedSliceText, `cw_${para.id}_${cardLayer}_${startIdx}`)}</div>
+      ${editorHtml}
+    </div>
+  `;
+}
+
+function onJpSentenceInput(taId, previewId, applyBtnId, paraId, cardLayer, startIdx, endIdx) {
+  const ta = document.getElementById(taId);
+  if (!ta) return;
+  const val = ta.value;
+  const prev = document.getElementById(previewId);
+  if (prev) prev.innerHTML = renderJapaneseRich(val, `cw_${paraId}_${cardLayer}_${startIdx}`);
+
+  const expectedCount = endIdx - startIdx + 1;
+  const newUnits = splitByMaru(val);
+  const doc = getActiveDoc();
+  const para = doc.paragraphs.find(p => p.id === paraId);
+  const { units: currentAllUnits } = getParaUnitsAndMeta(para, cardLayer);
+  const hasFollowing = endIdx < currentAllUnits.length - 1;
+  const endsWithMaru = /。[」』]*\s*$/.test(val);
+  const willChangeSegmentation = (newUnits.length !== expectedCount) || (hasFollowing && !endsWithMaru);
+
+  ta.dataset.dirtyDanku = willChangeSegmentation ? "1" : "0";
+
+  const applyBtn = document.getElementById(applyBtnId);
+  if (applyBtn) {
+    applyBtn.style.display = willChangeSegmentation ? "inline-block" : "none";
+    if (willChangeSegmentation) {
+      applyBtn.textContent = !endsWithMaru && hasFollowing
+        ? `⚡ Apply Merge w/ Next Sentence`
+        : `⚡ Apply Split (${expectedCount} → ${newUnits.length} sentences)`;
+    }
+  }
+
+  if (!willChangeSegmentation) {
+    commitJpSliceReplacement(para, cardLayer, startIdx, endIdx, val, false);
+  }
+}
+
+function applyJpSentenceEdit(taId, paraId, cardLayer, startIdx, endIdx) {
+  const ta = document.getElementById(taId);
+  if (!ta) return;
+  ta.dataset.dirtyDanku = "0";
+  const doc = getActiveDoc();
+  const para = doc.paragraphs.find(p => p.id === paraId);
+  if (!para) return;
+  commitJpSliceReplacement(para, cardLayer, startIdx, endIdx, ta.value, true);
+}
+
+function commitJpSliceReplacement(para, cardLayer, startIdx, endIdx, replacementText, fullReRender) {
+  const isKb = cardLayer === "kanbun";
+  const rawField = isKb ? "kanbunText" : "kakikudashiText";
+  const { units, metaArr } = getParaUnitsAndMeta(para, cardLayer);
+  if (units.length === 0) {
+    para[rawField] = replacementText;
+    saveState(activeDocId, para.id);
+    if (fullReRender) { renderPrimaryStage(); renderCompanionWindow(); }
+    return;
+  }
+
+  const charStart = units[startIdx].start;
+  const charEnd = units[endIdx].end;
+  const oldRaw = para[rawField];
+  const nextRaw = oldRaw.slice(0, charStart) + replacementText + oldRaw.slice(charEnd);
+
+  const oldCount = units.length;
+  const newUnits = splitByMaru(nextRaw);
+  const delta = newUnits.length - oldCount;
+
+  para[rawField] = nextRaw;
+
+  if (delta > 0) {
+    const baseMeta = metaArr[startIdx] || { enRanges: [], pairStart: startIdx, pairEnd: startIdx, notes: [] };
+    const extras = [];
+    for (let k = 0; k < delta; k++) {
+      extras.push({
+        enRanges: JSON.parse(JSON.stringify(baseMeta.enRanges || [])),
+        pairStart: baseMeta.pairStart,
+        pairEnd: baseMeta.pairEnd,
+        notes: []
+      });
+    }
+    metaArr.splice(startIdx + 1, 0, ...extras);
+  } else if (delta < 0) {
+    const removeCount = Math.abs(delta);
+    const mergedSlots = metaArr.slice(startIdx, startIdx + removeCount + 1);
+    const combinedRanges = [];
+    const combinedNotes = [];
+    mergedSlots.forEach(s => {
+      (s.enRanges || []).forEach(r => combinedRanges.push(r));
+      (s.notes || []).forEach(n => combinedNotes.push(n));
+    });
+    const mergedEnRanges = mergeEnRanges(para.englishText, combinedRanges);
+    metaArr.splice(startIdx, removeCount + 1, {
+      enRanges: mergedEnRanges,
+      pairStart: mergedSlots[0] ? mergedSlots[0].pairStart : 0,
+      pairEnd: mergedSlots[mergedSlots.length - 1] ? mergedSlots[mergedSlots.length - 1].pairEnd : 0,
+      notes: combinedNotes
+    });
+  }
+
+  saveState(activeDocId, para.id);
+
+  if (fullReRender) {
+    if (activeSelection && activeSelection.paraId === para.id && activeSelection.anchorLayer === cardLayer) {
+      activeSelection.idx = Math.min(newUnits.length - 1, startIdx);
+    }
+    renderPrimaryStage();
+    renderCompanionWindow();
+  } else if (primaryLayer === cardLayer) {
+    const bgSpan = document.querySelector(`.doc-sent[data-para="${para.id}"][data-layer="${cardLayer}"][data-idx="${startIdx}"]`);
+    if (bgSpan && newUnits[startIdx]) {
+      const nCount = (metaArr[startIdx] && metaArr[startIdx].notes || []).length;
+      const badge = nCount ? `<span class="note-indicator">${nCount}</span>` : "";
+      bgSpan.innerHTML = `<span class="ku-num">${startIdx + 1}</span>${renderJapaneseRich(newUnits[startIdx].text, `main_${para.id}_${cardLayer}_${startIdx}`)}${badge}`;
+    }
+  }
+}
+
+function insertMaruAtCursor(taId, paraId, cardLayer, startIdx, endIdx) {
+  const ta = document.getElementById(taId);
+  if (!ta) return;
+  let pos = ta.selectionStart;
+  let val = ta.value;
+  if (val[pos - 1] === "，" || val[pos - 1] === "、") {
+    val = val.slice(0, pos - 1) + "。" + val.slice(pos);
+  } else if (val[pos] === "，" || val[pos] === "、") {
+    val = val.slice(0, pos) + "。" + val.slice(pos + 1);
+  } else {
+    val = val.slice(0, pos) + "。" + val.slice(pos);
+  }
+  ta.value = val;
+  applyJpSentenceEdit(taId, paraId, cardLayer, startIdx, endIdx);
+}
+
+function mergeWithNextSentence(paraId, cardLayer, startIdx, endIdx) {
+  const doc = getActiveDoc();
+  const para = doc.paragraphs.find(p => p.id === paraId);
+  if (!para) return;
+  const { units } = getParaUnitsAndMeta(para, cardLayer);
+  if (endIdx >= units.length - 1) return;
+  const comma = cardLayer === "kanbun" ? "，" : "、";
+  const currentSlice = units.slice(startIdx, endIdx + 1).map(u => u.text).join("");
+  const withoutFinalMaru = currentSlice.replace(/。([」』]*)\s*$/, `$1${comma}`);
+  commitJpSliceReplacement(para, cardLayer, startIdx, endIdx, withoutFinalMaru, true);
+}
+
+function wrapJpMarkup(taId, paraId, cardLayer, startIdx, endIdx, kind) {
+  const ta = document.getElementById(taId);
+  if (!ta) return;
+  const s = ta.selectionStart, e = ta.selectionEnd;
+  const sel = ta.value.substring(s, e) || "字";
+  let rep = sel;
+  if (kind === "ruby") rep = `${sel}（よみ）`;
+  if (kind === "kun") rep = `[[${sel}|別訓]]`;
+  if (kind === "var") rep = `{{${sel}|校異注}}`;
+  ta.value = ta.value.substring(0, s) + rep + ta.value.substring(e);
+  ta.focus();
+  onJpSentenceInput(taId, `cw_prev_${paraId}_${cardLayer}`, `cw_danku_btn_${paraId}_${cardLayer}`, paraId, cardLayer, startIdx, endIdx);
+}
+
+function adjustPairRange(paraId, dStart, dEnd) {
+  const doc = getActiveDoc();
+  const para = doc.paragraphs.find(p => p.id === paraId);
+  if (!para || !activeSelection) return;
+  const anchorLayer = activeSelection.anchorLayer;
+  const otherLayer = anchorLayer === "kanbun" ? "kakikudashi" : "kanbun";
+  const { metaArr } = getParaUnitsAndMeta(para, anchorLayer);
+  const { units: otherUnits } = getParaUnitsAndMeta(para, otherLayer);
+  const m = metaArr[activeSelection.idx];
+  if (!m || otherUnits.length === 0) return;
+
+  let ps = Math.max(0, Math.min(otherUnits.length - 1, (m.pairStart ?? 0) + dStart));
+  let pe = Math.max(ps, Math.min(otherUnits.length - 1, (m.pairEnd ?? ps) + dEnd));
+  m.pairStart = ps;
+  m.pairEnd = pe;
+  saveState(activeDocId, para.id);
+  renderCompanionWindow();
+}
+
+function mergeEnRanges(enText, ranges) {
+  const valid = (ranges || [])
+    .filter(r => typeof r.start === "number" && typeof r.end === "number" && r.end > r.start)
+    .sort((a, b) => a.start - b.start);
+  if (!valid.length) return [];
+  const out = [{ ...valid[0] }];
+  for (let i = 1; i < valid.length; i++) {
+    const prev = out[out.length - 1];
+    const cur = valid[i];
+    if (cur.start <= prev.end + 1) {
+      prev.end = Math.max(prev.end, cur.end);
+      prev.snapshot = enText.slice(prev.start, prev.end);
+    } else {
+      out.push({ ...cur, snapshot: enText.slice(cur.start, cur.end) });
+    }
+  }
+  out[0].snapshot = enText.slice(out[0].start, out[0].end);
+  return out;
+}
+
+function renderEnglishAssignmentCard(doc, para, anchorLayer, idx, anchorMeta, isPrimaryCard) {
+  const en = para.englishText || "";
+  const ranges = anchorMeta.enRanges || [];
+  const assignedText = ranges.map(r => en.slice(r.start, r.end)).join(" … ");
+  const mapperHtml = renderParagraphEnglishMapperBox(para, anchorLayer, idx);
+
+  return `
+    <div class="layer-card ${isPrimaryCard ? 'is-primary-card' : ''}">
+      <div class="layer-card-head">
+        <span>English Translation · Assigned to Sentence ${idx + 1}</span>
+        <span class="${isPrimaryCard ? 'layer-badge-primary' : 'layer-badge-companion'}">
+          ${isPrimaryCard ? "Primary Layer" : "Companion Layer"}
+        </span>
+      </div>
+
+      ${ranges.length > 0
+        ? (isScribe && ranges.length === 1
+            ? `<textarea class="layer-textarea en-input" oninput="onAssignedEnglishEdit('${para.id}', '${anchorLayer}', ${idx}, this.value)" title="Editing this assigned English passage updates the paragraph translation directly">${escapeHtml(assignedText)}</textarea>`
+            : `<div class="cw-en-preview">${escapeHtml(assignedText)}</div>`)
+        : `<div class="cw-en-empty">No English passage assigned to Sentence ${idx + 1} yet — highlight words in the paragraph below and click Assign.</div>`
+      }
+
+      <div class="en-mapper-wrap">
+        <div class="en-mapper-head">
+          <span><strong>Assign English Passage</strong> (drag-select any passage below for Sentence ${idx + 1}):</span>
+          <span style="display:inline-flex;gap:4px;flex-wrap:wrap;">
+            ${isScribe ? `
+              <button type="button" class="btn btn-sm amber" id="assignSelBtn" onclick="assignSelectedEnglish(false)" disabled>🔗 Assign Highlighted to Sentence ${idx + 1}</button>
+              <button type="button" class="btn btn-sm" id="appendSelBtn" onclick="assignSelectedEnglish(true)" disabled title="Add discontinuous clause to Sentence ${idx + 1}">+ Append Span</button>
+              ${ranges.length > 0 ? `<button type="button" class="btn btn-sm" onclick="clearEnglishAssignment('${para.id}', '${anchorLayer}', ${idx})">✕ Unassign</button>` : ""}
+              <button type="button" class="btn btn-sm ${showFullEnParaEditor ? 'active' : ''}" onclick="toggleFullEnParaEditor()">✎ Full Para</button>
+            ` : ""}
+          </span>
+        </div>
+
+        <div class="en-mapper-box" id="enMapperBox" data-total-len="${en.length}">${mapperHtml}</div>
+
+        ${showFullEnParaEditor && isScribe ? `
+          <div>
+            <div style="font-size:11px;color:var(--ink-muted);margin-bottom:3px;">Full Paragraph English Editor:</div>
+            <textarea class="layer-textarea en-input" style="min-height:90px;" oninput="onFullParaEnglishInput('${para.id}', this.value)">${escapeHtml(en)}</textarea>
+          </div>
+        ` : ""}
+      </div>
+    </div>
+  `;
+}
+
+function renderParagraphEnglishMapperBox(para, anchorLayer, activeIdx) {
+  const en = para.englishText || "";
+  if (!en) return `<span style="color:var(--ink-faint);font-style:italic;">Paragraph has no English text yet — click "✎ Full Para" above to write or paste translation.</span>`;
+
+  const { units, metaArr } = getParaUnitsAndMeta(para, anchorLayer);
+  const bounds = new Set([0, en.length]);
+  units.forEach((_, i) => {
+    const m = metaArr[i];
+    (m && m.enRanges || []).forEach(r => {
+      bounds.add(Math.max(0, Math.min(en.length, r.start)));
+      bounds.add(Math.max(0, Math.min(en.length, r.end)));
+    });
+  });
+
+  const sorted = Array.from(bounds).sort((a, b) => a - b);
+  let html = "";
+  for (let k = 0; k < sorted.length - 1; k++) {
+    const a = sorted[k], b = sorted[k + 1];
+    if (b <= a) continue;
+    const owners = [];
+    const startsHere = [];
+    units.forEach((_, i) => {
+      const rs = (metaArr[i] && metaArr[i].enRanges) || [];
+      if (rs.some(r => r.start <= a && r.end >= b)) owners.push(i);
+      if (rs.some(r => r.start === a)) startsHere.push(i + 1);
+    });
+    const isActive = owners.includes(activeIdx);
+    const cls = [
+      isActive ? "en-seg-active" : (owners.length ? "en-seg-other" : ""),
+      startsHere.length ? "en-seg-badge" : ""
+    ].filter(Boolean).join(" ");
+    const badgeAttr = startsHere.length ? `data-badge="Sent ${startsHere.join(",")}"` : "";
+    html += `<span class="${cls}" data-char-start="${a}" data-char-end="${b}" ${badgeAttr}>${escapeHtml(en.slice(a, b))}</span>`;
+  }
+  return html;
+}
+
+function resolveMapperCharOffset(box, node, offset) {
+  if (!node) return 0;
+  if (node.nodeType === Node.TEXT_NODE) {
+    const sp = node.parentElement && node.parentElement.closest("[data-char-start]");
+    return sp ? Number(sp.dataset.charStart) + offset : 0;
+  }
+  const kids = Array.from(node.childNodes);
+  if (offset < kids.length) {
+    const child = kids[offset];
+    const sp = child.nodeType === 1
+      ? (child.matches("[data-char-start]") ? child : child.querySelector("[data-char-start]"))
+      : (child.parentElement && child.parentElement.closest("[data-char-start]"));
+    if (sp) return Number(sp.dataset.charStart);
+  }
+  return Number(box.dataset.totalLen || 0);
+}
+
+function attachEnglishMapperSelectionListener() {
+  const box = document.getElementById("enMapperBox");
+  if (!box) return;
+  const checkSel = () => {
+    const sel = window.getSelection();
+    const assignBtn = document.getElementById("assignSelBtn");
+    const appendBtn = document.getElementById("appendSelBtn");
+    if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return;
+    const range = sel.getRangeAt(0);
+    if (!box.contains(range.startContainer) || !box.contains(range.endContainer)) return;
+
+    let s = resolveMapperCharOffset(box, range.startContainer, range.startOffset);
+    let e = resolveMapperCharOffset(box, range.endContainer, range.endOffset);
+    if (s > e) { const t = s; s = e; e = t; }
+    if (e > s) {
+      pendingSelectionRange = { start: s, end: e };
+      if (assignBtn) assignBtn.disabled = false;
+      if (appendBtn) appendBtn.disabled = false;
+    }
+  };
+  box.addEventListener("mouseup", checkSel);
+  box.addEventListener("keyup", checkSel);
+}
+
+function assignSelectedEnglish(appendMode) {
+  if (!isScribe || !activeSelection || !pendingSelectionRange) return;
+  const doc = getActiveDoc();
+  const para = doc.paragraphs.find(p => p.id === activeSelection.paraId);
+  if (!para) return;
+
+  const { anchorLayer, idx } = activeSelection;
+  const { units, metaArr } = getParaUnitsAndMeta(para, anchorLayer);
+  const m = metaArr[idx];
+  const en = para.englishText || "";
+  const newSpan = {
+    start: pendingSelectionRange.start,
+    end: pendingSelectionRange.end,
+    snapshot: en.slice(pendingSelectionRange.start, pendingSelectionRange.end)
+  };
+
+  m.enRanges = appendMode ? mergeEnRanges(en, [...(m.enRanges || []), newSpan]) : [newSpan];
+
+  const otherLayer = anchorLayer === "kanbun" ? "kakikudashi" : "kanbun";
+  if (doc.type === "kanbun") {
+    const { units: otherUnits, metaArr: otherMeta } = getParaUnitsAndMeta(para, otherLayer);
+    if (otherUnits.length === units.length && otherMeta[idx]) {
+      otherMeta[idx].enRanges = JSON.parse(JSON.stringify(m.enRanges));
+    }
+  }
+
+  pendingSelectionRange = null;
+  window.getSelection().removeAllRanges();
+  saveState(activeDocId, para.id);
+  if (primaryLayer === "english") renderPrimaryStage();
+  renderCompanionWindow();
+}
+
+function clearEnglishAssignment(paraId, anchorLayer, idx) {
+  const doc = getActiveDoc();
+  const para = doc.paragraphs.find(p => p.id === paraId);
+  if (!para) return;
+  const { metaArr } = getParaUnitsAndMeta(para, anchorLayer);
+  if (metaArr[idx]) metaArr[idx].enRanges = [];
+  saveState(activeDocId, para.id);
+  if (primaryLayer === "english") renderPrimaryStage();
+  renderCompanionWindow();
+}
+
+function onAssignedEnglishEdit(paraId, anchorLayer, idx, newVal) {
+  const doc = getActiveDoc();
+  const para = doc.paragraphs.find(p => p.id === paraId);
+  if (!para) return;
+  const { metaArr } = getParaUnitsAndMeta(para, anchorLayer);
+  const m = metaArr[idx];
+  if (!m || !m.enRanges || m.enRanges.length !== 1) return;
+
+  const r = m.enRanges[0];
+  const oldStart = r.start, oldEnd = r.end;
+  const delta = newVal.length - (oldEnd - oldStart);
+  para.englishText = para.englishText.slice(0, oldStart) + newVal + para.englishText.slice(oldEnd);
+
+  [para.kbMeta, para.kkMeta].forEach(list => {
+    (list || []).forEach(item => {
+      (item.enRanges || []).forEach(span => {
+        if (span === r || (span.start === oldStart && span.end === oldEnd)) {
+          span.end = oldStart + newVal.length;
+          span.snapshot = newVal;
+        } else {
+          if (span.start >= oldEnd) span.start += delta;
+          if (span.end >= oldEnd) span.end += delta;
+          span.snapshot = para.englishText.slice(span.start, span.end);
+        }
+      });
+    });
+  });
+
+  saveState(activeDocId, para.id);
+  const mapperBox = document.getElementById("enMapperBox");
+  if (mapperBox) {
+    mapperBox.dataset.totalLen = para.englishText.length;
+    mapperBox.innerHTML = renderParagraphEnglishMapperBox(para, anchorLayer, idx);
+  }
+  if (primaryLayer === "english") renderPrimaryStage();
+}
+
+function toggleFullEnParaEditor() {
+  showFullEnParaEditor = !showFullEnParaEditor;
+  renderCompanionWindow();
+}
+
+function onFullParaEnglishInput(paraId, val) {
+  const doc = getActiveDoc();
+  const para = doc.paragraphs.find(p => p.id === paraId);
+  if (!para) return;
+  para.englishText = val;
+  syncEnglishSnapshots(para);
+  saveState(activeDocId, para.id);
+  const mapperBox = document.getElementById("enMapperBox");
+  if (mapperBox && activeSelection) {
+    mapperBox.dataset.totalLen = val.length;
+    mapperBox.innerHTML = renderParagraphEnglishMapperBox(para, activeSelection.anchorLayer, activeSelection.idx);
+  }
+  if (primaryLayer === "english") renderPrimaryStage();
+}
+
+let modalParaId = null;
+
+function openParaDankuModal(explicitParaId) {
+  flushAnyPendingDankuEdits();
+  const doc = getActiveDoc();
+  modalParaId = explicitParaId || (activeSelection ? activeSelection.paraId : doc.paragraphs[0].id);
+  const para = doc.paragraphs.find(p => p.id === modalParaId);
+  if (!para) return;
+
+  const kbCount = splitByMaru(para.kanbunText).length;
+  const kkCount = splitByMaru(para.kakikudashiText).length;
+
+  document.getElementById("paraModalTitle").textContent =
+    `✂ Paragraph Sentence Punctuation Editor — ${doc.id} · ${para.label}`;
+
+  document.getElementById("paraModalBody").innerHTML = `
+    <div style="font-size:12.5px;color:var(--ink-muted);line-height:1.5;">
+      Add, move, or delete Asian sentence markers <strong>「。」</strong> anywhere in the paragraph below to change clickable sentences.
+      <span style="margin-left:8px;cursor:pointer;color:var(--bookmark);font-weight:600;" onclick="setBookmark('${para.id}');closeParaDankuModal();">🔖 Toggle Session Bookmark on ${escapeHtml(para.label)}</span>
+    </div>
+    ${doc.type === "kanbun" ? `
+      <div>
+        <div style="font-size:12px;font-weight:700;margin-bottom:4px;">漢文 Kanbun (<span id="modalKbCount">${kbCount}</span> clickable 「。」 sentences):</div>
+        <textarea id="modalKbTa" oninput="document.getElementById('modalKbCount').textContent=splitByMaru(this.value).length" ${!isScribe ? 'readonly' : ''}>${escapeHtml(para.kanbunText)}</textarea>
+      </div>
+    ` : ""}
+    <div>
+      <div style="font-size:12px;font-weight:700;margin-bottom:4px;">${doc.type === "wabun" ? "校訂和文 Wabun" : "書き下し文 Kakikudashi"} (<span id="modalKkCount">${kkCount}</span> clickable 「。」 sentences):</div>
+      <textarea id="modalKkTa" oninput="document.getElementById('modalKkCount').textContent=splitByMaru(this.value).length" ${!isScribe ? 'readonly' : ''}>${escapeHtml(para.kakikudashiText)}</textarea>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;">
+      <button class="btn" onclick="closeParaDankuModal()">Cancel</button>
+      ${isScribe ? `<button class="btn active" onclick="saveParaDankuModal()">Apply Paragraph Punctuation</button>` : ""}
+    </div>
+  `;
+  document.getElementById("paraDankuModal").classList.add("open");
+}
+
+function closeParaDankuModal() {
+  document.getElementById("paraDankuModal").classList.remove("open");
+}
+
+function reconcileMetaBySimilarity(oldUnits, newUnits, oldMeta) {
+  const used = new Set();
+  return newUnits.map((nu, ni) => {
+    let matchIdx = oldUnits.findIndex((ou, oi) => !used.has(oi) && ou.text === nu.text);
+    if (matchIdx < 0) {
+      const probe = nu.text.slice(0, Math.min(8, nu.text.length - 1));
+      if (probe.length >= 3) {
+        matchIdx = oldUnits.findIndex((ou, oi) => !used.has(oi) && (ou.text.includes(probe) || nu.text.includes(ou.text.slice(0, 5))));
+      }
+    }
+    if (matchIdx >= 0 && oldMeta[matchIdx]) {
+      used.add(matchIdx);
+      return JSON.parse(JSON.stringify(oldMeta[matchIdx]));
+    }
+    if (oldMeta[ni] && !used.has(ni)) {
+      used.add(ni);
+      return JSON.parse(JSON.stringify(oldMeta[ni]));
+    }
+    return { enRanges: [], pairStart: Math.min(ni, newUnits.length - 1), pairEnd: Math.min(ni, newUnits.length - 1), notes: [] };
+  });
+}
+
+function saveParaDankuModal() {
+  const doc = getActiveDoc();
+  const para = doc.paragraphs.find(p => p.id === modalParaId);
+  if (!para) return;
+
+  if (doc.type === "kanbun") {
+    const kbTa = document.getElementById("modalKbTa");
+    if (kbTa) {
+      const oldKb = splitByMaru(para.kanbunText);
+      const nextKb = splitByMaru(kbTa.value);
+      para.kbMeta = reconcileMetaBySimilarity(oldKb, nextKb, para.kbMeta || []);
+      para.kanbunText = kbTa.value;
+    }
+  }
+  const kkTa = document.getElementById("modalKkTa");
+  if (kkTa) {
+    const oldKk = splitByMaru(para.kakikudashiText);
+    const nextKk = splitByMaru(kkTa.value);
+    para.kkMeta = reconcileMetaBySimilarity(oldKk, nextKk, para.kkMeta || []);
+    para.kakikudashiText = kkTa.value;
+  }
+
+  saveState(activeDocId, para.id);
+  closeParaDankuModal();
+  renderPrimaryStage();
+  if (activeSelection) renderCompanionWindow();
+}
+
+function renderCompanionNotes(para, anchorLayer, idx, anchorMeta) {
+  const notes = anchorMeta.notes || [];
+  const formId = `cwnote_${para.id}_${anchorLayer}_${idx}`;
+  const defaultAuthor = getCurrentUserName();
+  const listHtml = notes.map(n => `
+    <div class="note-card cat-${n.cat}">
+      <div class="note-meta">
+        <span>
+          <span class="note-tag">${escapeHtml(n.tag)}</span>
+          <strong style="margin-left:5px;">${escapeHtml(n.author)}</strong>
+        </span>
+      </div>
+      <div>
+        ${n.lemma ? `<span class="note-lemma">「${escapeHtml(n.lemma)}」</span>` : ""}
+        <span>${escapeHtml(n.text)}</span>
+      </div>
+    </div>
+  `).join("");
+
+  return `
+    <div class="cw-notes-box">
+      <div class="layer-card-head" style="margin-bottom:6px;">
+        <span>Philological Notes on Sentence ${idx + 1} (${notes.length})</span>
+        <button class="btn btn-sm" onclick="toggleNoteForm('${formId}')">+ Drop Philological Note</button>
+      </div>
+      ${listHtml || `<div style="font-size:12px;color:var(--ink-faint);">No notes on this sentence yet.</div>`}
+      <div class="add-note-form" id="${formId}">
+        <div class="add-note-row">
+          <input type="text" id="${formId}_author" placeholder="Your name" value="${escapeHtml(defaultAuthor)}" style="width:120px;">
+          <select id="${formId}_cat">
+            <option value="variant">校異 Variant / Punctuation</option>
+            <option value="locus">典拠 Locus / Allusion</option>
+            <option value="grammar">語釈 Grammar / Parsing</option>
+            <option value="suggestion">試訳 Translation Note</option>
+          </select>
+          <input type="text" id="${formId}_lemma" placeholder="Lemma (e.g. 恐寒心貽)" style="flex:1;min-width:110px;">
+        </div>
+        <textarea id="${formId}_text" placeholder="Write paleography, punctuation argument, locus classicus, or translation note..."></textarea>
+        <div style="display:flex;justify-content:flex-end;gap:6px;">
+          <button class="btn btn-sm" onclick="toggleNoteForm('${formId}')">Cancel</button>
+          <button class="btn btn-sm active" onclick="submitNote('${para.id}', '${anchorLayer}', ${idx}, '${formId}')">Post Note</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function toggleNoteForm(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.toggle("open");
+}
+
+function submitNote(paraId, anchorLayer, idx, formId) {
+  const author = document.getElementById(formId + "_author").value.trim() || getCurrentUserName();
+  const cat = document.getElementById(formId + "_cat").value;
+  const lemma = document.getElementById(formId + "_lemma").value.trim();
+  const text = document.getElementById(formId + "_text").value.trim();
+  if (!text) return;
+
+  const tagMap = {
+    variant: "校異 Variant",
+    locus: "典拠 Locus",
+    grammar: "語釈 Grammar",
+    suggestion: "試訳 Note"
+  };
+
+  const doc = getActiveDoc();
+  const para = doc.paragraphs.find(p => p.id === paraId);
+  const { metaArr } = getParaUnitsAndMeta(para, anchorLayer);
+  const m = metaArr[idx];
+  m.notes = m.notes || [];
+  m.notes.push({ author, cat, tag: tagMap[cat], lemma, text });
+  saveState(activeDocId, para.id);
+  renderPrimaryStage();
+  renderCompanionWindow();
+}
+
+(function initDraggableWindow() {
+  const win = document.getElementById("companionWindow");
+  const header = document.getElementById("cwHeader");
+  let dragging = false, offsetX = 0, offsetY = 0;
+
+  header.addEventListener("mousedown", (e) => {
+    if (windowMode !== "float" || e.target.closest("button")) return;
+    dragging = true;
+    const rect = win.getBoundingClientRect();
+    offsetX = e.clientX - rect.left;
+    offsetY = e.clientY - rect.top;
+    win.style.bottom = "auto";
+    win.style.left = rect.left + "px";
+    win.style.top = rect.top + "px";
+  });
+
+  document.addEventListener("mousemove", (e) => {
+    if (!dragging) return;
+    win.style.left = Math.max(8, Math.min(window.innerWidth - 120, e.clientX - offsetX)) + "px";
+    win.style.top = Math.max(48, Math.min(window.innerHeight - 60, e.clientY - offsetY)) + "px";
+  });
+
+  document.addEventListener("mouseup", () => { dragging = false; });
+})();
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    if (document.getElementById("popover").classList.contains("open")) closePopover();
+    else if (document.getElementById("paraDankuModal").classList.contains("open")) closeParaDankuModal();
+    else if (activeSelection) closeCompanionWindow();
+    return;
+  }
+  if (!activeSelection) return;
+  const tag = (e.target.tagName || "").toLowerCase();
+  if (tag === "textarea" || tag === "input" || tag === "select") return;
+  if (e.key === "ArrowDown" || e.key === "ArrowLeft") {
+    e.preventDefault();
+    stepSentence(1);
+  } else if (e.key === "ArrowUp" || e.key === "ArrowRight") {
+    e.preventDefault();
+    stepSentence(-1);
+  }
+});
+
+document.addEventListener("click", (ev) => {
+  const trigger = ev.target.closest("[data-pop]");
+  const pop = document.getElementById("popover");
+  if (trigger) {
+    ev.stopPropagation();
+    const entry = POPOVER_REGISTRY[trigger.getAttribute("data-pop")];
+    if (!entry) return;
+    if (entry.kind === "kun") showKunPopover(ev, entry);
+    else if (entry.kind === "variant") showVariantPopover(ev, entry);
+    return;
+  }
+  if (pop.classList.contains("open") && !pop.contains(ev.target)) closePopover();
+});
+
+function showKunPopover(ev, entry) {
+  const pop = document.getElementById("popover");
+  const encodedSig = encodeURIComponent(entry.sigKey);
+  const encodedOpts = encodeURIComponent(JSON.stringify(entry.opts));
+  const chips = entry.opts.map((opt, idx) =>
+    `<button class="chip-opt ${idx === entry.chosenIdx ? 'selected' : ''}" onclick="selectKunOpt('${encodedSig}', '${encodedOpts}', ${idx})">${parseFurigana(escapeHtml(opt))} ${idx === entry.chosenIdx ? '✓' : ''}</button>`
+  ).join("");
+
+  pop.innerHTML = `
+    <div class="popover-title">
+      <span>訓読候補 Kun-Reading Selector</span>
+      <span style="cursor:pointer" onclick="closePopover()">✕</span>
+    </div>
+    <div class="chip-options">${chips}</div>
+    ${isScribe ? `
+      <div class="popover-add">
+        <input type="text" id="newKunInput" placeholder="Add reading, e.g. 来（きた）りき">
+        <button class="btn btn-sm active" onclick="addKunOpt('${encodedSig}', '${encodedOpts}')">+ Add</button>
+      </div>
+    ` : `<div style="font-size:11.5px;color:var(--ink-muted);">Unlock editing to change active reading.</div>`}
+  `;
+  positionPopover(ev, pop);
+}
+
+function selectKunOpt(encodedSig, encodedOpts, idx) {
+  if (!isScribe) return;
+  const sigKey = decodeURIComponent(encodedSig);
+  const opts = JSON.parse(decodeURIComponent(encodedOpts));
+  state.kunSelections[sigKey] = { opts, idx };
+  saveState(null, null, true);
+  closePopover();
+  renderPrimaryStage();
+  if (activeSelection) renderCompanionWindow();
+}
+
+function addKunOpt(encodedSig, encodedOpts) {
+  const input = document.getElementById("newKunInput");
+  const val = input ? input.value.trim() : "";
+  if (!val) return;
+  const sigKey = decodeURIComponent(encodedSig);
+  const opts = JSON.parse(decodeURIComponent(encodedOpts));
+  opts.push(val);
+  state.kunSelections[sigKey] = { opts, idx: opts.length - 1 };
+  saveState(null, null, true);
+  closePopover();
+  renderPrimaryStage();
+  if (activeSelection) renderCompanionWindow();
+}
+
+function showVariantPopover(ev, entry) {
+  const pop = document.getElementById("popover");
+  pop.innerHTML = `
+    <div class="popover-title">
+      <span>校異・伝本 Textual Apparatus</span>
+      <span style="cursor:pointer" onclick="closePopover()">✕</span>
+    </div>
+    <div style="font-family:var(--font-jp);font-size:16px;font-weight:700;margin-bottom:6px;">底本表記：「${parseFurigana(escapeHtml(entry.surf))}」</div>
+    <div style="line-height:1.55;color:var(--ink);">${escapeHtml(entry.note)}</div>
+  `;
+  positionPopover(ev, pop);
+}
+
+function positionPopover(ev, pop) {
+  pop.classList.add("open");
+  pop.style.left = Math.min(window.innerWidth - 375, Math.max(16, ev.clientX - 130)) + "px";
+  pop.style.top = Math.min(window.innerHeight - 220, Math.max(16, ev.clientY + 14)) + "px";
+}
+
+function closePopover() {
+  document.getElementById("popover").classList.remove("open");
+}
+
+function setRubyMode(mode, btn) {
+  document.body.classList.remove("ruby-full", "ruby-hover", "ruby-hidden");
+  document.body.classList.add("ruby-" + mode);
+  document.querySelectorAll("#rubyControl button").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+}
+
+function toggleKunInline() {
+  document.body.classList.toggle("show-kun-inline");
+  document.getElementById("kunInlineBtn").classList.toggle("active");
+}
+
+function toggleKuNums() {
+  document.body.classList.toggle("hide-ku-nums");
+  document.getElementById("kuNumBtn").classList.toggle("active");
+}
+
+function adjustFontSize(delta) {
+  jpFontSize = Math.min(26, Math.max(14, jpFontSize + delta));
+  document.documentElement.style.setProperty("--jp-size", jpFontSize + "px");
+}
+
+function toggleRole() {
+  isScribe = !isScribe;
+  const pill = document.getElementById("rolePill");
+  const label = document.getElementById("roleLabel");
+  pill.className = "role-pill " + (isScribe ? "is-scribe" : "is-annotator");
+  label.textContent = isScribe ? "✏️ Editing Unlocked" : "👁 Read-Only Safety";
+  if (activeSelection) renderCompanionWindow();
+}
+
+function setBookmark(paraId) {
+  const doc = getActiveDoc();
+  const today = new Date().toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" });
+  doc.bookmarkAfterPara = doc.bookmarkAfterPara === paraId ? null : paraId;
+  doc.bookmarkLabel = `Workshopped through ${today}`;
+  saveState(activeDocId, null);
+  renderPrimaryStage();
+}
+
+function toggleWitnessDrawer() {
+  const el = document.getElementById("witnessDrawer");
+  if (el) el.classList.toggle("open");
+}
+
+function toggleSidebar() {
+  document.getElementById("sidebar").classList.toggle("collapsed");
+}
+
+function resetDemoData() {
+  localStorage.removeItem(STORAGE_KEY);
+  state = { corpus: buildInitialCorpus(), kunSelections: {} };
+  activeSelection = null;
+  closeCompanionWindow();
+  renderSidebar();
+  renderBanner();
+  renderPrimaryStage();
+}
+
+function exportMarkdown() {
+  const doc = getActiveDoc();
+  let md = `# ${doc.title}\n${doc.author}\n\n> ${doc.metadata}\n\n`;
+  for (const p of doc.paragraphs) {
+    md += `## ${p.label}\n\n`;
+    if (doc.type === "kanbun") {
+      md += `### 漢文\n${p.kanbunText.replace(/\{\{([^|}]+)\|[^}]+\}\}/g, "$1")}\n\n`;
+    }
+    md += `### ${doc.type === "wabun" ? "校訂和文" : "書き下し文"}\n${p.kakikudashiText.replace(/\[\[([^|\]]+)[^\]]*\]\]/g, "$1").replace(/\{\{([^|}]+)\|[^}]+\}\}/g, "$1")}\n\n`;
+    md += `### English Translation\n${p.englishText}\n\n`;
+    const anchorMeta = doc.type === "wabun" ? p.kkMeta : p.kbMeta;
+    const notes = (anchorMeta || []).flatMap((m, i) => (m.notes || []).map(n => ({ ...n, ku: i + 1 })));
+    if (notes.length) {
+      md += `### Philological Notes\n` + notes.map(n => `- **[Sentence ${n.ku} · ${n.tag}] ${n.lemma || ""}** (${n.author}): ${n.text}`).join("\n") + `\n\n`;
+    }
+  }
+  const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `${doc.id}_setsuwa_export.md`;
+  a.click();
+}
+
+function exportJsonBackup() {
+  const stamp = new Date().toISOString().slice(0, 10);
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `setsuwa_workbench_backup_${stamp}.json`;
+  a.click();
+}
+
+function triggerImportJson() {
+  document.getElementById("jsonImportInput").click();
+}
+
+function handleImportJson(ev) {
+  const file = ev.target.files && ev.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async () => {
+    try {
+      const parsed = JSON.parse(reader.result);
+      if (!parsed || !Array.isArray(parsed.corpus)) {
+        alert("Invalid backup file: expected a JSON export from this workbench.");
+        return;
+      }
+      state = { corpus: parsed.corpus, kunSelections: parsed.kunSelections || {} };
+      activeDocId = state.corpus[0].id;
+      activeSelection = null;
+      saveLocalState();
+      if (cloud.ready) {
+        await seedStarterCorpusToCloud(state);
+      }
+      closeCompanionWindow();
+      updatePrimaryPickerButtons();
+      renderSidebar();
+      renderBanner();
+      renderPrimaryStage();
+    } catch (err) {
+      alert("Could not parse JSON file: " + err.message);
+    } finally {
+      ev.target.value = "";
+    }
+  };
+  reader.readAsText(file);
+}
+
+updatePrimaryPickerButtons();
+renderSidebar();
+renderBanner();
+renderPrimaryStage();
+initCloudSync();
+</script>
+</body>
+</html>
