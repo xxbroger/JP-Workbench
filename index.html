@@ -36,6 +36,8 @@
     --font-en: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
     --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     --jp-size: 19px;
+    --en-size: 16px;
+    --edit-size: 14.5px;
   }
 
   * { box-sizing: border-box; }
@@ -1048,7 +1050,7 @@
     overflow-y: auto;
     padding: 18px 22px 60px;
     font-family: var(--font-en);
-    font-size: 16px;
+    font-size: var(--en-size);
     line-height: 1.78;
   }
   .en-para-block {
@@ -1280,16 +1282,16 @@
     background: var(--bg-washi);
     border: 1px solid var(--border);
     border-radius: 6px;
-    writing-mode: vertical-rl;
-    text-orientation: upright;
+    writing-mode: horizontal-tb;
     font-family: var(--font-jp);
-    font-size: 16.5px;
-    line-height: 2.22;
+    font-size: calc(var(--edit-size) + 2px);
+    line-height: 2.15;
     letter-spacing: 0.04em;
-    height: 138px;
+    min-height: 64px;
+    max-height: 150px;
     width: 100%;
-    overflow-x: auto;
-    overflow-y: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
     padding: 10px 12px;
   }
   .cw-en-preview {
@@ -1356,8 +1358,8 @@
     border-color: var(--accent);
     background: #fff;
   }
-  .layer-textarea.jp-input { font-family: var(--font-jp); font-size: 14px; }
-  .layer-textarea.en-input { font-family: var(--font-en); font-size: 14.5px; min-height: 112px; }
+  .layer-textarea.jp-input { font-family: var(--font-jp); font-size: var(--edit-size); }
+  .layer-textarea.en-input { font-family: var(--font-en); font-size: var(--edit-size); min-height: 112px; }
 
   .en-mapper-toggle {
     font-size: 11px;
@@ -1614,6 +1616,8 @@
             <button class="cw-btn active" onclick="addFootnoteForActiveSentence()" title="Add a numbered footnote to the Editorial Notes panel">+ Add Note</button>
           </div>
           <div class="cw-controls">
+            <button class="cw-btn" onclick="adjustEditFontSize(-1.5)" title="Decrease editor text size">A−</button>
+            <button class="cw-btn" onclick="adjustEditFontSize(1.5)" title="Increase editor text size">A+</button>
             <button class="cw-btn active" id="winMode_float" onclick="setWindowMode('float')" title="Floating draggable window">⧉ Float</button>
             <button class="cw-btn" id="winMode_bottom" onclick="setWindowMode('bottom')" title="Dock at bottom">⬓ Bottom</button>
             <button class="cw-btn" id="winMode_left" onclick="setWindowMode('left')" title="Dock on left">◫ Left</button>
@@ -3728,7 +3732,11 @@ function renderPrimaryStage() {
       <div class="english-product-pane" id="englishProductPane">
         <div class="english-product-head">
           <span>📖 English Translation</span>
-          <button class="btn btn-sm" onclick="toggleEnglishProductPane()" title="Hide English pane">✕</button>
+          <span style="display:inline-flex;align-items:center;gap:4px;">
+            <button class="btn btn-sm" onclick="adjustEnFontSize(-1.5)" title="Decrease English text size">A−</button>
+            <button class="btn btn-sm" onclick="adjustEnFontSize(1.5)" title="Increase English text size">A+</button>
+            <button class="btn btn-sm" onclick="toggleEnglishProductPane()" title="Hide English pane">✕</button>
+          </span>
         </div>
         <div class="english-product-body">${enBlocks}</div>
       </div>
@@ -5886,9 +5894,22 @@ function closePopover() {
 
 
 
+let enFontSize = 16;
+let editFontSize = 14.5;
+
 function adjustFontSize(delta) {
   jpFontSize = Math.min(26, Math.max(14, jpFontSize + delta));
   document.documentElement.style.setProperty("--jp-size", jpFontSize + "px");
+}
+
+function adjustEnFontSize(delta) {
+  enFontSize = Math.min(24, Math.max(12, enFontSize + delta));
+  document.documentElement.style.setProperty("--en-size", enFontSize + "px");
+}
+
+function adjustEditFontSize(delta) {
+  editFontSize = Math.min(22, Math.max(11.5, editFontSize + delta));
+  document.documentElement.style.setProperty("--edit-size", editFontSize + "px");
 }
 
 function toggleRole() {
