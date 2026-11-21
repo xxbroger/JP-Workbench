@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>説話集序跋読書会 — Setsuwa Paratext Collaborative Workbench</title>
+<title>Classical Japanese Workbench</title>
 <script src="./firebase-config.js"></script>
 <style>
   :root {
@@ -178,7 +178,7 @@
     font-size: 14.5px;
     margin: 0 0 3px 0;
     font-weight: 700;
-    font-family: var(--font-jp);
+    letter-spacing: -0.01em;
   }
   .sidebar-header p {
     margin: 0;
@@ -196,13 +196,79 @@
     text-transform: uppercase;
     letter-spacing: 0.06em;
     color: var(--ink-muted);
-    padding: 8px 8px 4px;
+    padding: 6px 6px 6px;
+  }
+  .lib-folder-group {
+    margin-bottom: 3px;
+  }
+  .lib-folder-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    user-select: none;
+    color: var(--ink);
+  }
+  .lib-folder-row:hover { background: rgba(0, 0, 0, 0.045); }
+  .lib-folder-left {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+    flex: 1;
+  }
+  .lib-folder-caret {
+    font-size: 10px;
+    width: 12px;
+    text-align: center;
+    color: var(--ink-muted);
+    flex-shrink: 0;
+  }
+  .lib-folder-name {
+    font-family: var(--font-jp);
+    font-size: 12.5px;
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .lib-folder-count {
+    font-size: 10px;
+    color: var(--ink-faint);
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .lib-folder-actions {
+    display: none;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+  .lib-folder-row:hover .lib-folder-actions { display: inline-flex; }
+  .lib-icon-btn {
+    border: none;
+    background: transparent;
+    color: var(--ink-muted);
+    font-size: 11px;
+    padding: 2px 5px;
+    border-radius: 4px;
+    cursor: pointer;
+    line-height: 1.2;
+  }
+  .lib-icon-btn:hover { background: rgba(0, 0, 0, 0.08); color: var(--ink); }
+  .lib-folder-children {
+    margin-left: 11px;
+    padding-left: 7px;
+    border-left: 1px solid #dcd5c5;
   }
   .corpus-item {
-    padding: 8px 10px;
+    padding: 7px 9px;
     border-radius: 7px;
     cursor: pointer;
-    margin-bottom: 3px;
+    margin-bottom: 2px;
     display: flex;
     flex-direction: column;
     gap: 2px;
@@ -214,7 +280,6 @@
     border-color: var(--border-strong);
     box-shadow: 0 1px 2px rgba(0,0,0,0.05);
   }
-  .corpus-item.stub { opacity: 0.56; cursor: default; }
   .corpus-item-top {
     display: flex;
     justify-content: space-between;
@@ -224,22 +289,25 @@
     font-family: var(--font-jp);
     gap: 6px;
   }
-  .badge-lang {
-    font-family: var(--font-ui);
-    font-size: 10px;
-    font-weight: 600;
-    padding: 1px 6px;
-    border-radius: 99px;
-    background: #dedad0;
-    color: #49453e;
-    white-space: nowrap;
+  .corpus-item .lib-item-edit {
+    opacity: 0;
+    transition: opacity 0.12s;
   }
-  .badge-lang.kanbun { background: #dce7f4; color: #23446b; }
-  .badge-lang.wakan { background: #e8e2f4; color: #4b367c; }
-  .badge-lang.wabun { background: #e3eee4; color: #28562d; }
+  .corpus-item:hover .lib-item-edit,
+  .corpus-item.active .lib-item-edit { opacity: 1; }
   .corpus-item-sub {
     font-size: 11px;
     color: var(--ink-muted);
+  }
+  .banner-folder-crumb {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--ink-muted);
+    font-family: var(--font-jp);
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 1px 7px;
   }
 
   /* Main Workspace */
@@ -1524,8 +1592,8 @@
 <!-- Google Sign-In Gate (shown automatically when Firebase config is populated) -->
 <div class="auth-overlay" id="authOverlay">
   <div class="auth-card">
-    <h1>説話集序跋読書会</h1>
-    <p>Setsuwa Paratext Collaborative Workbench<br>Sign in with an invited Google account to view and edit the shared texts.</p>
+    <h1>Classical Japanese Workbench</h1>
+    <p>Collaborative reading, parsing, and annotation for Classical Japanese texts.<br>Sign in with an invited Google account to view and edit the shared library.</p>
     <div class="auth-error" id="authErrorBox"></div>
     <button class="btn btn-google" id="googleSignInBtn" onclick="signInWithGoogle()">Sign in with Google</button>
     <div id="authSignOutRow" style="display:none;margin-top:12px;">
@@ -1536,8 +1604,8 @@
 
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-header">
-    <h1>説話集序跋読書会</h1>
-    <p>Setsuwa Paratexts through 1600</p>
+    <h1>Classical Japanese Workbench</h1>
+    <p>Collaborative Reading &amp; Annotation</p>
   </div>
   <div class="corpus-list" id="corpusList"></div>
 </aside>
@@ -1550,7 +1618,7 @@
 
   <header class="topbar">
     <div class="topbar-left">
-      <button class="btn" onclick="toggleSidebar()" title="Show/Hide Corpus Sidebar">☰ Corpus</button>
+      <button class="btn" onclick="toggleSidebar()" title="Show/Hide Library Sidebar">☰ Library</button>
 
       <div class="seg-control primary-picker" id="stageViewTabs">
         <button id="tab_primary" class="active" onclick="setStageView('primary')">原文</button>
@@ -1667,14 +1735,25 @@
   </div>
 </div>
 
-<!-- Add New Paratext Modal -->
+<!-- Add New Text Modal -->
 <div class="modal-backdrop" id="newDocModal">
   <div class="modal-card" style="width:min(680px,95vw);">
     <div class="modal-head">
-      <span>+ Add New Text to Workbench</span>
+      <span>+ Add New Text to Library</span>
       <button class="cw-btn" onclick="closeNewDocModal()">✕</button>
     </div>
     <div class="modal-body" id="newDocModalBody"></div>
+  </div>
+</div>
+
+<!-- Create / Rename Library Folder Modal -->
+<div class="modal-backdrop" id="folderModal">
+  <div class="modal-card" style="width:min(460px,94vw);">
+    <div class="modal-head">
+      <span id="folderModalTitle">📁 New Folder</span>
+      <button class="cw-btn" onclick="closeFolderModal()">✕</button>
+    </div>
+    <div class="modal-body" id="folderModalBody"></div>
   </div>
 </div>
 
@@ -1920,6 +1999,25 @@ function normalizeParagraphSchema(rawPara, docStyle) {
   return paraObj;
 }
 
+function normalizeFolderPath(rawPath) {
+  if (!rawPath || typeof rawPath !== "string") return "";
+  return rawPath
+    .split(/[\/／]/)
+    .map(seg => seg.trim())
+    .filter(Boolean)
+    .join("/");
+}
+
+function inferLegacyFolder(rawDoc) {
+  if (typeof rawDoc.folder === "string") return normalizeFolderPath(rawDoc.folder);
+  const col = String(rawDoc.collection || "").trim();
+  const shortTitle = String(rawDoc.title || "").split("—")[0].trim();
+  if (col && col !== shortTitle) {
+    return normalizeFolderPath(col.replace(/^\d+(?:\.\d+)?\s+/, ""));
+  }
+  return "";
+}
+
 function normalizeDocSchema(rawDoc) {
   if (!rawDoc) return null;
   const primaryStyle = PRIMARY_STYLE_LABELS[rawDoc.primaryStyle]
@@ -1931,11 +2029,13 @@ function normalizeDocSchema(rawDoc) {
   const hasKakikudashi = explicitKk
     ? rawDoc.hasKakikudashi
     : (primaryStyle === "kanbun" && anyKk);
+  const folder = inferLegacyFolder(rawDoc);
 
   return {
     id: rawDoc.id,
     orderIndex: rawDoc.orderIndex || 99,
-    collection: rawDoc.collection || "",
+    folder,
+    collection: folder || rawDoc.collection || "",
     title: rawDoc.title || rawDoc.id,
     author: rawDoc.author || "",
     primaryStyle,
@@ -1950,10 +2050,12 @@ function normalizeDocSchema(rawDoc) {
 }
 
 function serializeDocMetaForCloud(dObj, fallbackOrder) {
+  const folder = normalizeFolderPath(dObj.folder || "");
   return {
     id: dObj.id,
     orderIndex: dObj.orderIndex || fallbackOrder || 99,
-    collection: dObj.collection || "",
+    folder,
+    collection: folder || dObj.collection || "",
     title: dObj.title || dObj.id,
     author: dObj.author || "",
     primaryStyle: dObj.primaryStyle || "kanbun",
@@ -2066,8 +2168,9 @@ function buildInitialCorpus() {
     {
       id: "01.01",
       orderIndex: 1,
-      collection: "01 日本霊異記",
-      title: "01.01 上巻序 — Nihon ryōiki, Vol. 1 Preface",
+      folder: "日本霊異記",
+      collection: "日本霊異記",
+      title: "上巻　序 — Nihon ryōiki, Vol. 1 Preface",
       author: "景戒 Kyōkai (early 9th c., Kōnin era)",
       primaryStyle: "kanbun",
       hasKakikudashi: true,
@@ -2220,8 +2323,9 @@ function buildInitialCorpus() {
     {
       id: "01.02",
       orderIndex: 2,
-      collection: "01 日本霊異記",
-      title: "01.02 中巻序 — Nihon ryōiki, Vol. 2 Preface",
+      folder: "日本霊異記",
+      collection: "日本霊異記",
+      title: "中巻　序 — Nihon ryōiki, Vol. 2 Preface",
       author: "景戒 Kyōkai (early 9th c.)",
       primaryStyle: "kanbun",
       hasKakikudashi: true,
@@ -2253,8 +2357,9 @@ function buildInitialCorpus() {
     {
       id: "01.03",
       orderIndex: 3,
-      collection: "01 日本霊異記",
-      title: "01.03 下巻序 — Nihon ryōiki, Vol. 3 Preface",
+      folder: "日本霊異記",
+      collection: "日本霊異記",
+      title: "下巻　序 — Nihon ryōiki, Vol. 3 Preface",
       author: "景戒 Kyōkai (early 9th c.)",
       primaryStyle: "kanbun",
       hasKakikudashi: false,
@@ -2295,8 +2400,9 @@ function buildInitialCorpus() {
     {
       id: "02.01",
       orderIndex: 4,
-      collection: "02 三宝絵",
-      title: "02.01 総序 (抜粋) — Sanbōe, General Preface (Wabun Demo)",
+      folder: "三宝絵",
+      collection: "三宝絵",
+      title: "総序 (抜粋) — Sanbōe, General Preface",
       author: "源為憲 Minamoto no Tamenori (984)",
       primaryStyle: "wabun",
       hasKakikudashi: false,
@@ -2319,20 +2425,7 @@ function buildInitialCorpus() {
   ];
 }
 
-const STUB_COLLECTIONS = [
-  { title: "03 日本往生極楽記 (985)", style: "kanbun", sub: "慶滋保胤 — 1 paratext" },
-  { title: "04 本朝法華験記 (1040–44)", style: "kanbun", sub: "鎮源 — 1 paratext" },
-  { title: "05–09 往生伝群 (12th c.)", style: "kanbun", sub: "匡房・為康・蓮禅・宗友 — 5 paratexts" },
-  { title: "10 宝物集 (late 12th c.)", style: "wakan", sub: "平康頼 — 7-fascicle postscript" },
-  { title: "13 発心集 (early 13th c.)", style: "wakan", sub: "鴨長明 — Preface & Postscript" },
-  { title: "14 宇治拾遺物語 (early 13th c.)", style: "wabun", sub: "Anon. — Preface" },
-  { title: "16 閑居友 (1222)", style: "wakan", sub: "慶政 — 2 postscripts" },
-  { title: "17 十訓抄 (1252)", style: "wakan", sub: "Anon. — 12 prefaces & postscript" },
-  { title: "18 古今著聞集 (1254)", style: "wakan", sub: "橘成季 — 31 paratexts" },
-  { title: "21 沙石集 (1279–83)", style: "wakan", sub: "無住 — 13 paratexts & colophons" },
-  { title: "23 長谷寺霊験記 (Kamakura)", style: "wakan", sub: "Anon. — Preface & 1435 colophon" },
-  { title: "24 元亨釈書 (1322)", style: "kanbun", sub: "虎関師錬 — 6 memorials & essays" }
-];
+
 
 // ============================================================================
 // 2. STATE & CLOUD SYNC ENGINE (FIREBASE SPARK + LOCAL FALLBACK)
@@ -2421,16 +2514,30 @@ function loadLocalState() {
       if (parsed && Array.isArray(parsed.corpus) && parsed.corpus.length > 0) {
         return {
           corpus: parsed.corpus.map(normalizeDocSchema),
-          kunSelections: parsed.kunSelections || {}
+          kunSelections: parsed.kunSelections || {},
+          folders: Array.isArray(parsed.folders) ? parsed.folders.map(normalizeFolderPath).filter(Boolean) : []
         };
       }
     }
   } catch (e) {}
-  return { corpus: buildInitialCorpus().map(normalizeDocSchema), kunSelections: {} };
+  return { corpus: buildInitialCorpus().map(normalizeDocSchema), kunSelections: {}, folders: ["日本霊異記", "三宝絵"] };
 }
 
 function saveLocalState() {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+}
+
+function saveFoldersToCloud() {
+  saveLocalState();
+  if (!cloud.ready || !cloud.db || !cloud.user) return;
+  scheduleCloudWrite("libraryFolders", async () => {
+    const { doc, setDoc } = cloud.sdk;
+    await setDoc(doc(cloud.db, "settings", "libraryFolders"), {
+      folders: Array.from(new Set((state.folders || []).map(normalizeFolderPath).filter(Boolean))),
+      updatedBy: getCurrentUserName(),
+      updatedAt: Date.now()
+    });
+  });
 }
 
 function saveState(changedDocId, changedParaId, saveKun) {
@@ -2582,8 +2689,8 @@ function startFirestoreSync() {
     if (snap.empty) {
       setSyncStatus("synced", "🟢 Connected (Empty)");
       showCloudBanner(
-        "<strong>Cloud database is ready!</strong> Click the button on the right to upload the starter corpus (<em>Nihon ryōiki</em> &amp; <em>Sanbōe</em>) for your group.",
-        `<button class="btn btn-sm active" onclick="seedStarterCorpusToCloud()">☁️ Upload Starter Corpus to Cloud</button>`,
+        "<strong>Cloud database is ready!</strong> Click the button on the right to upload the starter library to Cloud.",
+        `<button class="btn btn-sm active" onclick="seedStarterCorpusToCloud()">☁️ Upload Starter Library</button>`,
         false
       );
       return;
@@ -2641,6 +2748,18 @@ function startFirestoreSync() {
     }
   }, () => {});
   cloud.unsubs.push(kunUnsub);
+
+  const foldersUnsub = onSnapshot(doc(cloud.db, "settings", "libraryFolders"), (fSnap) => {
+    if (fSnap.exists()) {
+      const data = fSnap.data();
+      if (data && Array.isArray(data.folders)) {
+        state.folders = data.folders.map(normalizeFolderPath).filter(Boolean);
+        saveLocalState();
+        renderSidebar();
+      }
+    }
+  }, () => {});
+  cloud.unsubs.push(foldersUnsub);
 
   const presUnsub = onSnapshot(collection(cloud.db, "presence"), (snap) => {
     const now = Date.now();
@@ -2797,8 +2916,12 @@ async function seedStarterCorpusToCloud(customState) {
   setSyncStatus("saving", "🟡 Uploading Corpus…");
   try {
     const { doc, writeBatch } = cloud.sdk;
-    const rawPayload = customState || { corpus: buildInitialCorpus(), kunSelections: state.kunSelections || {} };
+    const rawPayload = customState || { corpus: buildInitialCorpus(), kunSelections: state.kunSelections || {}, folders: state.folders || ["日本霊異記", "三宝絵"] };
     const normalizedDocs = rawPayload.corpus.map(normalizeDocSchema);
+    const allFolders = Array.from(new Set([
+      ...((rawPayload.folders || []).map(normalizeFolderPath)),
+      ...(normalizedDocs.map(d => d.folder))
+    ].filter(Boolean)));
     const batch = writeBatch(cloud.db);
 
     normalizedDocs.forEach((dObj, idx) => {
@@ -2810,6 +2933,11 @@ async function seedStarterCorpusToCloud(customState) {
 
     batch.set(doc(cloud.db, "settings", "kunSelections"), {
       selections: rawPayload.kunSelections || {},
+      updatedBy: getCurrentUserName(),
+      updatedAt: Date.now()
+    });
+    batch.set(doc(cloud.db, "settings", "libraryFolders"), {
+      folders: allFolders,
       updatedBy: getCurrentUserName(),
       updatedAt: Date.now()
     });
@@ -3156,34 +3284,275 @@ function toggleDocKakikudashiLayer() {
   if (activeSelection) renderCompanionWindow();
 }
 
+const collapsedLibraryFolders = new Set();
+let folderModalState = null; // { mode: "create" | "rename", oldPath: "", parentPath: "" }
+
+function getAllLibraryFolderPaths() {
+  const set = new Set();
+  const addWithAncestors = (raw) => {
+    const norm = normalizeFolderPath(raw);
+    if (!norm) return;
+    const parts = norm.split("/");
+    for (let i = 1; i <= parts.length; i++) {
+      set.add(parts.slice(0, i).join("/"));
+    }
+  };
+  (state.folders || []).forEach(addWithAncestors);
+  (state.corpus || []).forEach(d => addWithAncestors(d.folder));
+  return Array.from(set).sort((a, b) => a.localeCompare(b, "ja"));
+}
+
+function ensureLibraryFolderRecorded(folderPath) {
+  const norm = normalizeFolderPath(folderPath);
+  if (!norm) return;
+  state.folders = Array.isArray(state.folders) ? state.folders : [];
+  if (!state.folders.includes(norm)) {
+    state.folders.push(norm);
+    saveFoldersToCloud();
+  }
+}
+
+function toggleLibraryFolder(folderPath) {
+  if (collapsedLibraryFolders.has(folderPath)) collapsedLibraryFolders.delete(folderPath);
+  else collapsedLibraryFolders.add(folderPath);
+  renderSidebar();
+}
+
+function countTreeNodeDocs(node) {
+  let total = node.docs.length;
+  node.children.forEach(ch => { total += countTreeNodeDocs(ch); });
+  return total;
+}
+
+function renderLibraryDocItem(doc) {
+  const active = doc.id === activeDocId ? "active" : "";
+  const shortTitle = (doc.title || doc.id).split("—")[0].trim();
+  const jsId = escapeHtml(doc.id).replace(/'/g, "\\'");
+  return `
+    <div class="corpus-item ${active}" onclick="selectDoc('${jsId}')">
+      <div class="corpus-item-top">
+        <span style="overflow:hidden;text-overflow:ellipsis;">${escapeHtml(shortTitle)}</span>
+        ${isScribe ? `<button type="button" class="lib-icon-btn lib-item-edit" onclick="event.stopPropagation(); openEditDocInfoModal('${jsId}')" title="Edit title, folder, or info">✎</button>` : ""}
+      </div>
+      ${doc.author ? `<div class="corpus-item-sub">${escapeHtml(doc.author)}</div>` : ""}
+    </div>`;
+}
+
+function renderLibraryFolderNode(node) {
+  const isCollapsed = collapsedLibraryFolders.has(node.path);
+  const totalDocs = countTreeNodeDocs(node);
+  const jsPath = escapeHtml(node.path).replace(/'/g, "\\'");
+  const childFolders = Array.from(node.children.values()).sort((a, b) => a.name.localeCompare(b.name, "ja"));
+  const sortedDocs = node.docs.slice().sort((a, b) => ((a.orderIndex || 99) - (b.orderIndex || 99)) || (a.title || "").localeCompare(b.title || "", "ja"));
+
+  let childrenHtml = "";
+  if (!isCollapsed) {
+    childrenHtml = `<div class="lib-folder-children">`
+      + childFolders.map(renderLibraryFolderNode).join("")
+      + sortedDocs.map(renderLibraryDocItem).join("")
+      + (totalDocs === 0 && childFolders.length === 0
+          ? `<div style="font-size:11px;color:var(--ink-faint);padding:4px 8px;">Empty folder</div>`
+          : "")
+      + `</div>`;
+  }
+
+  return `
+    <div class="lib-folder-group">
+      <div class="lib-folder-row" onclick="toggleLibraryFolder('${jsPath}')">
+        <div class="lib-folder-left">
+          <span class="lib-folder-caret">${isCollapsed ? "▸" : "▾"}</span>
+          <span>📁</span>
+          <span class="lib-folder-name" title="${escapeHtml(node.path)}">${escapeHtml(node.name)}</span>
+          <span class="lib-folder-count">(${totalDocs})</span>
+        </div>
+        ${isScribe ? `
+          <span class="lib-folder-actions" onclick="event.stopPropagation()">
+            <button type="button" class="lib-icon-btn" onclick="openNewDocModal('${jsPath}')" title="Add new text in ${escapeHtml(node.name)}">＋</button>
+            <button type="button" class="lib-icon-btn" onclick="openFolderModal('rename', '${jsPath}')" title="Rename or move folder">✎</button>
+            <button type="button" class="lib-icon-btn" onclick="removeLibraryFolder('${jsPath}')" title="Remove folder">✕</button>
+          </span>
+        ` : ""}
+      </div>
+      ${childrenHtml}
+    </div>`;
+}
+
 function renderSidebar() {
   const el = document.getElementById("corpusList");
-  let html = `<div class="corpus-group-label" style="display:flex;justify-content:space-between;align-items:center;"><span>Active Paratexts</span><button class="btn btn-sm" style="padding:1px 7px;font-size:10.5px;" onclick="openNewDocModal()" title="Create a new text">+ New Text</button></div>`;
-  for (const doc of state.corpus) {
-    const active = doc.id === activeDocId ? "active" : "";
-    html += `
-      <div class="corpus-item ${active}" onclick="selectDoc('${doc.id}')">
-        <div class="corpus-item-top">
-          <span>${escapeHtml(doc.title.split("—")[0])}</span>
-        </div>
-        <div class="corpus-item-sub">${escapeHtml(doc.author)}</div>
-      </div>`;
-  }
-  html += `<div class="corpus-group-label" style="margin-top:10px">Sourcebook Census (25 Collections)</div>`;
-  for (const s of STUB_COLLECTIONS) {
-    html += `
-      <div class="corpus-item stub">
-        <div class="corpus-item-top">
-          <span>${escapeHtml(s.title)}</span>
-        </div>
-        <div class="corpus-item-sub">${escapeHtml(s.sub)}</div>
-      </div>`;
+  if (!el) return;
+  const root = { path: "", name: "", children: new Map(), docs: [] };
+  const ensureNode = (folderPath) => {
+    const norm = normalizeFolderPath(folderPath);
+    if (!norm) return root;
+    const parts = norm.split("/");
+    let cur = root;
+    let built = "";
+    for (const seg of parts) {
+      built = built ? `${built}/${seg}` : seg;
+      if (!cur.children.has(seg)) {
+        cur.children.set(seg, { path: built, name: seg, children: new Map(), docs: [] });
+      }
+      cur = cur.children.get(seg);
+    }
+    return cur;
+  };
+
+  getAllLibraryFolderPaths().forEach(ensureNode);
+  (state.corpus || []).forEach(doc => {
+    ensureNode(doc.folder).docs.push(doc);
+  });
+
+  const topFolders = Array.from(root.children.values()).sort((a, b) => a.name.localeCompare(b.name, "ja"));
+  const rootDocs = root.docs.slice().sort((a, b) => ((a.orderIndex || 99) - (b.orderIndex || 99)) || (a.title || "").localeCompare(b.title || "", "ja"));
+
+  let html = `
+    <div class="corpus-group-label" style="display:flex;justify-content:space-between;align-items:center;gap:4px;">
+      <span>Library</span>
+      ${isScribe ? `
+        <span style="display:inline-flex;gap:4px;">
+          <button class="btn btn-sm" style="padding:1px 6px;font-size:10.5px;text-transform:none;letter-spacing:0;" onclick="openFolderModal('create', '')" title="Create a new folder or subfolder">+ Folder</button>
+          <button class="btn btn-sm" style="padding:1px 7px;font-size:10.5px;text-transform:none;letter-spacing:0;" onclick="openNewDocModal('')" title="Add a new text to Library">+ Text</button>
+        </span>
+      ` : ""}
+    </div>`;
+
+  if (topFolders.length === 0 && rootDocs.length === 0) {
+    html += `<div style="font-size:12px;color:var(--ink-faint);padding:12px 8px;line-height:1.5;">Library is empty. Click <strong>+ Folder</strong> or <strong>+ Text</strong> above to add your first text.</div>`;
+  } else {
+    html += topFolders.map(renderLibraryFolderNode).join("");
+    html += rootDocs.map(renderLibraryDocItem).join("");
   }
   el.innerHTML = html;
 }
 
+function openFolderModal(mode, targetPath) {
+  if (!isScribe) return;
+  folderModalState = { mode: mode || "create", oldPath: targetPath || "" };
+  const isRename = mode === "rename" && targetPath;
+  const allPaths = getAllLibraryFolderPaths().filter(p => !isRename || (p !== targetPath && !p.startsWith(targetPath + "/")));
+  let defaultParent = "";
+  let defaultName = "";
+  if (isRename) {
+    const parts = targetPath.split("/");
+    defaultName = parts.pop() || "";
+    defaultParent = parts.join("/");
+  }
+
+  const parentOpts = `<option value="">(Top level in Library)</option>` + allPaths.map(p =>
+    `<option value="${escapeHtml(p)}" ${p === defaultParent ? "selected" : ""}>📁 ${escapeHtml(p.replace(/\//g, " / "))}</option>`
+  ).join("");
+
+  document.getElementById("folderModalTitle").textContent = isRename ? `✎ Rename / Move Folder` : `📁 Create Folder`;
+  document.getElementById("folderModalBody").innerHTML = `
+    <div style="display:grid;grid-template-columns:115px 1fr;gap:8px;align-items:center;font-size:12.5px;">
+      <label><strong>Parent Folder</strong></label>
+      <select id="fm_parent" style="padding:6px 8px;border:1px solid var(--border-strong);border-radius:6px;background:#fff;">${parentOpts}</select>
+      <label><strong>Folder Name</strong></label>
+      <input id="fm_name" type="text" value="${escapeHtml(defaultName)}" placeholder="e.g. 日本霊異記" style="padding:6px 8px;border:1px solid var(--border-strong);border-radius:6px;" onkeydown="if(event.key==='Enter'){event.preventDefault();saveFolderModal();}">
+    </div>
+    <div style="font-size:11.5px;color:var(--ink-muted);line-height:1.45;">Tip: You can nest folders multiple levels deep (for example, <strong>説話</strong> → <strong>日本霊異記</strong> → texts like <strong>上巻　序</strong>).</div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;">
+      <button class="btn" onclick="closeFolderModal()">Cancel</button>
+      <button class="btn active" onclick="saveFolderModal()">${isRename ? "Save Folder" : "Create Folder"}</button>
+    </div>
+  `;
+  document.getElementById("folderModal").classList.add("open");
+  setTimeout(() => {
+    const inp = document.getElementById("fm_name");
+    if (inp) inp.focus();
+  }, 30);
+}
+
+function closeFolderModal() {
+  folderModalState = null;
+  document.getElementById("folderModal").classList.remove("open");
+}
+
+async function saveFolderModal() {
+  if (!folderModalState) return;
+  const parent = normalizeFolderPath(document.getElementById("fm_parent").value || "");
+  const rawName = normalizeFolderPath(document.getElementById("fm_name").value || "");
+  if (!rawName) {
+    alert("Please enter a folder name.");
+    return;
+  }
+  const newPath = parent ? `${parent}/${rawName}` : rawName;
+  state.folders = Array.isArray(state.folders) ? state.folders : [];
+
+  if (folderModalState.mode === "rename" && folderModalState.oldPath) {
+    const oldPath = folderModalState.oldPath;
+    if (oldPath !== newPath) {
+      state.folders = state.folders.map(f => {
+        if (f === oldPath) return newPath;
+        if (f.startsWith(oldPath + "/")) return newPath + f.slice(oldPath.length);
+        return f;
+      });
+      if (!state.folders.includes(newPath)) state.folders.push(newPath);
+      const changedDocs = [];
+      (state.corpus || []).forEach(d => {
+        if (d.folder === oldPath) {
+          d.folder = newPath;
+          d.collection = newPath;
+          changedDocs.push(d);
+        } else if ((d.folder || "").startsWith(oldPath + "/")) {
+          d.folder = newPath + d.folder.slice(oldPath.length);
+          d.collection = d.folder;
+          changedDocs.push(d);
+        }
+      });
+      saveFoldersToCloud();
+      if (cloud.ready && cloud.db && cloud.user && changedDocs.length > 0) {
+        const { doc, writeBatch } = cloud.sdk;
+        const batch = writeBatch(cloud.db);
+        changedDocs.forEach(dObj => batch.set(doc(cloud.db, "docs", dObj.id), serializeDocMetaForCloud(dObj), { merge: true }));
+        batch.commit().catch(err => console.error("Folder rename sync error:", err));
+      }
+    }
+  } else {
+    if (!state.folders.includes(newPath)) state.folders.push(newPath);
+    collapsedLibraryFolders.delete(newPath);
+    saveFoldersToCloud();
+  }
+
+  closeFolderModal();
+  renderSidebar();
+  renderBanner();
+}
+
+async function removeLibraryFolder(folderPath) {
+  if (!isScribe || !folderPath) return;
+  const affectedDocs = (state.corpus || []).filter(d => d.folder === folderPath || (d.folder || "").startsWith(folderPath + "/"));
+  const parentPath = folderPath.includes("/") ? folderPath.split("/").slice(0, -1).join("/") : "";
+  if (affectedDocs.length > 0) {
+    const destLabel = parentPath ? `parent folder "${parentPath}"` : "top level of Library";
+    if (!confirm(`Move ${affectedDocs.length} text(s) inside "${folderPath}" to ${destLabel} and remove this folder? (No texts will be deleted.)`)) return;
+  }
+  state.folders = (state.folders || []).filter(f => f !== folderPath && !f.startsWith(folderPath + "/"));
+  if (parentPath && !state.folders.includes(parentPath)) state.folders.push(parentPath);
+  affectedDocs.forEach(d => {
+    d.folder = parentPath;
+    d.collection = parentPath;
+  });
+  saveFoldersToCloud();
+  if (cloud.ready && cloud.db && cloud.user && affectedDocs.length > 0) {
+    const { doc, writeBatch } = cloud.sdk;
+    const batch = writeBatch(cloud.db);
+    affectedDocs.forEach(dObj => batch.set(doc(cloud.db, "docs", dObj.id), serializeDocMetaForCloud(dObj), { merge: true }));
+    batch.commit().catch(err => console.error("Folder remove sync error:", err));
+  }
+  renderSidebar();
+  renderBanner();
+}
+
 function selectDoc(id) {
   activeDocId = id;
+  const doc = getActiveDoc();
+  if (doc && doc.folder) {
+    const parts = doc.folder.split("/");
+    for (let i = 1; i <= parts.length; i++) {
+      collapsedLibraryFolders.delete(parts.slice(0, i).join("/"));
+    }
+  }
   activeSelection = null;
   stageView = "primary";
   closePopover();
@@ -3201,15 +3570,19 @@ function renderBanner() {
   const viewHint = stageView === "kakikudashi"
     ? "Viewing 書き下し · Click any passage to edit or map"
     : "Click any sentence to edit, or drag to highlight";
+  const folderCrumb = doc.folder
+    ? `<span class="banner-folder-crumb" title="Library folder">📁 ${escapeHtml(doc.folder.replace(/\//g, " › "))}</span>`
+    : "";
   const banner = document.getElementById("paratextBanner");
   banner.innerHTML = `
     <div class="paratext-title-row">
-      <div style="display:flex;align-items:baseline;flex-wrap:wrap;gap:6px;">
+      <div style="display:flex;align-items:baseline;flex-wrap:wrap;gap:7px;">
+        ${folderCrumb}
         <h2>${escapeHtml(doc.title)}</h2>
-        <span class="paratext-meta">${escapeHtml(doc.author)} · ${viewHint}</span>
+        <span class="paratext-meta">${doc.author ? escapeHtml(doc.author) + " · " : ""}${viewHint}</span>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        ${isScribe ? `<button class="btn btn-sm" onclick="openEditDocInfoModal()" title="Edit this text's title, author, and source info">✎ Edit Info</button>` : ""}
+        ${isScribe ? `<button class="btn btn-sm" onclick="openEditDocInfoModal()" title="Edit this text's title, folder, author, and source info">✎ Edit Info</button>` : ""}
         <button class="btn btn-sm active" onclick="openRawTextModal('${stageView === 'kakikudashi' ? 'kakikudashi' : 'primary'}')" title="Paste, edit, or clear raw text">📝 Feed / Edit Raw Text</button>
         <button class="btn btn-sm" onclick="openHistoryModal()" title="View edit history and before/after changes for this text">🕒 History</button>
         <button class="btn btn-sm" onclick="toggleWitnessDrawer()">📜 Source &amp; Witness Info</button>
@@ -5827,6 +6200,7 @@ document.addEventListener("keydown", (e) => {
     if (document.getElementById("exportDropdownMenu").classList.contains("open")) closeExportMenu();
     else if (document.getElementById("popover").classList.contains("open")) closePopover();
     else if (document.getElementById("hlToolbar").classList.contains("open")) hideHlToolbar();
+    else if (document.getElementById("folderModal").classList.contains("open")) closeFolderModal();
     else if (document.getElementById("historyModal").classList.contains("open")) closeHistoryModal();
     else if (document.getElementById("undoConfirmModal").classList.contains("open")) closeUndoConfirmModal();
     else if (document.getElementById("editDocInfoModal").classList.contains("open")) closeEditDocInfoModal();
@@ -5993,7 +6367,7 @@ function toggleSidebar() {
 function resetDemoData() {
   localStorage.removeItem(STORAGE_KEY);
   PREV_STORAGE_KEYS.forEach(k => localStorage.removeItem(k));
-  state = { corpus: buildInitialCorpus().map(normalizeDocSchema), kunSelections: {} };
+  state = { corpus: buildInitialCorpus().map(normalizeDocSchema), kunSelections: {}, folders: ["日本霊異記", "三宝絵"] };
   activeSelection = null;
   stageView = "primary";
   closeCompanionWindow();
@@ -6359,7 +6733,7 @@ function exportWordDocx() {
   const safeId = (doc.id || "text").replace(/[^a-zA-Z0-9._-]+/g, "_");
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = `${safeId}_setsuwa_export.docx`;
+  a.download = `${safeId}_export.docx`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
 }
@@ -6392,10 +6766,11 @@ function exportMarkdown() {
       return `- **[${fn.num}]${loc ? " " + loc : ""}** (${n.author || "Member"}${ts ? " · " + ts : ""}): ${n.text || ""}`;
     }).join("\n") + `\n\n`;
   }
+  const safeId = (doc.id || "text").replace(/[^a-zA-Z0-9._-]+/g, "_");
   const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = `${doc.id}_setsuwa_export.md`;
+  a.download = `${safeId}_export.md`;
   a.click();
 }
 
@@ -6404,7 +6779,7 @@ function exportJsonBackup() {
   const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json;charset=utf-8" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = `setsuwa_workbench_backup_${stamp}.json`;
+  a.download = `cj_workbench_backup_${stamp}.json`;
   a.click();
 }
 
@@ -6458,7 +6833,8 @@ function handleImportJson(ev) {
       } else if (parsed && Array.isArray(parsed.corpus)) {
         state = {
           corpus: parsed.corpus.map(normalizeDocSchema),
-          kunSelections: parsed.kunSelections || {}
+          kunSelections: parsed.kunSelections || {},
+          folders: Array.isArray(parsed.folders) ? parsed.folders.map(normalizeFolderPath).filter(Boolean) : []
         };
         activeDocId = state.corpus[0].id;
         activeSelection = null;
@@ -6695,17 +7071,29 @@ async function applyRawTextModal() {
 let newDocDrafts = { primary: "", kakikudashi: "", english: "" };
 let newDocActiveTab = "primary";
 
-function openNewDocModal() {
+let editingInfoDocId = null;
+
+function buildFolderDatalistHtml(datalistId) {
+  const opts = getAllLibraryFolderPaths().map(p => `<option value="${escapeHtml(p)}"></option>`).join("");
+  return `<datalist id="${datalistId}">${opts}</datalist>`;
+}
+
+function openNewDocModal(prefillFolder) {
   newDocDrafts = { primary: "", kakikudashi: "", english: "" };
   newDocActiveTab = "primary";
+  const activeDoc = getActiveDoc();
+  const initialFolder = typeof prefillFolder === "string" ? prefillFolder : (activeDoc && activeDoc.folder ? activeDoc.folder : "");
   document.getElementById("newDocModalBody").innerHTML = `
+    ${buildFolderDatalistHtml("nd_folder_list")}
     <div style="display:grid;grid-template-columns:130px 1fr;gap:8px;align-items:center;font-size:12.5px;">
+      <label><strong>Folder</strong></label>
+      <input id="nd_folder" list="nd_folder_list" type="text" value="${escapeHtml(initialFolder)}" placeholder="e.g. 日本霊異記 or 物語/伊勢物語 (leave blank for top level)" style="padding:6px 8px;border:1px solid var(--border-strong);border-radius:6px;">
       <label><strong>ID</strong></label>
-      <input id="nd_id" type="text" placeholder="e.g. 02.02" style="padding:6px 8px;border:1px solid var(--border-strong);border-radius:6px;">
+      <input id="nd_id" type="text" placeholder="e.g. ryoiki_1_jo" style="padding:6px 8px;border:1px solid var(--border-strong);border-radius:6px;">
       <label><strong>Title</strong></label>
-      <input id="nd_title" type="text" placeholder="e.g. 02.02 上巻序 — Sanbōe, Vol. 1 Preface" style="padding:6px 8px;border:1px solid var(--border-strong);border-radius:6px;">
+      <input id="nd_title" type="text" placeholder="e.g. 上巻　序" style="padding:6px 8px;border:1px solid var(--border-strong);border-radius:6px;">
       <label><strong>Author / Date</strong></label>
-      <input id="nd_author" type="text" placeholder="e.g. 源為憲 Minamoto no Tamenori (984)" style="padding:6px 8px;border:1px solid var(--border-strong);border-radius:6px;">
+      <input id="nd_author" type="text" placeholder="e.g. 景戒 Kyōkai (early 9th c.)" style="padding:6px 8px;border:1px solid var(--border-strong);border-radius:6px;">
       <label><strong>書き下し</strong></label>
       <div>
         <label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;">
@@ -6766,16 +7154,20 @@ function closeNewDocModal() {
   document.getElementById("newDocModal").classList.remove("open");
 }
 
-function openEditDocInfoModal() {
-  const doc = getActiveDoc();
+function openEditDocInfoModal(targetId) {
+  const doc = targetId ? state.corpus.find(d => d.id === targetId) : getActiveDoc();
   if (!doc) return;
-  document.getElementById("editDocInfoTitle").textContent = `✎ Edit Text Title & Info — ${doc.id}`;
+  editingInfoDocId = doc.id;
+  document.getElementById("editDocInfoTitle").textContent = `✎ Edit Text Title & Folder — ${doc.id}`;
   document.getElementById("editDocInfoBody").innerHTML = `
+    ${buildFolderDatalistHtml("ed_folder_list")}
     <div style="display:grid;grid-template-columns:120px 1fr;gap:8px;align-items:center;font-size:12.5px;">
       <label><strong>ID</strong></label>
       <div style="font-family:ui-monospace,SFMono-Regular,monospace;color:var(--ink-muted);padding:4px 2px;">${escapeHtml(doc.id)}</div>
+      <label><strong>Folder</strong></label>
+      <input id="ed_folder" list="ed_folder_list" type="text" value="${escapeHtml(doc.folder || '')}" placeholder="e.g. 日本霊異記 or 物語/伊勢物語 (leave blank for top level)" style="padding:6px 8px;border:1px solid var(--border-strong);border-radius:6px;">
       <label><strong>Title</strong></label>
-      <input id="ed_title" type="text" value="${escapeHtml(doc.title || '')}" style="padding:6px 8px;border:1px solid var(--border-strong);border-radius:6px;">
+      <input id="ed_title" type="text" value="${escapeHtml(doc.title || '')}" placeholder="e.g. 上巻　序" style="padding:6px 8px;border:1px solid var(--border-strong);border-radius:6px;">
       <label><strong>Author / Date</strong></label>
       <input id="ed_author" type="text" value="${escapeHtml(doc.author || '')}" style="padding:6px 8px;border:1px solid var(--border-strong);border-radius:6px;">
       <label><strong>書き下し</strong></label>
@@ -6788,6 +7180,7 @@ function openEditDocInfoModal() {
       <label style="align-self:start;padding-top:6px;"><strong>Source Info</strong></label>
       <textarea id="ed_meta" style="min-height:95px;font-family:var(--font-ui);font-size:13px;line-height:1.5;" placeholder="Edition, manuscript witness, or citation...">${escapeHtml(doc.metadata || '')}</textarea>
     </div>
+    <div style="font-size:11.5px;color:var(--ink-muted);">Tip: Use <code>/</code> in Folder to create nested subfolders (for example, <code>日本霊異記/上巻</code>).</div>
     <div style="display:flex;justify-content:flex-end;gap:8px;">
       <button class="btn" onclick="closeEditDocInfoModal()">Cancel</button>
       <button class="btn active" onclick="saveEditDocInfoModal()">Save &amp; Sync</button>
@@ -6797,25 +7190,32 @@ function openEditDocInfoModal() {
 }
 
 function closeEditDocInfoModal() {
+  editingInfoDocId = null;
   document.getElementById("editDocInfoModal").classList.remove("open");
 }
 
 function saveEditDocInfoModal() {
-  const doc = getActiveDoc();
+  const doc = editingInfoDocId ? state.corpus.find(d => d.id === editingInfoDocId) : getActiveDoc();
   if (!doc) return;
   const title = (document.getElementById("ed_title").value || "").trim();
   if (!title) {
     alert("Title cannot be empty.");
     return;
   }
-  pushUndoSnapshot("Edit text info");
+  const folder = normalizeFolderPath(document.getElementById("ed_folder").value || "");
+  if (doc.id === activeDocId) pushUndoSnapshot("Edit text info");
+  doc.folder = folder;
+  doc.collection = folder;
   doc.title = title;
-  doc.collection = title.split("—")[0].trim();
   doc.author = (document.getElementById("ed_author").value || "").trim();
   doc.hasKakikudashi = document.getElementById("ed_has_kk").checked;
   doc._explicitHasKk = true;
   doc.metadata = (document.getElementById("ed_meta").value || "").trim();
-  if (!doc.hasKakikudashi && stageView === "kakikudashi") stageView = "primary";
+  if (folder) {
+    ensureLibraryFolderRecorded(folder);
+    folder.split("/").forEach((_, idx, arr) => collapsedLibraryFolders.delete(arr.slice(0, idx + 1).join("/")));
+  }
+  if (doc.id === activeDocId && !doc.hasKakikudashi && stageView === "kakikudashi") stageView = "primary";
 
   saveState(doc.id, null);
   closeEditDocInfoModal();
@@ -6830,6 +7230,7 @@ async function createNewDocFromModal() {
   const ta = document.getElementById("nd_text");
   if (ta) newDocDrafts[newDocActiveTab] = ta.value;
 
+  const folder = normalizeFolderPath(document.getElementById("nd_folder").value || "");
   const rawId = (document.getElementById("nd_id").value || "").trim();
   const title = (document.getElementById("nd_title").value || "").trim();
   const author = (document.getElementById("nd_author").value || "").trim();
@@ -6838,7 +7239,7 @@ async function createNewDocFromModal() {
   const metadata = (document.getElementById("nd_meta").value || "").trim();
 
   if (!rawId || !title) {
-    alert("Please enter at least an ID (e.g. 02.02) and a Title.");
+    alert("Please enter at least an ID and a Title.");
     return;
   }
 
@@ -6870,7 +7271,8 @@ async function createNewDocFromModal() {
   const newDoc = normalizeDocSchema({
     id: rawId,
     orderIndex: state.corpus.length + 1,
-    collection: title.split("—")[0].trim(),
+    folder,
+    collection: folder,
     title,
     author,
     primaryStyle,
@@ -6880,6 +7282,11 @@ async function createNewDocFromModal() {
     metadata,
     paragraphs
   });
+
+  if (folder) {
+    ensureLibraryFolderRecorded(folder);
+    folder.split("/").forEach((_, idx, arr) => collapsedLibraryFolders.delete(arr.slice(0, idx + 1).join("/")));
+  }
 
   const existingIdx = state.corpus.findIndex(d => d.id === rawId);
   if (existingIdx >= 0) state.corpus[existingIdx] = newDoc;
