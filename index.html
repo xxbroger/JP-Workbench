@@ -264,6 +264,9 @@
     padding-left: 7px;
     border-left: 1px solid #dcd5c5;
   }
+  .lib-folder-group.is-collapsed > .lib-folder-children {
+    display: none;
+  }
   .corpus-item {
     padding: 7px 9px;
     border-radius: 7px;
@@ -274,11 +277,55 @@
     gap: 2px;
     border: 1px solid transparent;
   }
+  .corpus-item[draggable="true"] { cursor: grab; }
+  .corpus-item[draggable="true"]:active { cursor: grabbing; }
   .corpus-item:hover { background: rgba(0,0,0,0.04); }
   .corpus-item.active {
     background: var(--bg-card);
     border-color: var(--border-strong);
     box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  }
+  .corpus-item.is-dragging,
+  .lib-folder-row.is-dragging {
+    opacity: 0.42;
+  }
+  .lib-folder-row.lib-drop-over {
+    background: var(--accent-soft) !important;
+    box-shadow: inset 0 0 0 1.5px var(--accent);
+  }
+  .lib-root-docs-wrap {
+    border-radius: 7px;
+    transition: background 0.12s, box-shadow 0.12s;
+  }
+  .lib-root-docs-wrap.lib-drop-over,
+  .corpus-group-label.lib-drop-over {
+    background: var(--accent-soft);
+    box-shadow: inset 0 0 0 1.5px var(--accent);
+    border-radius: 6px;
+  }
+  .lib-root-dropzone {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    margin-top: 8px;
+    padding: 9px 10px;
+    border: 1.5px dashed #bfb6a3;
+    border-radius: 7px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--ink-muted);
+    background: rgba(255, 253, 248, 0.55);
+    transition: background 0.12s, border-color 0.12s, color 0.12s;
+  }
+  .corpus-list.is-dragging-nested .lib-root-dropzone {
+    display: flex;
+  }
+  .lib-root-dropzone.lib-drop-over {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    border-style: solid;
+    color: var(--accent);
   }
   .corpus-item-top {
     display: flex;
@@ -3329,10 +3376,10 @@ function renderLibraryDocItem(doc) {
   const shortTitle = (doc.title || doc.id).split("—")[0].trim();
   const jsId = escapeHtml(doc.id).replace(/'/g, "\\'");
   return `
-    <div class="corpus-item ${active}" onclick="selectDoc('${jsId}')">
+    <div class="corpus-item ${active}" draggable="${isScribe ? 'true' : 'false'}" data-doc-id="${escapeHtml(doc.id)}" data-doc-folder="${escapeHtml(doc.folder || '')}" onclick="selectDoc('${jsId}')">
       <div class="corpus-item-top">
         <span style="overflow:hidden;text-overflow:ellipsis;">${escapeHtml(shortTitle)}</span>
-        ${isScribe ? `<button type="button" class="lib-icon-btn lib-item-edit" onclick="event.stopPropagation(); openEditDocInfoModal('${jsId}')" title="Edit title, folder, or info">✎</button>` : ""}
+        ${isScribe ? `<button type="button" class="lib-icon-btn lib-item-edit" draggable="false" onclick="event.stopPropagation(); openEditDocInfoModal('${jsId}')" title="Edit title, folder, or info">✎</button>` : ""}
       </div>
       ${doc.author ? `<div class="corpus-item-sub">${escapeHtml(doc.author)}</div>` : ""}
     </div>`;
@@ -3345,20 +3392,17 @@ function renderLibraryFolderNode(node) {
   const childFolders = Array.from(node.children.values()).sort((a, b) => a.name.localeCompare(b.name, "ja"));
   const sortedDocs = node.docs.slice().sort((a, b) => ((a.orderIndex || 99) - (b.orderIndex || 99)) || (a.title || "").localeCompare(b.title || "", "ja"));
 
-  let childrenHtml = "";
-  if (!isCollapsed) {
-    childrenHtml = `<div class="lib-folder-children">`
-      + childFolders.map(renderLibraryFolderNode).join("")
-      + sortedDocs.map(renderLibraryDocItem).join("")
-      + (totalDocs === 0 && childFolders.length === 0
-          ? `<div style="font-size:11px;color:var(--ink-faint);padding:4px 8px;">Empty folder</div>`
-          : "")
-      + `</div>`;
-  }
+  const childrenHtml = `<div class="lib-folder-children" data-drop-folder="${escapeHtml(node.path)}">`
+    + childFolders.map(renderLibraryFolderNode).join("")
+    + sortedDocs.map(renderLibraryDocItem).join("")
+    + (totalDocs === 0 && childFolders.length === 0
+        ? `<div style="font-size:11px;color:var(--ink-faint);padding:4px 8px;">Empty folder — drop texts here</div>`
+        : "")
+    + `</div>`;
 
   return `
-    <div class="lib-folder-group">
-      <div class="lib-folder-row" onclick="toggleLibraryFolder('${jsPath}')">
+    <div class="lib-folder-group ${isCollapsed ? 'is-collapsed' : ''}" data-folder-group="${escapeHtml(node.path)}">
+      <div class="lib-folder-row" draggable="${isScribe ? 'true' : 'false'}" data-drag-folder="${escapeHtml(node.path)}" data-drop-folder="${escapeHtml(node.path)}" onclick="toggleLibraryFolder('${jsPath}')">
         <div class="lib-folder-left">
           <span class="lib-folder-caret">${isCollapsed ? "▸" : "▾"}</span>
           <span>📁</span>
@@ -3367,9 +3411,9 @@ function renderLibraryFolderNode(node) {
         </div>
         ${isScribe ? `
           <span class="lib-folder-actions" onclick="event.stopPropagation()">
-            <button type="button" class="lib-icon-btn" onclick="openNewDocModal('${jsPath}')" title="Add new text in ${escapeHtml(node.name)}">＋</button>
-            <button type="button" class="lib-icon-btn" onclick="openFolderModal('rename', '${jsPath}')" title="Rename or move folder">✎</button>
-            <button type="button" class="lib-icon-btn" onclick="removeLibraryFolder('${jsPath}')" title="Remove folder">✕</button>
+            <button type="button" class="lib-icon-btn" draggable="false" onclick="openNewDocModal('${jsPath}')" title="Add new text in ${escapeHtml(node.name)}">＋</button>
+            <button type="button" class="lib-icon-btn" draggable="false" onclick="openFolderModal('rename', '${jsPath}')" title="Rename or move folder">✎</button>
+            <button type="button" class="lib-icon-btn" draggable="false" onclick="removeLibraryFolder('${jsPath}')" title="Remove folder">✕</button>
           </span>
         ` : ""}
       </div>
@@ -3380,6 +3424,7 @@ function renderLibraryFolderNode(node) {
 function renderSidebar() {
   const el = document.getElementById("corpusList");
   if (!el) return;
+  initLibraryDragAndDrop(el);
   const root = { path: "", name: "", children: new Map(), docs: [] };
   const ensureNode = (folderPath) => {
     const norm = normalizeFolderPath(folderPath);
@@ -3406,7 +3451,7 @@ function renderSidebar() {
   const rootDocs = root.docs.slice().sort((a, b) => ((a.orderIndex || 99) - (b.orderIndex || 99)) || (a.title || "").localeCompare(b.title || "", "ja"));
 
   let html = `
-    <div class="corpus-group-label" style="display:flex;justify-content:space-between;align-items:center;gap:4px;">
+    <div class="corpus-group-label" id="libHeaderBar" data-drop-root="1" style="display:flex;justify-content:space-between;align-items:center;gap:4px;">
       <span>Library</span>
       ${isScribe ? `
         <span style="display:inline-flex;gap:4px;">
@@ -3420,9 +3465,242 @@ function renderSidebar() {
     html += `<div style="font-size:12px;color:var(--ink-faint);padding:12px 8px;line-height:1.5;">Library is empty. Click <strong>+ Folder</strong> or <strong>+ Text</strong> above to add your first text.</div>`;
   } else {
     html += topFolders.map(renderLibraryFolderNode).join("");
-    html += rootDocs.map(renderLibraryDocItem).join("");
+    html += `<div class="lib-root-docs-wrap" id="libRootDocsWrap" data-drop-root="1">${rootDocs.map(renderLibraryDocItem).join("")}</div>`;
+    html += `<div class="lib-root-dropzone" id="libRootDropZone" data-drop-root="1">↩ Drop here to move to Library root</div>`;
   }
   el.innerHTML = html;
+}
+
+let libDndBound = false;
+let draggedLibItem = null; // { kind: 'doc', id, fromFolder } | { kind: 'folder', path, fromParent }
+let currentLibDropEl = null;
+let libHoverExpandTimer = null;
+let libHoverExpandPath = "";
+
+function clearLibDragHighlights() {
+  if (currentLibDropEl) {
+    currentLibDropEl.classList.remove("lib-drop-over");
+    currentLibDropEl = null;
+  }
+  if (libHoverExpandTimer) {
+    clearTimeout(libHoverExpandTimer);
+    libHoverExpandTimer = null;
+    libHoverExpandPath = "";
+  }
+}
+
+function setLibDropHighlight(el) {
+  if (currentLibDropEl === el) return;
+  if (currentLibDropEl) currentLibDropEl.classList.remove("lib-drop-over");
+  currentLibDropEl = el || null;
+  if (currentLibDropEl) currentLibDropEl.classList.add("lib-drop-over");
+}
+
+function isValidLibraryDrop(dragItem, targetFolder) {
+  if (!dragItem) return false;
+  const dest = normalizeFolderPath(targetFolder || "");
+  if (dragItem.kind === "doc") {
+    return dest !== (dragItem.fromFolder || "");
+  }
+  if (dragItem.kind === "folder") {
+    if (dest === dragItem.path || dest.startsWith(dragItem.path + "/")) return false;
+    return dest !== (dragItem.fromParent || "");
+  }
+  return false;
+}
+
+function resolveLibraryDropTarget(ev, containerEl) {
+  const t = ev.target;
+  if (!t || !t.closest) return null;
+  const folderZone = t.closest("[data-drop-folder]");
+  if (folderZone) {
+    const folderPath = folderZone.getAttribute("data-drop-folder") || "";
+    const group = folderZone.closest(".lib-folder-group");
+    const row = group ? group.querySelector(":scope > .lib-folder-row") : folderZone;
+    return { targetFolder: folderPath, highlightEl: row || folderZone, folderRowEl: row, folderGroupEl: group };
+  }
+  const rootZone = t.closest("[data-drop-root]");
+  if (rootZone) {
+    return { targetFolder: "", highlightEl: document.getElementById("libRootDropZone") || rootZone };
+  }
+  if (t === containerEl) {
+    return { targetFolder: "", highlightEl: document.getElementById("libRootDropZone") || document.getElementById("libHeaderBar") };
+  }
+  return null;
+}
+
+function moveDocToLibraryFolder(docId, destFolder) {
+  const doc = (state.corpus || []).find(d => d.id === docId);
+  if (!doc) return;
+  const normDest = normalizeFolderPath(destFolder || "");
+  if ((doc.folder || "") === normDest) return;
+
+  const beforeSnap = JSON.parse(JSON.stringify(doc));
+  if (doc.id === activeDocId) {
+    pushUndoSnapshot(normDest ? `Move to ${normDest}` : "Move to Library root");
+  }
+  doc.folder = normDest;
+  doc.collection = normDest;
+  if (normDest) {
+    ensureLibraryFolderRecorded(normDest);
+    normDest.split("/").forEach((_, i, arr) => collapsedLibraryFolders.delete(arr.slice(0, i + 1).join("/")));
+  }
+  if (doc.id !== activeDocId) {
+    recordImmediateChangeLog(doc.id, normDest ? `Move to ${normDest}` : "Move to Library root", beforeSnap, doc, "info");
+  }
+  saveState(doc.id, null);
+  renderSidebar();
+  renderBanner();
+}
+
+async function moveFolderToLibraryParent(oldPath, newParentPath) {
+  const normOld = normalizeFolderPath(oldPath);
+  const normParent = normalizeFolderPath(newParentPath || "");
+  if (!normOld) return;
+  if (normParent === normOld || normParent.startsWith(normOld + "/")) return;
+  const baseName = normOld.split("/").pop();
+  const newPath = normParent ? `${normParent}/${baseName}` : baseName;
+  if (newPath === normOld) return;
+
+  state.folders = Array.isArray(state.folders) ? state.folders : [];
+  state.folders = state.folders.map(f => {
+    if (f === normOld) return newPath;
+    if (f.startsWith(normOld + "/")) return newPath + f.slice(normOld.length);
+    return f;
+  });
+  if (!state.folders.includes(newPath)) state.folders.push(newPath);
+  newPath.split("/").forEach((_, i, arr) => collapsedLibraryFolders.delete(arr.slice(0, i + 1).join("/")));
+
+  const changedDocs = [];
+  (state.corpus || []).forEach(d => {
+    if (d.folder === normOld) {
+      d.folder = newPath;
+      d.collection = newPath;
+      changedDocs.push(d);
+    } else if ((d.folder || "").startsWith(normOld + "/")) {
+      d.folder = newPath + d.folder.slice(normOld.length);
+      d.collection = d.folder;
+      changedDocs.push(d);
+    }
+  });
+
+  saveFoldersToCloud();
+  if (cloud.ready && cloud.db && cloud.user && changedDocs.length > 0) {
+    const { doc, writeBatch } = cloud.sdk;
+    const batch = writeBatch(cloud.db);
+    changedDocs.forEach(dObj => batch.set(doc(cloud.db, "docs", dObj.id), serializeDocMetaForCloud(dObj), { merge: true }));
+    batch.commit().catch(err => console.error("Folder move sync error:", err));
+  }
+  renderSidebar();
+  renderBanner();
+}
+
+function initLibraryDragAndDrop(containerEl) {
+  if (libDndBound || !containerEl) return;
+  libDndBound = true;
+
+  containerEl.addEventListener("dragstart", (e) => {
+    if (!isScribe) { e.preventDefault(); return; }
+    if (e.target.closest && e.target.closest("button")) { e.preventDefault(); return; }
+
+    const docEl = e.target.closest && e.target.closest(".corpus-item[data-doc-id]");
+    if (docEl) {
+      const docId = docEl.getAttribute("data-doc-id") || "";
+      const fromFolder = normalizeFolderPath(docEl.getAttribute("data-doc-folder") || "");
+      draggedLibItem = { kind: "doc", id: docId, fromFolder };
+      if (e.dataTransfer) {
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/plain", "doc:" + docId);
+      }
+      docEl.classList.add("is-dragging");
+      containerEl.classList.add("is-dragging-lib");
+      if (fromFolder) containerEl.classList.add("is-dragging-nested");
+      return;
+    }
+
+    const folderEl = e.target.closest && e.target.closest(".lib-folder-row[data-drag-folder]");
+    if (folderEl) {
+      const path = normalizeFolderPath(folderEl.getAttribute("data-drag-folder") || "");
+      const fromParent = path.includes("/") ? path.split("/").slice(0, -1).join("/") : "";
+      draggedLibItem = { kind: "folder", path, fromParent };
+      if (e.dataTransfer) {
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/plain", "folder:" + path);
+      }
+      folderEl.classList.add("is-dragging");
+      containerEl.classList.add("is-dragging-lib");
+      if (fromParent) containerEl.classList.add("is-dragging-nested");
+    }
+  });
+
+  containerEl.addEventListener("dragover", (e) => {
+    if (!draggedLibItem || !isScribe) return;
+    const resolved = resolveLibraryDropTarget(e, containerEl);
+    if (!resolved) {
+      clearLibDragHighlights();
+      return;
+    }
+
+    // Auto-expand collapsed folder after hovering briefly during drag
+    if (resolved.folderGroupEl && resolved.folderGroupEl.classList.contains("is-collapsed")) {
+      const hoverPath = resolved.targetFolder;
+      if (hoverPath && hoverPath !== libHoverExpandPath && !(draggedLibItem.kind === "folder" && hoverPath === draggedLibItem.path)) {
+        if (libHoverExpandTimer) clearTimeout(libHoverExpandTimer);
+        libHoverExpandPath = hoverPath;
+        libHoverExpandTimer = setTimeout(() => {
+          collapsedLibraryFolders.delete(hoverPath);
+          if (resolved.folderGroupEl) {
+            resolved.folderGroupEl.classList.remove("is-collapsed");
+            const caret = resolved.folderRowEl && resolved.folderRowEl.querySelector(".lib-folder-caret");
+            if (caret) caret.textContent = "▾";
+          }
+        }, 500);
+      }
+    } else if (libHoverExpandTimer) {
+      clearTimeout(libHoverExpandTimer);
+      libHoverExpandTimer = null;
+      libHoverExpandPath = "";
+    }
+
+    if (!isValidLibraryDrop(draggedLibItem, resolved.targetFolder)) {
+      setLibDropHighlight(null);
+      return;
+    }
+
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+    setLibDropHighlight(resolved.highlightEl);
+  });
+
+  containerEl.addEventListener("dragleave", (e) => {
+    if (!e.relatedTarget || !containerEl.contains(e.relatedTarget)) {
+      clearLibDragHighlights();
+    }
+  });
+
+  containerEl.addEventListener("drop", (e) => {
+    if (!draggedLibItem || !isScribe) return;
+    const resolved = resolveLibraryDropTarget(e, containerEl);
+    const item = draggedLibItem;
+    clearLibDragHighlights();
+    containerEl.classList.remove("is-dragging-lib", "is-dragging-nested");
+    draggedLibItem = null;
+
+    if (!resolved || !isValidLibraryDrop(item, resolved.targetFolder)) return;
+    e.preventDefault();
+    if (item.kind === "doc") {
+      moveDocToLibraryFolder(item.id, resolved.targetFolder);
+    } else if (item.kind === "folder") {
+      moveFolderToLibraryParent(item.path, resolved.targetFolder);
+    }
+  });
+
+  containerEl.addEventListener("dragend", () => {
+    draggedLibItem = null;
+    clearLibDragHighlights();
+    containerEl.classList.remove("is-dragging-lib", "is-dragging-nested");
+    containerEl.querySelectorAll(".is-dragging").forEach(n => n.classList.remove("is-dragging"));
+  });
 }
 
 function openFolderModal(mode, targetPath) {
