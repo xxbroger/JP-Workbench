@@ -3894,11 +3894,32 @@ function flushAnyPendingDankuEdits() {
   });
 }
 
+function deselectAllCanvasSelections() {
+  const hadSentence = Boolean(activeSelection);
+  hideHlToolbar();
+  closePopover();
+  if (focusedNoteTarget) {
+    focusedNoteTarget = null;
+    clearLinkedNoteHighlights();
+  }
+  const sel = window.getSelection();
+  if (sel && !sel.isCollapsed) sel.removeAllRanges();
+  if (hadSentence) {
+    closeCompanionWindow();
+  }
+}
+
 function onPrimarySentClick(ev, paraId, idx) {
   if (ev && ev.target && (ev.target.closest("[data-pop]") || ev.target.closest("[data-hl-id]"))) return;
   const sel = window.getSelection();
   if (sel && !sel.isCollapsed && sel.toString().trim().length > 0) return;
+  // Single-clicking the same already-selected sentence deselects it
+  if (activeSelection && activeSelection.paraId === paraId && activeSelection.idx === idx) {
+    deselectAllCanvasSelections();
+    return;
+  }
   hideHlToolbar();
+  closePopover();
   flushAnyPendingDankuEdits();
   activeSelection = { paraId, idx };
   pendingKkSelectionRange = null;
@@ -3913,6 +3934,10 @@ function onKakikudashiSpanClick(ev, paraId, idx, isUnmapped) {
   if (ev && ev.target && (ev.target.closest("[data-pop]") || ev.target.closest("[data-hl-id]"))) return;
   const sel = window.getSelection();
   if (sel && !sel.isCollapsed && sel.toString().trim().length > 0) return;
+  if (activeSelection && activeSelection.paraId === paraId && activeSelection.idx === idx) {
+    deselectAllCanvasSelections();
+    return;
+  }
   if (isUnmapped) showKkSpanMapper = true;
   onPrimarySentClick(ev, paraId, idx);
 }
@@ -3926,6 +3951,17 @@ function closeCompanionWindow() {
   renderPrimaryStage();
   publishPresence();
 }
+
+// Single-clicking a blank spot in the reading canvas deselects active sentence / highlight / selection
+document.addEventListener("click", (e) => {
+  const target = e.target;
+  if (!target || !target.closest) return;
+  if (!target.closest("#primaryCanvasHost") && !target.closest(".primary-stage")) return;
+  if (target.closest(".doc-sent, mark[data-hl-id], .fn-badge, .comment-badge, [data-pop], button, a, input, textarea, select, #paratextBanner, #companionWindow, #notesRail, #popover, #hlToolbar")) return;
+  const sel = window.getSelection();
+  if (sel && !sel.isCollapsed && sel.toString().trim().length > 0) return;
+  deselectAllCanvasSelections();
+});
 
 function setWindowMode(mode) {
   windowMode = mode;
@@ -5571,11 +5607,22 @@ function createHighlightFromPending(color, mode) {
   }
 }
 
+let activePopoverHlId = null;
+
 function onHighlightClick(ev, paraId, hlId) {
   ev.stopPropagation();
   const sel = window.getSelection();
   if (sel && !sel.isCollapsed && sel.toString().trim().length > 0) return;
+  // Single-clicking the same highlighted phrase/character again deselects it
+  const popEl = document.getElementById("popover");
+  if ((activePopoverHlId === hlId && popEl && popEl.classList.contains("open")) || (focusedNoteTarget && focusedNoteTarget.hlId === hlId)) {
+    closePopover();
+    focusedNoteTarget = null;
+    clearLinkedNoteHighlights();
+    return;
+  }
   hideHlToolbar();
+  activePopoverHlId = hlId;
   const doc = getActiveDoc();
   const para = doc && doc.paragraphs.find(p => p.id === paraId);
   const hl = para && (para.highlights || []).find(h => h.id === hlId);
@@ -5889,6 +5936,7 @@ function positionPopover(ev, pop) {
 }
 
 function closePopover() {
+  activePopoverHlId = null;
   document.getElementById("popover").classList.remove("open");
 }
 
